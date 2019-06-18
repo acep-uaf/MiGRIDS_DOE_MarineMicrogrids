@@ -21,7 +21,7 @@ class FormOptimize(QtWidgets.QWidget):
         buttonBlock.setLayout(self.fillButtonBlock())
         vlayout.addWidget(buttonBlock)
         # read the config xml
-        xmlFile = os.path.join(os.path.dirname(__file__), '../GBSOptimizer/Resources/optimizerConfig.xml' )
+        xmlFile = os.path.join(os.path.dirname(__file__), '../Optimizer/Resources/optimizerConfig.xml' )
         infile_child = open(xmlFile, "r")  # open
         contents_child = infile_child.read()
         infile_child.close()

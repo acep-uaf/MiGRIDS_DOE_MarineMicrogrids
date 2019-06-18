@@ -4,7 +4,7 @@ def readComponentXML(componentType, infile = None):
     # xml templates are in the model/resources/descriptor folder
     here = os.path.dirname(os.path.realpath(__file__))
     # pull xml from project folder
-    componentPath = os.path.join(here, '../GBSModel/Resources/Components')
+    componentPath = os.path.join(here, '../Model/Resources/Components')
     # get list of component prefixes that correspond to componentDescriptors
 
     # read the xml file

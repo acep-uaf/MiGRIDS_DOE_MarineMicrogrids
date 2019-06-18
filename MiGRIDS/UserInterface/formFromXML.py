@@ -44,8 +44,8 @@ class formFromXML(QtWidgets.QDialog):
     #BeautifulSoup QVBoxLayout -> QVBoxLayout
     def displayXML(self, soup, vlayout):
         from bs4 import Comment
-        from GBSUserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-        from GBSUserInterface.gridLayoutSetup import setupGrid
+        from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+        from UserInterface.gridLayoutSetup import setupGrid
         g1 = {'headers': [1,2,3,4,5],
               'rowNames': [],
               'columnWidths': [2, 1, 1, 1, 1]}
@@ -153,7 +153,7 @@ class formFromXML(QtWidgets.QDialog):
     #when the form is closed the soup gets updated and writtent to an xml file
     #Event -> None
     def closeEvent(self,evnt):
-        from GBSController.UIToHandler import UIToHandler
+        from Controller.UIToHandler import UIToHandler
 
         print('closing descriptor file')
         #fillSetInfo soup

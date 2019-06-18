@@ -80,7 +80,7 @@ def readTemplateAttributeXML():
     # xml templates are in the model/resources/descriptor folder
     here = os.path.dirname(os.path.realpath(__file__))
     # pull xml from project folder
-    resourcePath = os.path.join(here, '../GBSModel/Resources/Setup')
+    resourcePath = os.path.join(here, '../Model/Resources/Setup')
     # get list of component prefixes that correspond to componentDescriptors
 
     # read the xml file

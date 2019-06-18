@@ -139,15 +139,14 @@ class ModelSetupInformation:
     def getAttributes(self):
         return self.__dict__.keys()
 
-    # but this will likely change to perform some actions during parameter assigment.
-    # That is why each parameter has its own fuction
+    '''set the project name attribute'''
     def assignProject(self, name):
 
         self.project = name
         #setupFolder is in tags before it gets set.
         if ('setupFolder' not in self.__dict__.keys()) | (self.setupFolder == ""):
             path = os.path.dirname(__file__)
-            self.setupFolder = os.path.join(path, *['..','..','GBSProjects', self.project, 'InputData','Setup'])
+            self.setupFolder = os.path.join(path, *['..','..','MiGRIDSProjects', self.project, 'InputData','Setup'])
         self.componentFolder = getFilePath(self.setupFolder ,'Components')
         self.projectFolder = getFilePath(self.setupFolder, 'Project')
         #self.outputFolder = getFilePath(self.projectFolder, 'OutputData')

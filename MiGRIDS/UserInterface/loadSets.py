@@ -51,8 +51,8 @@ def updateRunsSql():
 # ModelSetupInfo -> Boolean
 def loadSets(model,window):
     import os
-    from GBSUserInterface.FormModelRuns import SetsTableBlock
-    from GBSUserInterface.Pages import Pages
+    from UserInterface.FormModelRuns import SetsTableBlock
+    from UserInterface.Pages import Pages
     from PyQt5 import QtWidgets
     # if sets have been run then setup should not be editable, return True
     if os.path.exists(model.outputFolder):

@@ -1,4 +1,4 @@
-#Is called from the GBSUserInterface package to initiate xml file generation through the GBSInputHandler functions
+#Is called from the UserInterface package to initiate xml file generation through the InputHandler functions
 #ModelSetupInformation ->
 
 import os
@@ -39,7 +39,7 @@ class UIToHandler():
     #pass a component name, component folder and soup object to be written to a component descriptor
     #string, string, soup -> None
     def writeComponentSoup(self, component, fileDir, soup):
-        from GBSInputHandler.createComponentDescriptor import createComponentDescriptor
+        from InputHandler.createComponentDescriptor import createComponentDescriptor
         #soup is an optional argument, without it a template xml will be created.
         createComponentDescriptor(component, fileDir, soup)
         return
@@ -106,20 +106,17 @@ class UIToHandler():
     #String, String, String -> DataClass
     def loadFixData(self, setupFile):
 
-        from GBSInputHandler.getUnits import getUnits
-        from GBSInputHandler.fixBadData import fixBadData
-        from GBSInputHandler.fixDataInterval import fixDataInterval
+        from InputHandler.getUnits import getUnits
+        from InputHandler.fixBadData import fixBadData
+        from InputHandler.fixDataInterval import fixDataInterval
 
         inputDictionary = {}
         Village = readXmlTag(setupFile, 'project', 'name')[0]
         # input specification
 
 
-        # input a list of subdirectories under the GBSProjects directory
+        # input a list of subdirectories under the Projects directory
         fileLocation = readXmlTag(setupFile, 'inputFileDir', 'value')
-        #fileLocation = os.path.join(*fileLocation)
-        #fileLocation = os.path.join('/', fileLocation)
-        #inputDictionary['fileLocation'] = [os.path.join('../../GBSProjects', *x) for x in fileLocation]
         inputDictionary['fileLocation'] = fileLocation
         # file type
         fileType = readXmlTag(setupFile, 'inputFileType', 'value')
@@ -229,7 +226,7 @@ class UIToHandler():
     #generate netcdf files for model running
     #dataframe, dictionary -> None
     def createNetCDF(self, lodf,componentDict,setupFolder):
-        from GBSInputHandler.dataframe2netcdf import dataframe2netcdf
+        from InputHandler.dataframe2netcdf import dataframe2netcdf
         outputDirectory = getFilePath(setupFolder, 'Processed')
         netCDFList = []
         #if there isn't an output directory make one
@@ -299,9 +296,9 @@ class UIToHandler():
     #String, ComponentTable, SetupInformation
     def runModels(self, currentSet, componentTable, setupInfo):
         from PyQt5 import QtWidgets
-        from GBSModel.Operational.generateRuns import generateRuns
-        from GBSUserInterface.makeAttributeXML import makeAttributeXML, writeAttributeXML
-        from GBSModel.Operational.runSimulation import runSimulation
+        from Model.Operational.generateRuns import generateRuns
+        from UserInterface.makeAttributeXML import makeAttributeXML, writeAttributeXML
+        from Model.Operational.runSimulation import runSimulation
         #generate xml's based on inputs
         #call to run models
 
@@ -338,7 +335,7 @@ class UIToHandler():
         runSimulation(projectSetDir=setDir)
 
     def inputHandlerToUI(self, setupFolder, setupInfo):
-        from GBSInputHandler.getSetupInformation import getSetupInformation
+        from InputHandler.getSetupInformation import getSetupInformation
         # assign tag values in the setupxml to the setupInfo model
         getSetupInformation(os.path.join(setupFolder, setupInfo.project + 'Setup.xml'), setupInfo)
         return

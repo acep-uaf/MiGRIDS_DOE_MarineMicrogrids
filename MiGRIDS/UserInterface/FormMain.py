@@ -35,7 +35,7 @@ class MainForm(QtWidgets.QMainWindow):
 
         self.setCentralWidget(self.pageBlock)
         # Main title
-        self.setWindowTitle('GBS')
+        self.setWindowTitle('MiGRIDS')
         # show the form
         self.showMaximized()
 
@@ -160,13 +160,13 @@ class PageBlock(QtWidgets.QTabWidget):
 
 
     def initUI(self):
-        from GBSUserInterface.FormSetup import FormSetup
-        from GBSUserInterface.ResultsSetup import ResultsSetup
-        from GBSUserInterface.FormModelRuns import FormModelRun
-        from GBSUserInterface.FormOptimize import FormOptimize
-        from GBSUserInterface.ResultsModel import ResultsModel
-        from GBSUserInterface.ResultsOptimize import ResultsOptimize
-        from GBSUserInterface.FormContainer import FormContainer
+        from UserInterface.FormSetup import FormSetup
+        from UserInterface.ResultsSetup import ResultsSetup
+        from UserInterface.FormModelRuns import FormModelRun
+        from UserInterface.FormOptimize import FormOptimize
+        from UserInterface.ResultsModel import ResultsModel
+        from UserInterface.ResultsOptimize import ResultsOptimize
+        from UserInterface.FormContainer import FormContainer
 
         self.addTab(FormContainer(self,[FormSetup(self), ResultsSetup(self)],'Setup'), 'Setup')
         self.addTab(FormContainer(self, [FormModelRun(self), ResultsModel(self)],'Model'), 'Model')
@@ -178,8 +178,8 @@ class PageBlock(QtWidgets.QTabWidget):
     #Creates model and optimize tabs
     #this is called after a project name is set
     def enableTabs(self):
-        from GBSUserInterface.FormModelRuns import FormModelRun
-        from GBSUserInterface.FormOptimize import FormOptimize
+        from UserInterface.FormModelRuns import FormModelRun
+        from UserInterface.FormOptimize import FormOptimize
 
         c1 = self.findChild(FormModelRun)
         c1.show()

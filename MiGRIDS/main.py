@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from GBSController.callUIForm import callUIForm
+from Controller.callUIForm import callUIForm
 
 def main():
     callUIForm()

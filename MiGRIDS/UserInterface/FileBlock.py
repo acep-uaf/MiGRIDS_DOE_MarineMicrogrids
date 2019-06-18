@@ -1,7 +1,7 @@
 from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-import GBSUserInterface.ModelComponentTable as T
-import GBSUserInterface.ModelEnvironmentTable as E
-import GBSUserInterface.ModelFileInfoTable as F
+import UserInterface.ModelComponentTable as T
+import UserInterface.ModelEnvironmentTable as E
+import UserInterface.ModelFileInfoTable as F
 import re
 import os
 import pytz
