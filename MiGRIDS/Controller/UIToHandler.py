@@ -32,6 +32,12 @@ class UIToHandler():
     #string, string -> Soup
     #calls the InputHandler functions required to write component descriptor xml files
     def makeComponentDescriptor(self, component,componentDir):
+        '''
+        calls makecomponentSoup to write a default desciptor xml file for a component.
+        :param component: [String] the name of a component with the format [type][#][attribute]
+        :param componentDir: [String] the directory the descriptor xml file will be saved to
+        :return: [BeautifulSoup] of tags and values associated with a component type
+        '''
          #returns either a template soup or filled soup
         componentSoup = makeComponentSoup(component, componentDir)
         return componentSoup
@@ -69,9 +75,16 @@ class UIToHandler():
                 directories.append(file)
         return directories
 
-    #copy an existing xml file to the current project director and write contents to SQLRecord to fillSetInfo project_manager database
-    #string, string, SQLRecord -> SQLRecord
+
     def copyDescriptor(self,descriptorFile, componentDir, sqlRecord):
+        '''
+        Copy an existing xml template in the resource folder to the project directory and write contents to component table in projet_manager
+         database
+        :param descriptorFile: [String] the name of the descriptor xml file to write
+        :param componentDir: [String] the file path to the project component directory
+        :param sqlRecord: The table record to write values to
+        :return: sqlRecord
+        '''
         import shutil
 
         fileName =os.path.basename(descriptorFile)
