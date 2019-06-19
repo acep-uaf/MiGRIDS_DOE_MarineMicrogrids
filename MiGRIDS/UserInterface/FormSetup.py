@@ -1,7 +1,13 @@
-
-from PyQt5 import QtCore, QtWidgets, QtGui
+'''created by T.Morgan
+The FormSetup widget has 3 purposes.
+1. Creates or loads a setup.xml file for a specific project
+2. It creates or loads descriptor xml files for each component that will be included in the model
+3. It ties individual components to an input file containing timer series values for each component
+wind turbine components can have either an associated power time series or a windspeed file that a power time series will be generated from
+In the case of a windspeed file a windspeed netcdf file will be generated and power time series will be generated once the model is run based
+on each wtg components descriptor file.'''
 import os
-
+from PyQt5 import QtCore, QtWidgets, QtGui
 from UserInterface.ModelSetupInformation import ModelSetupInformation
 from InputHandler.Component import Component
 from Controller.UIToHandler import UIToHandler
@@ -15,7 +21,6 @@ from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 from UserInterface.ModelSetupInformation import SetupTag
 from UserInterface.switchProject import switchProject
 from UserInterface.getFilePaths import getFilePath
-import os
 from UserInterface.replaceDefaultDatabase import replaceDefaultDatabase
 
 class FormSetup(QtWidgets.QWidget):
@@ -66,7 +71,7 @@ class FormSetup(QtWidgets.QWidget):
 
         self.setLayout(windowLayout)
         #title is setup
-        self.setWindowTitle('Setup')
+        self.setWindowTitle('Input Files')
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         #show the form
         self.showMaximized()
@@ -145,7 +150,8 @@ class FormSetup(QtWidgets.QWidget):
         :return: None
         '''
         buttonFunction()
-
+    def projectExists(self):
+        return os.path.exists(model.setupFolder)
     def functionForCreateButton(self):
         '''
         Launches input wizard and creates setup.xml file based on information collected by the wizard
@@ -157,23 +163,30 @@ class FormSetup(QtWidgets.QWidget):
             global model
             model = self.model
 
-        s = self.WizardTree
-        s.exec_()
-        handler = UIToHandler()
-        handler.makeSetup(model)
+        self.fillSetup()
         #display collected data
         #returns true if setup info has been entered
         hasSetup = model.feedSetupInfo()
         self.projectDatabase = False
         if hasSetup:
-            #self.topBlock.setEnabled(True)
-            #self.environmentBlock.setEnabled(True)
-            #self.componentBlock.setEnabled(True)
+
             #enable the model and optimize pages too
             pages = self.window().findChild(QtWidgets.QTabWidget,'pages')
             pages.enableTabs()
             self.tabs.setEnabled(True)
             self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.model.project)
+    def fillSetup(self):
+        s = self.WizardTree
+        s.exec_()
+        handler = UIToHandler()
+        handler.makeSetup(model)
+        if self.projectExists():
+            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Project Aready Exists",
+                                        "Do you want to overwrite existing setup files?.")
+            msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+            overwrite = msg.exec()
+            if overwrite != QtWidgets.QMessageBox.Yes:
+                self.fillSetup() # call up the wizard again so a new project name can be assigned
 
     #searches for and loads existing project data - database, setupxml,descriptors, DataClass pickle, Component pickle netcdf,previously run model results, previous optimization results
     def functionForLoadButton(self):
@@ -383,6 +396,10 @@ class FormSetup(QtWidgets.QWidget):
         '''
         # start and end dates get set written to database as default date ranges
         import pandas as pd
+        #each dataframe needs a datetime index
+        for df in data.fixed:
+            assert(type(df.index[0])==pd.datetime)
+
         def getDefaults(listDf,defaultStart=pd.to_datetime("1/1/1900").date(), defaultEnd = pd.datetime.today().date()):
             '''
             returns the earliest and latest date index found in a list of dataframes with date indices. Will return initial default
@@ -410,9 +427,7 @@ class FormSetup(QtWidgets.QWidget):
         values['date_start'], values['date_end'] = getDefaults(data.fixed)
         values['component_names'] = ','.join(self.model.componentNames.value)
 
-
         self.dbHandler.updateDefaultSetup(values)
-
 
         # Deliver appropriate info to the ModelForm
         modelForm = self.window().findChild(SetsTableBlock)
@@ -452,12 +467,12 @@ class FormSetup(QtWidgets.QWidget):
         #if its not the default empty tab fill data into form slots
         if i>0:
             widg.fillData(self.model,i)
-    # calls the specified function connected to a button onClick event
+
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):
         buttonFunction()
 
-# ->QPushButton
+
     def createSubmitButton(self):
         button = QtWidgets.QPushButton()
         button.setText("Generate netCDF inputs")

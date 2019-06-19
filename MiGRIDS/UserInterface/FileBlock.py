@@ -43,9 +43,9 @@ class FileBlock(QtWidgets.QGroupBox):
         windowLayout.addWidget(self.componentBlock)
 
         # the bottom block is disabled until a setup file is created or loaded
-        self.createTableBlock('Environment Data', 'environment', self.assignEnvironmentBlock)
+        #self.createTableBlock('Environment Data', 'environment', self.assignEnvironmentBlock)
 
-        windowLayout.addWidget(self.environmentBlock)
+        #windowLayout.addWidget(self.environmentBlock)
         return windowLayout
 
         # creates a horizontal layout containing gridlayouts for data input
@@ -136,14 +136,14 @@ class FileBlock(QtWidgets.QGroupBox):
             tv.hideColumn(0)
 
             tableGroup.addWidget(tv, 1)
-        else:
+        '''else:
             tv = E.EnvironmentTableView(self)
             tv.setObjectName('environment')
             m = E.EnvironmentTableModel(self)
 
             tv.setModel(m)
             tv.hideColumn(0)
-            tableGroup.addWidget(tv, 1)
+            tableGroup.addWidget(tv, 1)'''
         self.filterTables()
         gb.setLayout(tableGroup)
         gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -153,7 +153,8 @@ class FileBlock(QtWidgets.QGroupBox):
     # Load an existing descriptor file and populate the component table
     # -> None
     def functionForLoadDescriptor(self):
-
+        '''load a descriptor file for a component and populate the project_manager database with its values
+        '''
         msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, 'Load Descriptor',
                                     'If the component descriptor file you are loading has the same name as an existing component it will not load')
         msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
@@ -173,6 +174,7 @@ class FileBlock(QtWidgets.QGroupBox):
             record = model.record()
             record.setValue('original_field_name', fieldName)
 
+            #make a default descriptor xml file
             handler = UIToHandler()
             record = handler.copyDescriptor(descriptorFile[0], self.model.componentFolder, record)
 
@@ -288,8 +290,8 @@ class FileBlock(QtWidgets.QGroupBox):
         return
     # Setters
     #(String, number, list or Object) ->
-    def assignEnvironmentBlock(self, value):
-        self.environmentBlock = value
+    '''def assignEnvironmentBlock(self, value):
+        self.environmentBlock = value'''
 
     def assignComponentBlock(self,value):
         self.componentBlock = value
