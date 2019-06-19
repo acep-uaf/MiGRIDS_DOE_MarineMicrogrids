@@ -29,30 +29,27 @@ class FormSetup(QtWidgets.QWidget):
     def initUI(self):
         self.dbHandler = ProjectSQLiteHandler()
         self.setObjectName("setupDialog")
-
         self.model = model
-
         #the main layout is oriented vertically
         windowLayout = QtWidgets.QVBoxLayout()
 
         # the top block is buttons to load setup xml and data files
         self.createButtonBlock()
         windowLayout.addWidget(self.ButtonBlock)
+        #each tab is for an individual input file.
         self.tabs = Pages(self, '1',FileBlock)
         self.tabs.setDisabled(True)
-        #each file type gets its own page to specify formats and headers to include
-        # button to create a new set tab
+
+        # button to create a new file tab
         newTabButton = QtWidgets.QPushButton()
         newTabButton.setText(' + Input')
         newTabButton.setFixedWidth(100)
         newTabButton.clicked.connect(self.newTab)
         windowLayout.addWidget(newTabButton)
-
         windowLayout.addWidget(self.tabs,3)
 
         #list of dictionaries containing information for wizard
         #this is the information that is not input file specific.
-
         dlist = [
             {'title': 'Dates to model', 'prompt': 'Enter the timespan you would like to include in the model.', 'sqltable': None,
               'sqlfield': None, 'reftable': None, 'name': 'runTimesteps', 'folder': False, 'dates':True},
@@ -74,9 +71,11 @@ class FormSetup(QtWidgets.QWidget):
         #show the form
         self.showMaximized()
 
-    #FormSetup -> QWidgets.QHBoxLayout
-    #creates a horizontal button layout to insert in FormSetup
     def createButtonBlock(self):
+        '''
+        create the layout containing buttons to load or create a new project
+        :return: QWidgets.QHBoxLayout
+        '''
         self.ButtonBlock = QtWidgets.QGroupBox()
         hlayout = QtWidgets.QHBoxLayout()
         #layout object name
@@ -102,9 +101,11 @@ class FormSetup(QtWidgets.QWidget):
         hlayout.addStretch(1)
         return hlayout
 
-        # FormSetup -> QWidgets.QHBoxLayout
-        # creates a horizontal button layout to insert in FormSetup
     def createBottomButtonBlock(self):
+        '''
+        Creates the bottom buttons associated with the setup form
+        :return: QWidgets.QHBoxLayout
+        '''
         self.BottomButtons = QtWidgets.QGroupBox()
         hlayout = QtWidgets.QHBoxLayout()
         # layout object name
@@ -136,15 +137,20 @@ class FormSetup(QtWidgets.QWidget):
 
         return hlayout
 
-    #method -> None
-    #calls the specified function connected to a button onClick event
     @QtCore.pyqtSlot()
     def onClick(self,buttonFunction):
+        '''
+        calls the provided function during an onclick event
+        :param buttonFunction: a function or routine to be called
+        :return: None
+        '''
         buttonFunction()
 
-    #FormSetup -> None
-    #method to modify FormSetup content
     def functionForCreateButton(self):
+        '''
+        Launches input wizard and creates setup.xml file based on information collected by the wizard
+        :return: None
+        '''
         #if a project is already started save it before starting a new one
         if (self.model.project != '') & (self.model.project is not None):
             self.model = switchProject(self)
@@ -247,7 +253,7 @@ class FormSetup(QtWidgets.QWidget):
     #looks in the processed folder and lists nc files found
     #->ListOfStrings
     def listNetCDFs(self):
-        lof = [f for f in os.listdir(getFilePath(self.model.setupFolder,'Processed')) if f[-2] =='nc']
+        lof = [f for f in os.listdir(getFilePath(self.model.setupFolder,'ProcessedData')) if f[-2] =='nc']
         return lof
 
 
@@ -368,13 +374,25 @@ class FormSetup(QtWidgets.QWidget):
 
         return
 
-    # DataClass with data frame called 'fixed' and field 'datetime'
-    # updates default component list, time range and time step values in the setup table and passes these values to the modelDialog
-    # DataClass -> None
     def updateModelPage(self, data):
+        '''
+        updates the default component list, time range and time step values in the setup table in the project database
+        based on fields and timesteps found in data.fixed and passes these values to the ModelDialog
+        :param data: DataClass with a pandas.DataFrame named fixed which contains a datetime field
+        :return: None
+        '''
         # start and end dates get set written to database as default date ranges
         import pandas as pd
         def getDefaults(listDf,defaultStart=pd.to_datetime("1/1/1900").date(), defaultEnd = pd.datetime.today().date()):
+            '''
+            returns the earliest and latest date index found in a list of dataframes with date indices. Will return initial default
+            start and end if no dates are found in dataframes.
+            :param listDf: is a list of pandas.dataframes, all with a date index
+            :param defaultStart: pandas date value that will be the default start date if none is found in the list of dataframes
+            :param defaultEnd: pandas date value that will be the default end date if none is found in the list of dataframes
+            :return: String start date, String end date
+            '''
+            #TODO add error handeling for non-date-indexed dataframe
             if len(listDf) > 0:
                 s = listDf[0].index[0].date()
                 e = listDf[0].index[len(listDf[0])-1].date()
@@ -388,20 +406,18 @@ class FormSetup(QtWidgets.QWidget):
             return str(defaultStart), str(defaultEnd)
 
         #default start is the first date there is record for
-        defaultStart, defaultEnd = getDefaults(data.fixed)
-        defaultComponents = ','.join(self.model.componentNames.value)
+        values = {}
+        values['date_start'], values['date_end'] = getDefaults(data.fixed)
+        values['component_names'] = ','.join(self.model.componentNames.value)
 
-        #TODO this should be moved to the handler
-        #TODO this should be moved to the handler
-        self.dbHandler.cursor.execute(
-            "UPDATE setup set date_start = ?, date_end = ?, component_names = ? where set_name = 'default'",
-            [defaultStart, defaultEnd, defaultComponents])
-        self.dbHandler.connection.commit()
+
+        self.dbHandler.updateDefaultSetup(values)
+
 
         # Deliver appropriate info to the ModelForm
         modelForm = self.window().findChild(SetsTableBlock)
         # start and end are tuples at this point
-        modelForm.makeSetInfo(start=defaultStart, end=defaultEnd, components=defaultComponents)
+        modelForm.makeSetInfo(start=values['date_start'], end=values['date_end'], components=values['component_names'])
 
         #deliver the data to the ResultsSetup form so it can be plotted
         resultsForm = self.window().findChild(ResultsSetup)

@@ -48,6 +48,11 @@ class ProjectSQLiteHandler:
                             """
                             )
         self.connection.commit()
+    def updateDefaultSetup(self,values):
+        self.cursor.prepare(
+            "UPDATE setup set date_start = ?, date_end = ?, component_names = ? where set_name = 'default'",
+            [values['date_start'],values['date_end'],values['component_names']])
+        self.connection.commit()
     #String, ListOfTuples -> None
     def addRefValues(self, tablename, values):
 

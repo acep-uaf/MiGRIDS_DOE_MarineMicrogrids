@@ -50,8 +50,8 @@ class MainForm(QtWidgets.QMainWindow):
 
         self.data = [
             ('Setup', [
+                ('Setup File',[]),
                 ('Input Files',[]),
-                ('File Input',[]),
                 ('Environment',[]),
                 ('Components',[])
             ]),
@@ -65,8 +65,8 @@ class MainForm(QtWidgets.QMainWindow):
 
             ])
         ]
-        self.focusObjects = {'Input Files':FormSetup.functionForCreateButton,
-                             'File Input':'fileInput',
+        self.focusObjects = {'Setup File':FormSetup.functionForCreateButton,
+                             'Input Files':'fileInput',
                              'Environment':'environment',
                              'Components':'components',
 
