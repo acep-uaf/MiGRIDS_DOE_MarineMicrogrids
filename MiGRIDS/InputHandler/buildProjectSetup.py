@@ -15,7 +15,7 @@ def buildProjectSetup(projectName,saveDir,componentNames):
     if saveDir != '':
         # cd to where component descriptors are located
         here = os.path.dirname(os.path.realpath(__file__))
-        setupPath = os.path.join(here, *['..','GBSModel','Resources','Setup'])
+        setupPath = os.path.join(here, *['..','Model','Resources','Setup'])
 
         fileName = os.path.join(setupPath,'projectSetup.xml') # get filename
         infile_child = open(fileName, "r")  # open

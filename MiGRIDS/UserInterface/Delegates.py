@@ -38,7 +38,7 @@ class ComboDelegate(QtWidgets.QItemDelegate):
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
-        from GBSUserInterface.getComponentAttributesAsList import getComponentAttributesAsList
+        from UserInterface.getComponentAttributesAsList import getComponentAttributesAsList
         self.commitData.emit(self.sender())
         #if its the sets table then the attribute list needs to be updated
         if self.name == 'componentName':
@@ -174,10 +174,10 @@ class ComponentFormOpenerDelegate(QtWidgets.QItemDelegate):
 
     @QtCore.pyqtSlot()
     def cellButtonClicked(self, index):
-        from GBSUserInterface.formFromXML import formFromXML
-        from GBSController.UIToHandler import UIToHandler
+        from UserInterface.formFromXML import formFromXML
+        from Controller.UIToHandler import UIToHandler
 
-        from GBSUserInterface.ModelComponentTable import  ComponentTableModel
+        from UserInterface.ModelComponentTable import  ComponentTableModel
 
         import os
 
