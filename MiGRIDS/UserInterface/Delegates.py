@@ -1,13 +1,17 @@
 from PyQt5 import QtCore, QtWidgets, QtSql
 from InputHandler.Component import Component
 from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+
 import os
 #class for combo boxes that are not derived from database relationships
 class ComboDelegate(QtWidgets.QItemDelegate):
+
+
     def __init__(self,parent,values, name=None):
         QtWidgets.QItemDelegate.__init__(self,parent)
         self.values = values
         self.name = name
+
 
     def createEditor(self,parent, option, index):
         combo = QtWidgets.QComboBox(parent)
@@ -176,8 +180,8 @@ class ComponentFormOpenerDelegate(QtWidgets.QItemDelegate):
     def cellButtonClicked(self, index):
         from UserInterface.formFromXML import formFromXML
         from Controller.UIToHandler import UIToHandler
-
         from UserInterface.ModelComponentTable import  ComponentTableModel
+        from UserInterface.ModelComponentTable import  ComponentFields
 
         import os
 
@@ -191,13 +195,13 @@ class ComponentFormOpenerDelegate(QtWidgets.QItemDelegate):
             #column 0 is id, 3 is name, 2 is type
 
             #make a component object from these model data
-            component =Component(component_name=model.data(model.index(index.row(), 3)),
-                                         original_field_name=model.data(model.index(index.row(), 1)),
-                                         units=model.data(model.index(index.row(), 4)),
-                                         offset=model.data(model.index(index.row(), 6)),
-                                         type=model.data(model.index(index.row(), 2)),
-                                         attribute=model.data(model.index(index.row(), 7)),
-                                         scale=model.data(model.index(index.row(), 5)),
+            component =Component(component_name=model.data(model.index(index.row(), ComponentFields.NAME.value)),
+                                 original_field_name=model.data(model.index(index.row(), ComponentFields.ORIGINALFIELD.value)),
+                                 units=model.data(model.index(index.row(), ComponentFields.UNITS.value)),
+                                 offset=model.data(model.index(index.row(), ComponentFields.OFFSET.value)),
+                                 type=model.data(model.index(index.row(), ComponentFields.TYPE.value)),
+                                 attribute=model.data(model.index(index.row(), ComponentFields.ATTRIBUTE.value)),
+                                 scale=model.data(model.index(index.row(), ComponentFields.SCALE.value)),
 
                                  )
              #the project filepath is stored in the model data for the setup portion
@@ -207,15 +211,19 @@ class ComponentFormOpenerDelegate(QtWidgets.QItemDelegate):
             setupInfo.setupFolder
             componentDir = os.path.join(setupInfo.setupFolder, '../Components')
 
-            #TODO check if component type has been set
-            #tell the input handler to create or read a component descriptor and combine it with attributes in component
-            componentSoup = handler.makeComponentDescriptor(component.column_name, componentDir)
-            #data from the form gets saved to a soup, then written to xml
-            #modify the soup to reflect data in the data model
+            if component.type !="":
+                #tell the input handler to create or read a component descriptor and combine it with attributes in component
+                componentSoup = handler.makeComponentDescriptor(component.column_name, componentDir)
+                #data from the form gets saved to a soup, then written to xml
+                #modify the soup to reflect data in the data model
+                component.component_directory = componentDir
+                f = formFromXML(component, componentSoup)
+            else:
+                msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Missing Component Type",
+                                            "You need to select a component type before editing attributes.")
+                msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+                msg.exec()
 
-
-            component.component_directory = componentDir
-            f = formFromXML(component, componentSoup)
         else:
             msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Missing Component Name",
                                             "You need to select a component before editing attributes.")

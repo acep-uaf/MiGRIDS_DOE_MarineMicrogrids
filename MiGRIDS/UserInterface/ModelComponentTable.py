@@ -1,6 +1,21 @@
-
+'''
+Created by: T. Morgan
+ComponentTableView is a default table view tied to the component table in project_manager database
+'''
 from UserInterface.Delegates import *
+from enum import Enum
 
+class ComponentFields(Enum):
+    ID=0
+    DIRECTORY =1
+    ORIGINALFIELD = 2
+    TYPE = 3
+    NAME = 4
+    UNITS = 5
+    SCALE = 6
+    OFFSET = 7
+    ATTRIBUTE = 8
+    CUSTOMIZE = 9
 
 #QTableView for displaying component information
 class ComponentTableView(QtWidgets.QTableView):
@@ -12,20 +27,13 @@ class ComponentTableView(QtWidgets.QTableView):
 
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
         self.resizeColumnsToContents()
-        #text columns
-        t_boxes = [1,2,6,7,]
-        #for i in t_boxes:
-         #   self.setItemDelegateForColumn(i, TextDelegate(self))
-#this doesn't do anything here
-        self.setColumnHidden(0, True)
-        self.setColumnHidden(1, True)
 
         #combo columns
-        self.setItemDelegateForColumn(1, TextDelegate(self))
-        self.setItemDelegateForColumn(3,RelationDelegate(self,'component_type'))
-        self.setItemDelegateForColumn(8, RelationDelegate(self, 'component_attribute'))
-        self.setItemDelegateForColumn(5, RelationDelegate(self, 'component_units'))
-        self.setItemDelegateForColumn(9,ComponentFormOpenerDelegate(self,'+'))
+        self.setItemDelegateForColumn(ComponentFields.DIRECTORY.value, TextDelegate(self))
+        self.setItemDelegateForColumn(ComponentFields.TYPE.value, RelationDelegate(self, 'component_type'))
+        self.setItemDelegateForColumn(ComponentFields.ATTRIBUTE.value, RelationDelegate(self, 'component_attribute'))
+        self.setItemDelegateForColumn(ComponentFields.UNITS.value, RelationDelegate(self, 'component_units'))
+        self.setItemDelegateForColumn(ComponentFields.CUSTOMIZE.value, ComponentFormOpenerDelegate(self, '+'))
 
 #data model to fill component table
 class ComponentTableModel(QtSql.QSqlRelationalTableModel):
@@ -34,7 +42,7 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         QtSql.QSqlTableModel.__init__(self, parent)
         #values to use as headers for component table
         self.header = ['ID','Directory','Field', 'Type', 'Component Name', 'Units', 'Scale',
-                    'Offset','Attribute','Tags']
+                    'Offset','Attribute','Customize']
         self.setTable('components')
         #leftjoin so null values ok
         self.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
