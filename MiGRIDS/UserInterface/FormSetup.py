@@ -59,7 +59,7 @@ class FormSetup(QtWidgets.QWidget):
             {'title': 'Dates to model', 'prompt': 'Enter the timespan you would like to include in the model.', 'sqltable': None,
               'sqlfield': None, 'reftable': None, 'name': 'runTimesteps', 'folder': False, 'dates':True},
             {'title': 'Timestep', 'prompt': 'Enter desired timestep', 'sqltable': None, 'sqlfield': None,
-              'reftable': 'ref_time_units', 'name': 'timestep', 'folder': False},
+              'reftable': 'ref_time_units', 'name': 'timeStep', 'folder': False},
             {'title': 'Project', 'prompt': 'Enter the name of your project', 'sqltable': None,
               'sqlfield': None, 'reftable': None, 'name': 'project', 'folder': False}
         ]
@@ -175,6 +175,7 @@ class FormSetup(QtWidgets.QWidget):
             pages.enableTabs()
             self.tabs.setEnabled(True)
             self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.model.project)
+
     def fillSetup(self):
         s = self.WizardTree
         s.exec_()
@@ -304,7 +305,9 @@ class FormSetup(QtWidgets.QWidget):
         """save the input in the wizard tree to the ModelSetupInformation data model"""
         model = self.model
         model.assignProject(self.WizardTree.field('project'))
-        model.assignTimeStep(SetupTag.assignValue, self.WizardTree.field('timestep'))
+        model.assignTimeStep(SetupTag.assignValue, self.WizardTree.field('timeInterval'))
+        model.assignTimeStep(SetupTag.assignUnits, self.WizardTree.field('timeUnit'))
+
         model.assignRunTimesteps(SetupTag.assignValue, self.WizardTree.field('sdate') + ' ' + self.WizardTree.field('edate'))
         return
 

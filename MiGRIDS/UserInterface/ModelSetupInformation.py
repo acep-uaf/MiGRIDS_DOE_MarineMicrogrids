@@ -109,6 +109,7 @@ class ModelSetupInformation:
                                    'componentAttributeunit': [self.assignComponentAttribute, SetupTag.assignUnits],
                                    'timeZonevalue':[self.assignTimeZone, SetupTag.assignValue],
                                    'useDST':[self.assignUseDST,SetupTag.assignValue]
+
                                    }
 
         #empty values
@@ -128,7 +129,7 @@ class ModelSetupInformation:
         self.inputTimeStep = SetupTag('inputTimeStep')
         self.timeZone = SetupTag('timeZone')
         self.useDST = SetupTag('useDST')
-        self.runTimesteps = SetupTag('runTimeStep')
+        self.runTimesteps = SetupTag('runTimeSteps')
         self.timeStep = SetupTag('timeStep')
         self.inputFileDir = SetupTag('inputFileDir')
         self.componentNames = SetupTag('componentNames')
