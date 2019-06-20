@@ -2,7 +2,7 @@
 import os
 
 from PyQt5 import QtWidgets, QtCore
-from Controller.UIToHandler import UIToHandler
+from Controller.UIToInputHandler import UIToHandler
 
 
 

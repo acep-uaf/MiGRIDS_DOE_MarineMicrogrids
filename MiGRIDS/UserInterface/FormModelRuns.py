@@ -5,7 +5,7 @@ from UserInterface.TableHandler import TableHandler
 from UserInterface.ModelSetTable import SetTableModel, SetTableView
 from UserInterface.ModelRunTable import RunTableModel, RunTableView
 from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-from Controller.UIToHandler import UIToHandler
+from Controller.UIToInputHandler import UIToHandler
 from UserInterface.Pages import Pages
 import datetime
 import os

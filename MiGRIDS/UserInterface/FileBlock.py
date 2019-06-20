@@ -7,7 +7,7 @@ import os
 import pytz
 from UserInterface.Delegates import ClickableLineEdit
 from UserInterface.gridLayoutSetup import setupGrid
-from Controller.UIToHandler import UIToHandler
+from Controller.UIToInputHandler import UIToHandler
 from UserInterface.makeButtonBlock import makeButtonBlock
 from UserInterface.TableHandler import TableHandler
 from UserInterface.ModelSetupInformation import SetupTag

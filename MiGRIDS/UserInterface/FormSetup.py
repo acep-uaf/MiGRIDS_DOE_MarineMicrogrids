@@ -9,8 +9,8 @@ on each wtg components descriptor file.'''
 import os
 from PyQt5 import QtCore, QtWidgets, QtGui
 from UserInterface.ModelSetupInformation import ModelSetupInformation
-from InputHandler.Component import Component
-from Controller.UIToHandler import UIToHandler
+
+from Controller.UIToInputHandler import UIToHandler
 from UserInterface.makeButtonBlock import makeButtonBlock
 from UserInterface.ResultsSetup import  ResultsSetup
 from UserInterface.FormModelRuns import SetsTableBlock
@@ -162,14 +162,13 @@ class FormSetup(QtWidgets.QWidget):
             self.model = switchProject(self)
             global model
             model = self.model
-
+        #calls the setup wizard to fill model
         self.fillSetup()
         #display collected data
         #returns true if setup info has been entered
         hasSetup = model.feedSetupInfo()
         self.projectDatabase = False
         if hasSetup:
-
             #enable the model and optimize pages too
             pages = self.window().findChild(QtWidgets.QTabWidget,'pages')
             pages.enableTabs()
@@ -177,10 +176,15 @@ class FormSetup(QtWidgets.QWidget):
             self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.model.project)
 
     def fillSetup(self):
+        '''
+        calls the setup wizard to fill setup information into the ModelSetupInformation and subsequently to setup.xml
+        :return:
+        '''
         s = self.WizardTree
         s.exec_()
         handler = UIToHandler()
-        handler.makeSetup(model)
+
+        #If the project already exists wait to see if it should be overwritten
         if self.projectExists():
             msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Project Aready Exists",
                                         "Do you want to overwrite existing setup files?.")
@@ -188,7 +192,7 @@ class FormSetup(QtWidgets.QWidget):
             overwrite = msg.exec()
             if overwrite != QtWidgets.QMessageBox.Yes:
                 self.fillSetup() # call up the wizard again so a new project name can be assigned
-
+        handler.makeSetup(model) #this line won't get reached until an original project name is generated or overwrite is chose
     #searches for and loads existing project data - database, setupxml,descriptors, DataClass pickle, Component pickle netcdf,previously run model results, previous optimization results
     def functionForLoadButton(self):
         '''The load function reads the designated setup xml, looks for descriptor xmls,
@@ -307,7 +311,6 @@ class FormSetup(QtWidgets.QWidget):
         model.assignProject(self.WizardTree.field('project'))
         model.assignTimeStep(SetupTag.assignValue, self.WizardTree.field('timeInterval'))
         model.assignTimeStep(SetupTag.assignUnits, self.WizardTree.field('timeUnit'))
-
         model.assignRunTimesteps(SetupTag.assignValue, self.WizardTree.field('sdate') + ' ' + self.WizardTree.field('edate'))
         return
 
@@ -358,7 +361,7 @@ class FormSetup(QtWidgets.QWidget):
             return
 
         dbhandler.closeDatabase()
-        # write all the xml files
+
 
         # start with the setupxml
         self.model.writeNewXML()

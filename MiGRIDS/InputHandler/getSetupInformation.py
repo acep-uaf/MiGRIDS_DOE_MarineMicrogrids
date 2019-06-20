@@ -26,8 +26,8 @@ def getSetupInformation(setupXML, setupInfo):
 
             if children[i].attrs is not None:
                 for k in children[i].attrs.keys():
-
-                    setupInfo.assign(children[i].name + k, children[i][k])
+                    #should position always be 0 here?
+                    setupInfo.assign(children[i].name + k, children[i][k],position=0)
 
     infile.close()
 
