@@ -248,7 +248,7 @@ class FormSetup(QtWidgets.QWidget):
              self.getComponentsFromSetup()
 
         #list netcdf files previously generated
-        self.netCDFsLoaded.setText(', '.join(self.listNetCDFs()))
+        self.netCDFsLoaded.setText('Processed Files: ' + ', '.join(self.listNetCDFs()))
         #TODO this part of the code always sets setsRun to false, need to implement check for models run
         #boolean indicator of whether or not model sets have already been run
         setsRun = False
@@ -271,7 +271,7 @@ class FormSetup(QtWidgets.QWidget):
     #looks in the processed folder and lists nc files found
     #->ListOfStrings
     def listNetCDFs(self):
-        lof = [f for f in os.listdir(getFilePath(self.model.setupFolder,'ProcessedData')) if f[-2] =='nc']
+        lof = [f for f in os.listdir(getFilePath(self.model.setupFolder,'Processed')) if f[-2:] =='nc']
         return lof
 
 
@@ -397,7 +397,7 @@ class FormSetup(QtWidgets.QWidget):
         '''
         updates the default component list, time range and time step values in the setup table in the project database
         based on fields and timesteps found in data.fixed and passes these values to the ModelDialog
-        :param data: DataClass with a pandas.DataFrame named fixed which contains a datetime field
+        :param data: DataClass with a pandas.DataFrame named fixed which contains a datetime index
         :return: None
         '''
         # start and end dates get set written to database as default date ranges
@@ -415,7 +415,7 @@ class FormSetup(QtWidgets.QWidget):
             :param defaultEnd: pandas date value that will be the default end date if none is found in the list of dataframes
             :return: String start date, String end date
             '''
-            #TODO add error handeling for non-date-indexed dataframe
+
             if len(listDf) > 0:
                 s = listDf[0].index[0].date()
                 e = listDf[0].index[len(listDf[0])-1].date()

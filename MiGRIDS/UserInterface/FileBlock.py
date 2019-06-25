@@ -1,20 +1,25 @@
 from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 import UserInterface.ModelComponentTable as T
-import UserInterface.ModelEnvironmentTable as E
 import UserInterface.ModelFileInfoTable as F
-import re
+from UserInterface.Delegates import *
 import os
 import pytz
+
 from UserInterface.Delegates import ClickableLineEdit
 from UserInterface.gridLayoutSetup import setupGrid
 from Controller.UIToInputHandler import UIToHandler
 from UserInterface.makeButtonBlock import makeButtonBlock
 from UserInterface.TableHandler import TableHandler
 from UserInterface.ModelSetupInformation import SetupTag
+from enum import Enum
+from PyQt5 import QtWidgets,QtCore,QtSql
 
-from PyQt5 import QtWidgets,QtCore
+
 # The file block is a group of widgets for entering file specific inputs
 #its parent is FormSetup
+from MiGRIDS.UserInterface.Delegates import RelationDelegate
+
+
 class FileBlock(QtWidgets.QGroupBox):
     def __init__(self, parent, input):
         super().__init__(parent)
@@ -32,9 +37,10 @@ class FileBlock(QtWidgets.QGroupBox):
     # -> QVBoxLayout
     def createFileTab(self):
         self.dbhandler = ProjectSQLiteHandler()
+        print(self.dbhandler.getDataTypeCodes())
         windowLayout = QtWidgets.QVBoxLayout()
         self.createTopBlock('Setup',self.assignFileBlock)
-        l = self.FileBlock.findChild(QtWidgets.QWidget,'inputFileDirvalue')
+        l = self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name)
         l.clicked.connect(self.lineclicked)
         windowLayout.addWidget(self.FileBlock)
 
@@ -53,25 +59,26 @@ class FileBlock(QtWidgets.QGroupBox):
     def lineclicked(self):
         '''opens a folder dialog and returns the string value of the pathway selected'''
         #if the directory has already been set then open the dialog to there otherwise default to current working directory
-        curdir = self.findChild(QtWidgets.QWidget, 'inputFileDirvalue').text()
+        curdir = self.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).text()
         if curdir == '':
             curdir = os.getcwd()
         folderDialog = QtWidgets.QFileDialog.getExistingDirectory(None, 'Select a directory.',curdir)
         if (folderDialog != ''):
             #once selected folderDialog gets set to the input box
-            self.findChild(QtWidgets.QWidget, 'inputFileDirvalue').setText(folderDialog)
+            self.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).setText(folderDialog)
             #save the input to the setup data model and into the database
             self.saveInput()
             #update the filedir path
             if self.dbhandler.getInputPath(str(self.input)) is None:
-                self.dbhandler.insertRecord('input_files',['inputfiledirvalue'],[folderDialog])
+                self.dbhandler.insertRecord('input_files', [F.InputFileFields.inputfiledirvalue.name], [folderDialog])
             else:
-                self.dbhandler.updateRecord('input_files',['_id'],[str(self.input)],['inputfiledirvalue'],[folderDialog])
+                self.dbhandler.updateRecord('input_files', [F.InputFileFields.id.name], [str(self.input)], [F.InputFileFields.inputfiledirvalue.name], [folderDialog])
 
             #filter the component and environemnt input tables to the current input directory
             self.filterTables()
             self.saveInput()
             self.model.writeNewXML()
+            createPreview() #TODO implement
         return folderDialog
 
     def createTopBlock(self,title, fn):
@@ -84,29 +91,53 @@ class FileBlock(QtWidgets.QGroupBox):
         hlayout = QtWidgets.QHBoxLayout()
         hlayout.setObjectName("setup")
 
+        # set model
+        fileBlockModel = QtSql.QSqlRelationalTableModel()
+        fileBlockModel.setTable("input_files")
+        fileBlockModel.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
+
+        fileBlockModel.setRelation(1, QtSql.QSqlRelation("ref_file_type", "code", "code"))
+        fileBlockModel.setRelation(6, QtSql.QSqlRelation("ref_date_format", "code",
+                                                         F.InputFileFields.datechannelformat.name))
+        fileBlockModel.setRelation(8, QtSql.QSqlRelation("ref_time_format", "code", "code"))
+        fileBlockModel.select();
+        fileBlockModel.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
+
+        reffiletype = QtSql.QSqlTableModel()
+        reffiletype.setTable("ref_file_type")
+        reffiletype.select()
+
+        refdatetype = QtSql.QSqlTableModel()
+        refdatetype.setTable("ref_date_format")
+        refdatetype.select()
+
+        reftimetype = QtSql.QSqlTableModel()
+        reftimetype.setTable("ref_time_format")
+        reftimetype.select()
+
         # add the setup grids
         g1 = {'headers': [1,2,3,4],
                   'rowNames': [1,2,3,4],
                   'columnWidths': [1, 1,1,3],
                   1:{1:{'widget':'lbl','name':'File Type:', 'default':'File Type'},
-                     2:{'widget':'combo', 'name':'inputFileTypevalue', 'items':['csv', 'MET']},
+                     2:{'widget':'combo', 'name':'inputfiletypevalue','items':reffiletype },
                      3: {'widget': 'lbl', 'name': 'File Directory', 'default': 'Directory'},
-                     4: {'widget': 'lncl', 'name': 'inputFileDirvalue'}
+                     4: {'widget': 'lncl', 'name': 'inputfiledirvalue'}
                      },
                   2: {1: {'widget': 'lbl', 'name': 'Date Channel','default':'Date Channel'},
-                      2: {'widget': 'txt', 'name': 'dateChannelvalue'},
+                      2: {'widget': 'txt', 'name': 'datechannelvalue'},
                       3: {'widget': 'lbl', 'name': 'Date Format','default':'Date Format'},
-                      4: {'widget': 'combo', 'items': ['mm/dd/yy', 'mon-dd YYYY', 'mm/dd/YYYY','mm-dd-YYYY', 'dd/mm/YYYY'], 'name': 'dateChannelformat'}
+                      4: {'widget': 'combo', 'items': refdatetype, 'name': 'datechannelformat'}
                       },
                   3: {1: {'widget': 'lbl', 'name': 'Time Channel', 'default':'Time Channel'},
-                      2: {'widget': 'txt', 'name': 'timeChannelvalue'},
+                      2: {'widget': 'txt', 'name': 'timechannelvalue'},
                       3: {'widget': 'lbl', 'name': 'Time Format', 'default': 'Time Format'},
-                      4: {'widget': 'combo', 'items': ['HH:MM:SS'], 'name': 'timeChannelformat'}
+                      4: {'widget': 'combo', 'items': reftimetype, 'name': 'timechannelformat'}
                       },
                   4:{1: {'widget': 'lbl', 'name': 'Time Zone', 'default':'Time Zone'},
-                     2: {'widget': 'combo', 'items':pytz.all_timezones,'name': 'timeZonevalue','default':'America/Anchorage'},
+                     2: {'widget': 'combo', 'items':pytz.all_timezones,'name': 'timezonevalue','default':'America/Anchorage'},
                      3: {'widget': 'lbl', 'name': 'Use DST', 'default': 'Use DST'},
-                     4: {'widget': 'chk', 'name': 'useDSTvalue', 'default':False}
+                     4: {'widget': 'chk', 'name': 'usedstvalue', 'default':False}
                      }
 
                     }
@@ -116,6 +147,23 @@ class FileBlock(QtWidgets.QGroupBox):
         hlayout.addStretch(1)
         gb.setLayout(hlayout)
         fn(gb)
+
+
+        #map model to fields
+        mapper = QtWidgets.QDataWidgetMapper()
+        #submit data changes automatically on field changes
+        mapper.setSubmitPolicy(QtWidgets.QDataWidgetMapper.AutoSubmit)
+        mapper.setModel(fileBlockModel)
+        mapper.setItemDelegate(QtSql.QSqlRelationalDelegate())
+        #map the widgets we created with our dictionary to fields in the sql table
+        for i in range(0,fileBlockModel.columnCount()):
+            if gb.findChild(QtWidgets.QWidget,fileBlockModel.record().fieldName(i)) != None:
+                wid = gb.findChild(QtWidgets.QWidget, fileBlockModel.record().fieldName(i))
+                mapper.addMapping(wid,i)
+
+
+
+
 
     # layout for tables
     def createTableBlock(self, title, table, fn):
@@ -303,6 +351,7 @@ class FileBlock(QtWidgets.QGroupBox):
         self.FileBlock.setObjectName('fileInput')
 
     # if the fileblock looses focus update database information
+    #TODO check if this is needed since input is tide to a sql model
     def focusOutEvent(self, event):
 
         if 'projectFolder' in self.model.__dict__.keys():
@@ -313,7 +362,7 @@ class FileBlock(QtWidgets.QGroupBox):
 
             # update database table
             if not self.dbhandler.insertRecord('input_files', setupFields, setupValues):
-                self.dbhandler.updateRecord('input_files', ['_id'], [str(setupValues[0])],
+                self.dbhandler.updateRecord('input_files', [F.InputFileFields._id.name], [str(setupValues[0])],
                                        setupFields[1:],
                                        setupValues[1:])
             # on leave save the xml files
@@ -343,17 +392,17 @@ class FileBlock(QtWidgets.QGroupBox):
     def saveInput(self):
 
         #update model info from fileblock
-        self.model.assignTimeChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, 'timeChannelvalue').text(),position=int(self.input)-1)
-        self.model.assignTimeChannel(SetupTag.assignFormat, self.FileBlock.findChild(QtWidgets.QWidget, 'timeChannelformat').currentText(),position=int(self.input)-1)
-        self.model.assignDateChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, 'dateChannelvalue').text(),position=int(self.input)-1)
-        self.model.assignDateChannel(SetupTag.assignFormat, self.FileBlock.findChild(QtWidgets.QWidget, 'dateChannelformat').currentText(),position=int(self.input)-1)
-        self.model.assignInputFileDir(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget,'inputFileDirvalue').text(),position=int(self.input)-1)
-        self.model.assignInputFileType(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget,'inputFileTypevalue').currentText(),position=int(self.input)-1)
+        self.model.assignTimeChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timechannelvalue.name).text(),position=int(self.input)-1)
+        self.model.assignTimeChannel(SetupTag.assignFormat, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timechannelformat.name).currentText(),position=int(self.input)-1)
+        self.model.assignDateChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.datechannelvalue.name).text(), position=int(self.input) - 1)
+        self.model.assignDateChannel(SetupTag.assignFormat, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.datechannelformat.name).currentText(),position=int(self.input)-1)
+        self.model.assignInputFileDir(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiledirvalue.name).text(),position=int(self.input)-1)
+        self.model.assignInputFileType(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiletypevalue.name).currentText(),position=int(self.input)-1)
         self.model.assignTimeZone(SetupTag.assignValue,
-                                       self.FileBlock.findChild(QtWidgets.QWidget, 'timeZonevalue').currentText(),
+                                       self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timezonevalue.name).currentText(),
                                        position=int(self.input) - 1)
         self.model.assignUseDST(SetupTag.assignValue,
-                                       str(self.FileBlock.findChild(QtWidgets.QWidget, 'useDSTvalue').isChecked()),
+                                       str(self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.usedstvalue.name).isChecked()),
                                        position=int(self.input) - 1)
 
         self.saveTables()
@@ -366,11 +415,11 @@ class FileBlock(QtWidgets.QGroupBox):
 
     def filterTables(self):
         tables = self.findChildren(QtWidgets.QTableView)
-        filedir = self.FileBlock.findChild(QtWidgets.QWidget, 'inputFileDirvalue').text()
+        filedir = self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).text()
         self.filter = filedir
         for t in tables:
             m = t.model()
-            m.setFilter("inputfiledir = '" + filedir + "'")
+            m.setFilter(F.InputFileFields.inputfiledirvalue.name + " = '" + filedir + "'")
     def saveTables(self):
         '''get data from component and environment tables and update the setupInformation model
         components within a single directory are seperated with commas

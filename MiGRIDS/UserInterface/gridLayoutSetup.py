@@ -5,8 +5,9 @@ Created on Tue Mar 13 08:58:02 2018
 @author: tcmorgan2
 """
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets,QtSql
 import re
+import pytz
 from UserInterface.Delegates import ClickableLineEdit
 
 #useds locations and values specified in a dictionary to create a grid layout
@@ -135,8 +136,21 @@ def setupGrid(inputDictionary):
                 grid.wid.setObjectName(r[h]['name'])
                 #if it has items they get added
                 if 'items' in r[h].keys():
-                    for item in r[h]['items']:
-                        grid.wid.addItem(item)
+                    print(type(r[h]['items']))
+                    if type(r[h]['items']) == QtSql.QSqlTableModel:
+                        m = r[h]['items']
+                        print(m.columnCount())
+                        print(m.record().count())
+                        print(m.record().fieldName(0))
+                        print(m.record().fieldName(1))
+                        print(m.record().fieldName(2))
+                        print(m.record().fieldName(3))
+                        print(m.fieldIndex("code"))
+                        grid.wid.setModel(r[h]['items']);
+                        grid.wid.setModelColumn(r[h]['items'].fieldIndex("code"));
+                    else:
+                        for item in r[h]['items']:
+                            grid.wid.addItem(item)
                 #if there is a hint it gets set
                 if 'hint' in r[h].keys():
                     grid.wid.setToolTip(r[h]['hint'])

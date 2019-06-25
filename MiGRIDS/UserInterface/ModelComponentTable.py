@@ -3,6 +3,7 @@ Created by: T. Morgan
 ComponentTableView is a default table view tied to the component table in project_manager database
 '''
 from UserInterface.Delegates import *
+import UserInterface.ModelFileInfoTable as F
 from enum import Enum
 
 class ComponentFields(Enum):
@@ -55,7 +56,7 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         #select the data to display filtered to the input directory selected
 
-        dirm = parent.FileBlock.findChild(QtWidgets.QWidget,'inputFileDirvalue').text()
+        dirm = parent.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiledirvalue.name).text()
 
         #self.setFilter('fileinputdir = ' + dirm)
         #self.setQuery(runQuery)

@@ -19,9 +19,11 @@ class TableHandler():
 
         #this makes the first column editable (set, filedir, ect.)
         tableView.openPersistentEditor(model.index(model.rowCount()-1, 1))
+
+        #insert values that were passed in through optional arguments
         #fields are integer column positions
         fields = kwargs.get('fields')
-        if (len(fields) > 0):
+        if fields:
             values = kwargs.get('values')
             for i,n in enumerate(fields):
                 tableView.model().setData(model.index(model.rowCount()-1, n), values[i])

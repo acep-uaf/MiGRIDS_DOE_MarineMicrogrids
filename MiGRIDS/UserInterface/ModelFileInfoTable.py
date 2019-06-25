@@ -1,5 +1,20 @@
 
 from UserInterface.Delegates import *
+from enum import Enum
+
+class InputFileFields(Enum):
+    _id=0
+    inputfiletypevalue=1
+    datatype=2
+    inputfiledirvalue=3
+    timestep=4
+    datechannelvalue=5
+    datechannelformat=6
+    timechannelvalue=7
+    timechannelformat=8
+    includechannels=9
+    timezonevalue=10
+    usedstvalue=11
 #subclass of QTableView for displaying inputFile information
 class FileInfoTableView(QtWidgets.QTableView):
     def __init__(self, *args, **kwargs):

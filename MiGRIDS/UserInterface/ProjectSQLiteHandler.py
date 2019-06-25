@@ -48,6 +48,9 @@ class ProjectSQLiteHandler:
                             """
                             )
         self.connection.commit()
+    def getDataTypeCodes(self):
+        return self.cursor.execute("Select code from ref_file_type").fetchall()
+
     def updateDefaultSetup(self,values):
         self.cursor.prepare(
             "UPDATE setup set date_start = ?, date_end = ?, component_names = ? where set_name = 'default'",
@@ -83,7 +86,12 @@ class ProjectSQLiteHandler:
         ]
         for r in refTables:
             self.createRefTable(r)
-        self.addRefValues('ref_file_type',[(0,'CSV','Comma Seperated Values'), (1,'MET','MET text file'), (2,'TXT','Tab delimited')])
+        #various file types can be read in through the user interface
+        #TODO update wiki to add file conventions for reading in the various file types.
+        self.addRefValues('ref_file_type',[(0,'CSV','Comma Seperated Values'),
+                                           (1,'MET','MET text file'),
+                                           (2,'TXT','Tab delimited'),
+                                           (3, 'nc', 'netCDF'),])
         self.addRefValues('ref_current_units',[(0,'A','amps'),(1,'kA','kiloamps')])
         self.addRefValues('ref_frequency_units',[(0, 'Hz','hertz')])
         self.addRefValues('ref_temperature_units',[(0,'C','Celcius'),(1,'F','Farhenheit'),(2,'K','Kelvin')])
@@ -113,19 +121,26 @@ class ProjectSQLiteHandler:
                             ])
 
         self.addRefValues('ref_component_type' ,[(0,'wtg', 'windturbine'),
-        (1,'gen', 'diesel generator'), (2,'inv','inverter'),(3,'tes','thermal energy storage'),(4, 'ees','energy storage'),(5, 'load', 'total load')])
+        (1,'gen', 'diesel generator'), (2,'inv','inverter'),(3,'tes','thermal energy storage'),
+                                                 (4, 'ees','energy storage'),(5, 'load', 'total load')])
 
         self.addRefValues('ref_power_units',[(0,'W', 'watts'), (1,'kW', 'Kilowatts'),(2,'MW','Megawatts'),
                                              (3, 'var', 'vars'),(4,'kvar','kilovars'),(5,'Mvar','Megavars'),
                                              (6, 'VA','volt-ampere'),(7,'kVA','kilovolt-ampere'),(8,'MVA','megavolt-ampere'),(9, 'pu',''),(10,'PU',''),(11,'PU*s','')])
 
-        self.addRefValues('ref_env_attributes', [(0,'WS', 'Windspeed'), (1,'IR', 'Solar Irradiation'),
-                                                 (2,'WF','Waterflow'),(3,'Tamb','Ambient Temperature')])
         self.addRefValues('ref_attributes' ,[(0,'P', 'Real Power'), (1,'Q','Reactive Power'),(2,'S','Apparent Power'),
                                              (3,'PF','Power Factor'),(4,'V','Voltage'),(5, 'I', 'Current'),
                                              (6, 'f', 'Frequency'), (7,'TStorage','Internal Temperature Thermal Storage'),
                                              (8,'PAvail','Available Real Power'), (9,'QAvail','Available Reactive Power'),
-                                             (10,'SAvail','Available Apparent Power')])
+                                             (10,'SAvail','Available Apparent Power'),(11,'WS', 'Windspeed'), (12,'IR', 'Solar Irradiation'),
+                                                 (13,'WF','Waterflow'),(14,'Tamb','Ambient Temperature')])
+        invalidAttributeCombos = {}
+        invalidAttributeCombos['wtg'] =[7,12,13,14]
+        invalidAttributeCombos['gen'] = [7,14]
+        invalidAttributeCombos['ees'] = [7,11,12, 13]
+        invalidAttributeCombos['inv'] = [7,11,12, 13, 14]
+        invalidAttributeCombos['tes'] = [11,12, 13]
+        invalidAttributeCombos['load'] = [1,2,7,8,9,10,11,12, 13, 14]
 
         #merge unit reference tables
         self.cursor.execute("DROP TABLE IF EXISTS ref_units")
@@ -219,7 +234,7 @@ class ProjectSQLiteHandler:
 
         self.cursor.execute("INSERT INTO setup (set_name,timestep,date_start,date_end) values('default',1,'2016-01-01','2016-12-31')")
 
-        self.cursor.execute("DROP TABLE IF EXISTS environment")
+        '''self.cursor.execute("DROP TABLE IF EXISTS environment")
         self.cursor.executescript("""CREATE TABLE IF NOT EXISTS environment
                  (_id integer primary key,
                  inputfiledir text,
@@ -235,7 +250,7 @@ class ProjectSQLiteHandler:
                  FOREIGN KEY (attribute) REFERENCES ref_env_attributes(code)
                  
                  );""")
-
+        '''
 
         self.connection.commit()
 
@@ -396,8 +411,8 @@ class ProjectSQLiteHandler:
     def getComponentsTable(self, filter):
         sql = """select component_name, component_type, original_field_name, units,attribute from components where inputfiledir = ?"""
         df = pd.read_sql_query(sql,self.connection,params=[filter])
-        sql = """select component_name, 'env', original_field_name, units,attribute from environment where inputfiledir = ?"""
-        df.append(pd.read_sql_query(sql,self.connection,params=[filter]))
+        '''sql = """select component_name, 'env', original_field_name, units,attribute from environment where inputfiledir = ?"""
+        df.append(pd.read_sql_query(sql,self.connection,params=[filter]))'''
         return df
     def getInputPath(self, pathNum):
         '''returns the file folder for the given input file number (corrasponds to fileblock in setup page)'''
