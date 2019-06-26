@@ -6,6 +6,13 @@ class ProjectSQLiteHandler:
         import sqlite3 as lite
         self.connection = lite.connect(database)
         self.cursor = self.connection.cursor()
+        invalidAttributeCombos = {}
+        invalidAttributeCombos['wtg'] = [7, 12, 13, 14]
+        invalidAttributeCombos['gen'] = [7, 14]
+        invalidAttributeCombos['ees'] = [7, 11, 12, 13]
+        invalidAttributeCombos['inv'] = [7, 11, 12, 13, 14]
+        invalidAttributeCombos['tes'] = [11, 12, 13]
+        invalidAttributeCombos['load'] = [1, 2, 7, 8, 9, 10, 11, 12, 13, 14]
 
     def closeDatabase(self):
         self.cursor.close()
@@ -103,16 +110,16 @@ class ProjectSQLiteHandler:
         self.addRefValues('ref_speed_units', [(0, 'm/s','meters per second'),(1,'ft/s','feet per second'),
                                               (2,'km/hr','kilometers per hour'),(3,'mi/hr','miles per hour')])
         self.addRefValues('ref_time_units',[(0,'S','Seconds'),(1,'m','Minutes')])
-        self.addRefValues('ref_date_format',[(0,'MM/DD/YY','MM/DD/YY'),(1,'MM/DD/YYYY','MM/DD/YYYY'),
-                                                 (2,'YYYY/MM/DD','YYYY/MM/DD'),(3,'DD/MM/YYYY','DD/MM/YYYY'),
-                                             (4, 'MM-DD-YY', 'MM-DD-YY'), (5, 'MM-DD-YYYY', 'MM-DD-YYYY'),
-                                             (6, 'YYYY-MM-DD', 'YYYY-MM-DD'), (7, 'DD-MM-YYYY', 'DD-MM-YYYY'),
-                                             (8, 'mon dd yyyy', 'mon dd yyyy'),
-                                             (9, 'days', 'days')
+        self.addRefValues('ref_date_format',[(0,'MM/DD/YY','(0[0-9]|1[0-2])/[0-3][0-9]/[0-9]{2}'),(1,'MM/DD/YYYY','(0[0-9]|1[0-2])/[0-3][0-9]/[0-9]{4}'),
+                                                 (2,'YYYY/MM/DD','[0-9]{4}/(0[0-9]|1[0-2])/[0-9]{2}'),(3,'DD/MM/YYYY','[0-9]{2}/(0[0-9]|1[0-2])/[0-9]{4}'),
+                                             (4, 'MM-DD-YY', '(0[0-9]|1[0-2])-[0-3][0-9]-[0-9]{2}'), (5, 'MM-DD-YYYY', '(0[0-9]|1[0-2])-[0-3][0-9]-[0-9]{4}'),
+                                             (6, 'YYYY-MM-DD', '[0-9]{4}-(0[0-9]|1[0-2])-[0-9]{2}'), (7, 'DD-MM-YYYY', '[0-9]{2}-(0[0-9]|1[0-2])-[0-9]{4}'),
+                                             (8, 'mon dd yyyy', '[a-z |A-z]{3} [0-9]{2} [0-9]{4}'),
+                                             (9, 'days', '[0-9]+[.][0-9]+'),(10, 'seconds','[0-9]+')
                                                  ])
-        self.addRefValues('ref_time_format',[(0,'HH:MM:SS','HH:MM:SS'),(1,'HH:MM','HH:MM'),
-                                             (2,'hours','hours'),
-                                                 (3,'minutes','minutes'),(4,'seconds','seconds')
+        self.addRefValues('ref_time_format',[(0,'HH:MM:SS','[0-9]+:[0-9][0-9]:[0-9][0-9]'),(1,'HH:MM','[0-9]+:[0-9][0-9]'),
+                                             (2,'hours','[0-2][0-4][.]*[0-9]*'),
+                                                 (3,'minutes','[0-6][0-9][.]*[0-9]*'),(4,'full seconds','[0-6][0-9]')
                                                  ])
 
         self.addRefValues('ref_data_format',[(0,'components + MET', 'Load and component data are seperate from wind data'),
@@ -134,13 +141,7 @@ class ProjectSQLiteHandler:
                                              (8,'PAvail','Available Real Power'), (9,'QAvail','Available Reactive Power'),
                                              (10,'SAvail','Available Apparent Power'),(11,'WS', 'Windspeed'), (12,'IR', 'Solar Irradiation'),
                                                  (13,'WF','Waterflow'),(14,'Tamb','Ambient Temperature')])
-        invalidAttributeCombos = {}
-        invalidAttributeCombos['wtg'] =[7,12,13,14]
-        invalidAttributeCombos['gen'] = [7,14]
-        invalidAttributeCombos['ees'] = [7,11,12, 13]
-        invalidAttributeCombos['inv'] = [7,11,12, 13, 14]
-        invalidAttributeCombos['tes'] = [11,12, 13]
-        invalidAttributeCombos['load'] = [1,2,7,8,9,10,11,12, 13, 14]
+
 
         #merge unit reference tables
         self.cursor.execute("DROP TABLE IF EXISTS ref_units")
@@ -435,3 +436,15 @@ class ProjectSQLiteHandler:
         loT = pd.read_sql_query("select code from ref_component_type",self.connection)
         loT = pd.Series(loT).tolist()
         return loT
+
+    def getPossibleDateTimes(self):
+        myTuple = self.cursor.execute("select d.description, t.description from ref_date_format as d, ref_time_format as t").fetchall()
+        myList = ["^" + (t[0] + " " + t[1]).strip() + "$" for t in myTuple]
+        return myList
+
+    def getCode(self, table, description):
+        code = self.cursor.execute("select code from " + table + " WHERE description = ?",[description]).fetchone()
+        if len(code)>0:
+            return code[0]
+        else:
+            return None

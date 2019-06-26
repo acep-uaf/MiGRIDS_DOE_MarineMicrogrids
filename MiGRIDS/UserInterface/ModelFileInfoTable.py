@@ -15,6 +15,7 @@ class InputFileFields(Enum):
     includechannels=9
     timezonevalue=10
     usedstvalue=11
+
 #subclass of QTableView for displaying inputFile information
 class FileInfoTableView(QtWidgets.QTableView):
     def __init__(self, *args, **kwargs):

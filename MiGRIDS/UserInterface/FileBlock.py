@@ -17,6 +17,7 @@ from PyQt5 import QtWidgets,QtCore,QtSql
 
 # The file block is a group of widgets for entering file specific inputs
 #its parent is FormSetup
+from MiGRIDS.Controller.DirectoryPreview import DirectoryPreview
 from MiGRIDS.UserInterface.Delegates import RelationDelegate
 
 
@@ -62,25 +63,54 @@ class FileBlock(QtWidgets.QGroupBox):
         curdir = self.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).text()
         if curdir == '':
             curdir = os.getcwd()
-        folderDialog = QtWidgets.QFileDialog.getExistingDirectory(None, 'Select a directory.',curdir)
-        if (folderDialog != ''):
+        selectedFolder = QtWidgets.QFileDialog.getExistingDirectory(None, 'Select a directory.',curdir)
+        if (selectedFolder != ''):
             #once selected folderDialog gets set to the input box
-            self.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).setText(folderDialog)
+            self.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).setText(selectedFolder)
             #save the input to the setup data model and into the database
             self.saveInput()
             #update the filedir path
             if self.dbhandler.getInputPath(str(self.input)) is None:
-                self.dbhandler.insertRecord('input_files', [F.InputFileFields.inputfiledirvalue.name], [folderDialog])
+                self.dbhandler.insertRecord('input_files', [F.InputFileFields.inputfiledirvalue.name], [selectedFolder])
             else:
-                self.dbhandler.updateRecord('input_files', [F.InputFileFields.id.name], [str(self.input)], [F.InputFileFields.inputfiledirvalue.name], [folderDialog])
+                self.dbhandler.updateRecord('input_files', [F.InputFileFields._id.name], [str(self.input)], [F.InputFileFields.inputfiledirvalue.name], [selectedFolder])
 
             #filter the component and environemnt input tables to the current input directory
             self.filterTables()
             self.saveInput()
             self.model.writeNewXML()
-            createPreview() #TODO implement
-        return folderDialog
+            #TODO call this when file type selected as well
+            self.createPreview(selectedFolder,self.findChild(QtWidgets.QComboBox,F.InputFileFields.inputfiletypevalue.name).currentText())
+        return selectedFolder
+    def createPreview(self,folder,fileType):
+        preview = DirectoryPreview(folder,fileType)
+        self.showPreview(preview)
 
+    def showPreview(self,preview):
+
+        # show fields in date and time field selectors and set current position to most likely candidate
+        try:
+            dateChannelInput = self.findChild(QtWidgets.QComboBox, F.InputFileFields.datechannelvalue.name)
+            dateChannelInput.addItems(["index"] + list(preview.header))
+            dateChannelInput.setCurrentText(preview.dateColumn)
+        except AttributeError as e:
+            print("date channel not set")
+        try:
+            timeChannelInput = self.findChild(QtWidgets.QComboBox, F.InputFileFields.timechannelvalue.name)
+            timeChannelInput.addItems(["index"] + list(preview.header))
+            timeChannelInput.setCurrentText(preview.timeColumn)
+        except AttributeError as e:
+            print("time channel not set")
+        try:
+            dateFormatInput = self.findChild(QtWidgets.QComboBox, F.InputFileFields.datechannelformat.name)
+            dateFormatInput.setCurrentText(preview.dateFormat)
+        except AttributeError as e:
+            print("date format not set")
+        try:
+            timeFormatlInput = self.findChild(QtWidgets.QComboBox, F.InputFileFields.timechannelformat.name)
+            timeFormatlInput.setCurrentText(preview.timeFormat)
+        except AttributeError as e:
+            print("time format not set")
     def createTopBlock(self,title, fn):
         '''The top block is where file information is set (format, date and time channels and file type)
         :param title: [String]
@@ -125,12 +155,12 @@ class FileBlock(QtWidgets.QGroupBox):
                      4: {'widget': 'lncl', 'name': 'inputfiledirvalue'}
                      },
                   2: {1: {'widget': 'lbl', 'name': 'Date Channel','default':'Date Channel'},
-                      2: {'widget': 'txt', 'name': 'datechannelvalue'},
+                      2: {'widget': 'combo', 'name': 'datechannelvalue'},
                       3: {'widget': 'lbl', 'name': 'Date Format','default':'Date Format'},
                       4: {'widget': 'combo', 'items': refdatetype, 'name': 'datechannelformat'}
                       },
                   3: {1: {'widget': 'lbl', 'name': 'Time Channel', 'default':'Time Channel'},
-                      2: {'widget': 'txt', 'name': 'timechannelvalue'},
+                      2: {'widget': 'combo', 'name': 'timechannelvalue'},
                       3: {'widget': 'lbl', 'name': 'Time Format', 'default': 'Time Format'},
                       4: {'widget': 'combo', 'items': reftimetype, 'name': 'timechannelformat'}
                       },
@@ -160,10 +190,6 @@ class FileBlock(QtWidgets.QGroupBox):
             if gb.findChild(QtWidgets.QWidget,fileBlockModel.record().fieldName(i)) != None:
                 wid = gb.findChild(QtWidgets.QWidget, fileBlockModel.record().fieldName(i))
                 mapper.addMapping(wid,i)
-
-
-
-
 
     # layout for tables
     def createTableBlock(self, title, table, fn):
@@ -392,9 +418,9 @@ class FileBlock(QtWidgets.QGroupBox):
     def saveInput(self):
 
         #update model info from fileblock
-        self.model.assignTimeChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timechannelvalue.name).text(),position=int(self.input)-1)
+        self.model.assignTimeChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timechannelvalue.name).currentText(),position=int(self.input)-1)
         self.model.assignTimeChannel(SetupTag.assignFormat, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timechannelformat.name).currentText(),position=int(self.input)-1)
-        self.model.assignDateChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.datechannelvalue.name).text(), position=int(self.input) - 1)
+        self.model.assignDateChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.datechannelvalue.name).currentText(), position=int(self.input) - 1)
         self.model.assignDateChannel(SetupTag.assignFormat, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.datechannelformat.name).currentText(),position=int(self.input)-1)
         self.model.assignInputFileDir(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiledirvalue.name).text(),position=int(self.input)-1)
         self.model.assignInputFileType(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiletypevalue.name).currentText(),position=int(self.input)-1)
