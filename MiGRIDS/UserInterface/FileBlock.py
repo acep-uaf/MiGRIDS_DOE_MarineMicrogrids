@@ -26,6 +26,7 @@ class FileBlock(QtWidgets.QGroupBox):
         super().__init__(parent)
         #integer -> FileBlock
         self.init(input)
+        self.validated = False
 
     # creates a single form for entering individual file type information
     def init(self, input):
@@ -62,7 +63,7 @@ class FileBlock(QtWidgets.QGroupBox):
         #if the directory has already been set then open the dialog to there otherwise default to current working directory
         curdir = self.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).text()
         if curdir == '':
-            curdir = os.getcwd()
+            curdir = self.model.projectFolder
         selectedFolder = QtWidgets.QFileDialog.getExistingDirectory(None, 'Select a directory.',curdir)
         if (selectedFolder != ''):
             #once selected folderDialog gets set to the input box
@@ -91,13 +92,13 @@ class FileBlock(QtWidgets.QGroupBox):
         # show fields in date and time field selectors and set current position to most likely candidate
         try:
             dateChannelInput = self.findChild(QtWidgets.QComboBox, F.InputFileFields.datechannelvalue.name)
-            dateChannelInput.addItems(["index"] + list(preview.header))
+            dateChannelInput.addItems(["","index"] + list(preview.header))
             dateChannelInput.setCurrentText(preview.dateColumn)
         except AttributeError as e:
             print("date channel not set")
         try:
             timeChannelInput = self.findChild(QtWidgets.QComboBox, F.InputFileFields.timechannelvalue.name)
-            timeChannelInput.addItems(["index"] + list(preview.header))
+            timeChannelInput.addItems(["","index"] + list(preview.header))
             timeChannelInput.setCurrentText(preview.timeColumn)
         except AttributeError as e:
             print("time channel not set")
@@ -265,7 +266,6 @@ class FileBlock(QtWidgets.QGroupBox):
         handler = TableHandler(self)
         filedir = self.FileBlock.findChild(QtWidgets.QWidget, 'inputFileDirvalue').text()
         handler.functionForNewRecord(table,fields=[1],values=[filedir])
-
 
     # delete the selected record from the specified datatable
     # String -> None
@@ -438,6 +438,8 @@ class FileBlock(QtWidgets.QGroupBox):
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):
         buttonFunction()
+    def validate(self):
+        #validate the file input fields before allowing component information to be collected
 
     def filterTables(self):
         tables = self.findChildren(QtWidgets.QTableView)

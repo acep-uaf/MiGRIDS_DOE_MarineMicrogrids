@@ -261,16 +261,19 @@ class FormSetup(QtWidgets.QWidget):
             msg.exec()
         else:
             self.tabs.setEnabled(True)
-
             print('Loaded %s:' % model.project)
 
-        #set the project name on the form
+        #set the project name on the GUI form
         self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.model.project)
 
         return
     #looks in the processed folder and lists nc files found
     #->ListOfStrings
     def listNetCDFs(self):
+        '''
+        produces a list of netcdf files located in the Processed folder of a project TimeSeries folder
+        :return: List of Strings of names of netCDF files
+        '''
         lof = [f for f in os.listdir(getFilePath(self.model.setupFolder,'Processed')) if f[-2:] =='nc']
         return lof
 
@@ -291,9 +294,12 @@ class FormSetup(QtWidgets.QWidget):
             self.newTab(1)
         return
 
-    #List -> WizardTree
     def buildWizardTree(self, dlist):
-        """builds a QWizard based on list of inputs"""
+        '''
+        Builds a QWizard based on a list of inputs
+        :param dlist: a list of dictionaries, list item becomes a page in the wizard tree
+        :return: a QWizard
+        '''
         wiztree = QtWidgets.QWizard()
         wiztree.setWizardStyle(QtWidgets.QWizard.ModernStyle)
         wiztree.setWindowTitle("Setup")
@@ -301,12 +307,16 @@ class FormSetup(QtWidgets.QWidget):
         wiztree.addPage(TextWithDropDown(dlist[1]))
         wiztree.addPage(TwoDatesDialog(dlist[0]))
         btn = wiztree.button(QtWidgets.QWizard.FinishButton)
-        btn.clicked.connect(self.saveInput)
+        btn.clicked.connect(self.saveTreeInput)
         return wiztree
 
-    #save the input in the wizard tree to the setup data model
-    def saveInput(self):
-        """save the input in the wizard tree to the ModelSetupInformation data model"""
+
+    def saveTreeInput(self):
+        '''
+        save the input in the wizard tree attribute to the ModelSetupInformation data model
+        :return: None
+        '''
+
         model = self.model
         model.assignProject(self.WizardTree.field('project'))
         model.assignTimeStep(SetupTag.assignValue, self.WizardTree.field('timeInterval'))
@@ -314,13 +324,14 @@ class FormSetup(QtWidgets.QWidget):
         model.assignRunTimesteps(SetupTag.assignValue, self.WizardTree.field('sdate') + ' ' + self.WizardTree.field('edate'))
         return
 
+    def sendSetupInputToModel(self):
+        '''
+        Reads data from gui and sends to the ModelSetupInformation data model
+        reads through all the file tabs to collect input from all tabs
+        :return: None
+        '''
 
-    def sendSetupData(self):
-        """ send input data to the ModelSetupInformation data model
-        reads through all the file tabs to collect input
-        """
-
-        #needs to come from each page
+        #extract data from every tab
         tabWidget = self.findChild(QtWidgets.QTabWidget)
         for t in range(tabWidget.count()):
             page = tabWidget.widget(t)
@@ -342,13 +353,13 @@ class FormSetup(QtWidgets.QWidget):
             return
 
     #TODO this should be done on a seperate thread
-    # Create a dataframe of input data based on importing files within each SetupModelInformation.inputFileDir
-    # None->None
     def createInputFiles(self):
-        import os
+        '''
+        Create a dataframe of input data based on importing files within each SetupModelInformation.inputFileDir
+        '''
         self.addProgressBar()
         self.progress.setRange(0, 0)
-        self.sendSetupData()
+        self.sendSetupInputToModel()
         # check all the required fields are filled
         dbhandler = ProjectSQLiteHandler()
         if not dbhandler.dataComplete():
@@ -362,10 +373,8 @@ class FormSetup(QtWidgets.QWidget):
 
         dbhandler.closeDatabase()
 
-
         # start with the setupxml
         self.model.writeNewXML()
-
 
         # import datafiles
         handler = UIToHandler()
@@ -448,7 +457,7 @@ class FormSetup(QtWidgets.QWidget):
     def closeEvent(self, event):
         #save xmls
         if 'projectFolder' in self.model.__dict__.keys():
-            self.sendSetupData()
+            self.sendSetupInputToModel()
             # on close save the xml files
             self.model.writeNewXML()
             self.dbHandler.closeDatabase

@@ -27,6 +27,11 @@ class DirectoryPreview:
     def __init__(self, directory, fileType):
         self.directory = directory
         self.fileType = fileType
+        self.timeColumn = None
+        self.dateColumn = None
+        self.timeFormat = None
+        self.dateFormat = None
+
         try:
             self.files = self.listFiles()
             self.preview(self.files[0])
@@ -40,7 +45,7 @@ class DirectoryPreview:
         :return: list of files found in a directory that match a specified file type
         '''
         try:
-           lof = [os.path.join(self.directory,f) for f in os.listdir(self.directory) if (f[- len(self.fileType):] == self.fileType) | (f[- len(self.fileType):] == self.fileType.lower())]
+           lof = [os.path.join(self.directory,f) for f in os.listdir(self.directory) if (f[- len(self.fileType):] == self.fileType.replace('MET','txt')) | (f[- len(self.fileType):] == self.fileType.lower())]
         except:
             raise NoValidFilesError("No valid files found in directory")
         if len(lof) <= 0:
@@ -85,8 +90,13 @@ class DirectoryPreview:
         matches = [p for p in possibles if re.match(p,sample) is not None]
         if len(matches) > 0:
             dt = self.datetime()
-            dt.dateFormat = dbhandler.getCode("ref_date_format", matches[0].split(" ")[0].replace("^","").replace("$",""))
-            dt.timeFormat = dbhandler.getCode("ref_time_format", matches[0].split(" ")[1].replace("^","").replace("$",""))
+            if (len(matches[0].split(" "))>1 ):#if it splits we have date and time
+                dt.dateFormat = dbhandler.getCode("ref_date_format", matches[0].split(" ")[0].replace("^","").replace("$",""))
+                dt.timeFormat = dbhandler.getCode("ref_time_format", matches[0].split(" ")[1].replace("^","").replace("$",""))
+            else:
+                dt.dateFormat = dbhandler.getCode("ref_date_format", matches[0].split(" ")[0].replace("^", "").replace("$", ""))
+                if dt.dateFormat == None:
+                    dt.timeFormat = dbhandler.getCode("ref_time_format", matches[0].split(" ")[0].replace("^", "").replace("$", ""))
             return dt
         else:
             raise NoMatchException("No Datetime match","No datetime formats could be matched to these input files.")
@@ -110,7 +120,10 @@ class DirectoryPreview:
         '''
         try:
             self.dateColumn = self.header[self.whichColumns('date')[0]]
-            sampleDate = df[self.dateColumn][0]
+            if(len(df)>0):
+               sampleDate = df[self.dateColumn][0]
+            else:
+                sampleDate = None
 
         except IndexError as e:
             # No date column found moves on to find time and date gets set to empty string
@@ -126,7 +139,11 @@ class DirectoryPreview:
                 sampleTime = ''
             finally:
                 try:
-                    datetimeformat = self.extractFormat((sampleDate + ' ' + sampleTime).strip())
+                    if (sampleDate == sampleTime):
+                        datetimeformat = self.extractFormat(sampleDate)
+                    else:
+                        datetimeformat = self.extractFormat((str(sampleDate) + ' ' + str(sampleTime)).strip())
+
                     self.dateFormat = datetimeformat.dateFormat
                     self.timeFormat = datetimeformat.timeFormat
                 except NoMatchException as e:
@@ -163,10 +180,17 @@ class DirectoryPreview:
          :param file: full path to a MET file
          :return: None
          '''
+        metWORD = 'Date & Time Stamp'
         with open(file, 'r', errors='ignore') as openfile:
-            self.header = self.lineFromKeyWord('date',openfile)
-            self.dateColumn = self.header[self.whichColumns('date')]
-            self.timeColumn = self.header[self.whichColumns('time')]
+            self.header = self.lineFromKeyWord(metWORD,openfile)
+            try:
+                self.dateColumn = self.header[self.whichColumns('date')[0]]
+            except IndexError as e:
+                self.datecolumn = None
+            try:
+                self.timeColumn = self.header[self.whichColumns('time')[0]]
+            except IndexError as e:
+                self.timecolumn=None
 
             dataline = openfile.readline().split('\t')
             if len(dataline) != 0:
@@ -184,7 +208,10 @@ class DirectoryPreview:
                         sampleTime = ''
                     finally:
                         try:
-                            datetimeformat = self.extractFormat((sampleDate + ' ' + sampleTime).strip())
+                            if (sampleDate == sampleTime):
+                                datetimeformat = self.extractFormat(sampleDate)
+                            else:
+                                datetimeformat = self.extractFormat((sampleDate + ' ' + sampleTime).strip())
                             self.dateFormat = datetimeformat.dateFormat
                             self.timeFormat = datetimeformat.timeFormat
                         except NoMatchException as e:
@@ -200,8 +227,43 @@ class DirectoryPreview:
         '''
         import netCDF4 as nc
         cdf = nc.Dataset(file, 'r')
-        self.header = cdf.variables  #read a list of variables
-        #TODO add date/time column interpretation
+        self.header = list(cdf.variables.keys()) #read a list of variables
+
+        #look for date time columns
+        try:
+            self.dateColumn = self.header[self.whichColumns('date')[0]]
+            sampleDate = cdf.variables[self.dateColumn]
+        except IndexError as e:
+            # No date column found moves on to find time and date gets set to empty string
+            self.dateColumn = ''
+            sampleDate = ''
+            print(e)
+        finally:
+            try:
+                self.timeColumn = self.header[self.whichColumns('time')[0]]
+                var = cdf.variables[self.timeColumn]
+                sampleTime = var[0:1][0]
+            except IndexError as e:
+                # no time column found, time gets set to empty string
+                self.timeColumn = ''
+                sampleTime = ''
+            finally:
+                #get format
+                try:
+                    if(self.dateColumn == '') & (self.timeColumn != ''):
+                        self.dateColumn = self.timeColumn
+                    if(self.dateColumn != '') | (self.timeColumn != ''):
+                        if (sampleDate == sampleTime):
+                            datetimeformat = self.extractFormat(sampleDate)
+                        else:
+                            datetimeformat = self.extractFormat((str(sampleDate) + ' ' + str(sampleTime)).strip())
+                        self.dateFormat = datetimeformat.dateFormat
+                        self.timeFormat = datetimeformat.timeFormat
+                except NoMatchException as e:
+                    print(e.message)
+                    self.dateFormat = None
+                    self.timeFormat = None
+
         cdf.close()
 
     def lineFromKeyWord(self,keyWord,openfile):
@@ -217,4 +279,4 @@ class DirectoryPreview:
         if keyWord in line[0]:
             return line
         else:
-            self.lineFromKeyWord(keyWord,openfile)
+            return self.lineFromKeyWord(keyWord,openfile)
