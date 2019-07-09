@@ -2,8 +2,8 @@
 Created by: T. Morgan
 ComponentTableView is a default table view tied to the component table in project_manager database
 '''
-from UserInterface.Delegates import *
-import UserInterface.ModelFileInfoTable as F
+from MiGRIDS.UserInterface.Delegates import *
+import MiGRIDS.UserInterface.ModelFileInfoTable as F
 from enum import Enum
 
 class ComponentFields(Enum):

@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtWidgets, QtSql
-from InputHandler.Component import Component
-from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.InputHandler.Component import Component
+from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 
 import os
 #class for combo boxes that are not derived from database relationships

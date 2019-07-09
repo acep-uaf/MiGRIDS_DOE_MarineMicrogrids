@@ -1,8 +1,8 @@
 '''SetupInformation is a data model for storing setup information collected through the SetupWizard or UISetupForm.
 The information is written to an XML file using the writeXML method. '''
-from InputHandler.Component import Component
-from Controller.UIToInputHandler import UIToHandler
-from UserInterface.getFilePaths import getFilePath
+from MiGRIDS.InputHandler.Component import Component
+from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.UserInterface.getFilePaths import getFilePath
 import os
 #setup tags are a class that is used for attributes that get written to the setup.xml
 class SetupTag:
@@ -124,8 +124,6 @@ class ModelSetupInformation:
         self.dateChannel = SetupTag('dateChannel')
         self.timeChannel = SetupTag('timeChannel')
         self.realLoadChannel = SetupTag('realLoadChannel')
-        self.inputFileFormat = SetupTag('inputFileFormat')
-        self.inputFileType = SetupTag('inputFileType')
         self.inputTimeStep = SetupTag('inputTimeStep')
         self.timeZone = SetupTag('timeZone')
         self.useDST = SetupTag('useDST')

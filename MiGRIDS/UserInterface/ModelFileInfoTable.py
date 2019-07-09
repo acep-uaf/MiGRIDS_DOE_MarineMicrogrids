@@ -1,5 +1,5 @@
 
-from UserInterface.Delegates import *
+from MiGRIDS.UserInterface.Delegates import *
 from enum import Enum
 
 class InputFileFields(Enum):

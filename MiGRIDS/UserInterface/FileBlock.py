@@ -1,16 +1,18 @@
-from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-import UserInterface.ModelComponentTable as T
-import UserInterface.ModelFileInfoTable as F
-from UserInterface.Delegates import *
+from PyQt5.QtCore import Qt
+
+from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+import MiGRIDS.UserInterface.ModelComponentTable as T
+import MiGRIDS.UserInterface.ModelFileInfoTable as F
+from MiGRIDS.UserInterface.Delegates import *
 import os
 import pytz
 
-from UserInterface.Delegates import ClickableLineEdit
-from UserInterface.gridLayoutSetup import setupGrid
-from Controller.UIToInputHandler import UIToHandler
-from UserInterface.makeButtonBlock import makeButtonBlock
-from UserInterface.TableHandler import TableHandler
-from UserInterface.ModelSetupInformation import SetupTag
+from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
+from MiGRIDS.UserInterface.gridLayoutSetup import setupGrid
+from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
+from MiGRIDS.UserInterface.TableHandler import TableHandler
+from MiGRIDS.UserInterface.ModelSetupInformation import SetupTag
 from enum import Enum
 from PyQt5 import QtWidgets,QtCore,QtSql
 
@@ -22,19 +24,24 @@ from MiGRIDS.UserInterface.Delegates import RelationDelegate
 
 
 class FileBlock(QtWidgets.QGroupBox):
-    def __init__(self, parent, input):
+    def __init__(self, parent, tabPosition):
         super().__init__(parent)
         #integer -> FileBlock
-        self.init(input)
-        self.validated = False
+        self.init(tabPosition)
+
 
     # creates a single form for entering individual file type information
-    def init(self, input):
-        self.input = input
+    def init(self, tabPosition):
+        self.tabPosition = tabPosition
         windowLayout = self.createFileTab()
         self.setLayout(windowLayout)
-        self.model = self.window().findChild(QtWidgets.QWidget,'setupDialog').model
+        #uses an existing instance of ModelSetupInformation
+        try:
+            self.model = self.window().findChild(QtWidgets.QWidget,'setupDialog').model
+        except AttributeError as a:
+            self.model=None
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.validated = False
 
     # -> QVBoxLayout
     def createFileTab(self):
@@ -71,10 +78,10 @@ class FileBlock(QtWidgets.QGroupBox):
             #save the input to the setup data model and into the database
             self.saveInput()
             #update the filedir path
-            if self.dbhandler.getInputPath(str(self.input)) is None:
+            if self.dbhandler.getInputPath(str(self.tabPosition)) is None:
                 self.dbhandler.insertRecord('input_files', [F.InputFileFields.inputfiledirvalue.name], [selectedFolder])
             else:
-                self.dbhandler.updateRecord('input_files', [F.InputFileFields._id.name], [str(self.input)], [F.InputFileFields.inputfiledirvalue.name], [selectedFolder])
+                self.dbhandler.updateRecord('input_files', [F.InputFileFields._id.name], [str(self.tabPosition)], [F.InputFileFields.inputfiledirvalue.name], [selectedFolder])
 
             #filter the component and environemnt input tables to the current input directory
             self.filterTables()
@@ -84,8 +91,8 @@ class FileBlock(QtWidgets.QGroupBox):
             self.createPreview(selectedFolder,self.findChild(QtWidgets.QComboBox,F.InputFileFields.inputfiletypevalue.name).currentText())
         return selectedFolder
     def createPreview(self,folder,fileType):
-        preview = DirectoryPreview(folder,fileType)
-        self.showPreview(preview)
+        self.preview = DirectoryPreview(folder,fileType)
+        self.showPreview(self.preview)
 
     def showPreview(self,preview):
 
@@ -112,6 +119,7 @@ class FileBlock(QtWidgets.QGroupBox):
             timeFormatlInput.setCurrentText(preview.timeFormat)
         except AttributeError as e:
             print("time format not set")
+
     def createTopBlock(self,title, fn):
         '''The top block is where file information is set (format, date and time channels and file type)
         :param title: [String]
@@ -125,6 +133,11 @@ class FileBlock(QtWidgets.QGroupBox):
         # set model
         fileBlockModel = QtSql.QSqlRelationalTableModel()
         fileBlockModel.setTable("input_files")
+        handler = ProjectSQLiteHandler()
+        handler.insertRecord("input_files",['inputfiledirvalue'],['myValue'])
+        print(handler.getAllRecords("input_files"))
+
+        parent = QtCore.QModelIndex()
         fileBlockModel.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
 
         fileBlockModel.setRelation(1, QtSql.QSqlRelation("ref_file_type", "code", "code"))
@@ -151,19 +164,19 @@ class FileBlock(QtWidgets.QGroupBox):
                   'rowNames': [1,2,3,4],
                   'columnWidths': [1, 1,1,3],
                   1:{1:{'widget':'lbl','name':'File Type:', 'default':'File Type'},
-                     2:{'widget':'combo', 'name':'inputfiletypevalue','items':reffiletype },
+                     2:{'widget':'combo', 'name':'inputfiletypevalue','items':reffiletype,'default':'CSV' },
                      3: {'widget': 'lbl', 'name': 'File Directory', 'default': 'Directory'},
                      4: {'widget': 'lncl', 'name': 'inputfiledirvalue'}
                      },
-                  2: {1: {'widget': 'lbl', 'name': 'Date Channel','default':'Date Channel'},
+                  2: {1: {'widget': 'lbl', 'name': 'Date Channel','default': 'Date Channel'},
                       2: {'widget': 'combo', 'name': 'datechannelvalue'},
-                      3: {'widget': 'lbl', 'name': 'Date Format','default':'Date Format'},
-                      4: {'widget': 'combo', 'items': refdatetype, 'name': 'datechannelformat'}
+                      3: {'widget': 'lbl', 'name': 'Date Format'},
+                      4: {'widget': 'combo', 'items': refdatetype, 'name': 'datechannelformat','default':'YYYY-MM-DD'}
                       },
                   3: {1: {'widget': 'lbl', 'name': 'Time Channel', 'default':'Time Channel'},
                       2: {'widget': 'combo', 'name': 'timechannelvalue'},
-                      3: {'widget': 'lbl', 'name': 'Time Format', 'default': 'Time Format'},
-                      4: {'widget': 'combo', 'items': reftimetype, 'name': 'timechannelformat'}
+                      3: {'widget': 'lbl', 'name': 'Time Format'},
+                      4: {'widget': 'combo', 'items': reftimetype, 'name': 'timechannelformat','default': 'HH:SS'}
                       },
                   4:{1: {'widget': 'lbl', 'name': 'Time Zone', 'default':'Time Zone'},
                      2: {'widget': 'combo', 'items':pytz.all_timezones,'name': 'timezonevalue','default':'America/Anchorage'},
@@ -179,7 +192,6 @@ class FileBlock(QtWidgets.QGroupBox):
         gb.setLayout(hlayout)
         fn(gb)
 
-
         #map model to fields
         mapper = QtWidgets.QDataWidgetMapper()
         #submit data changes automatically on field changes
@@ -187,11 +199,25 @@ class FileBlock(QtWidgets.QGroupBox):
         mapper.setModel(fileBlockModel)
         mapper.setItemDelegate(QtSql.QSqlRelationalDelegate())
         #map the widgets we created with our dictionary to fields in the sql table
-        for i in range(0,fileBlockModel.columnCount()):
+
+        for i in range(0,fileBlockModel.columnCount(parent)):
             if gb.findChild(QtWidgets.QWidget,fileBlockModel.record().fieldName(i)) != None:
                 wid = gb.findChild(QtWidgets.QWidget, fileBlockModel.record().fieldName(i))
                 mapper.addMapping(wid,i)
+                if isinstance(wid,QtWidgets.QComboBox):
+                    default = self.findDefault(wid.objectName(),g1)
+                    wid.setCurrentIndex(wid.findText(default));
 
+
+    def findDefault(self,name, dict):
+        for k in dict.keys():
+            try:
+                for key in dict[k].keys():
+                    if dict[k][key]['name'] == name:
+                        return dict[k][key]['default']
+            except:
+               pass
+        return None
     # layout for tables
     def createTableBlock(self, title, table, fn):
 
@@ -344,13 +370,13 @@ class FileBlock(QtWidgets.QGroupBox):
 
                     if type(edit_field) is QtWidgets.QLineEdit:
                         if len(d[k][t])>0:
-                            edit_field.setText(d[k][t][self.input - 1])
+                            edit_field.setText(d[k][t][self.tabPosition - 1])
                     elif type(edit_field) is ClickableLineEdit:
                         if len(d[k][t]) > 0:
-                            edit_field.setText(d[k][t][self.input - 1])
+                            edit_field.setText(d[k][t][self.tabPosition - 1])
                     elif type(edit_field) is QtWidgets.QComboBox:
                         if len(d[k][t]) > 0:
-                            edit_field.setCurrentIndex(edit_field.findText(d[k][t][self.input - 1]))
+                            edit_field.setCurrentIndex(edit_field.findText(d[k][t][self.tabPosition - 1]))
         def getDefault(l, i):
             try:
                 l[i]
@@ -399,7 +425,7 @@ class FileBlock(QtWidgets.QGroupBox):
     def getSetupInfo(self):
         fieldNames = ['_id']
         #values = [re.findall(r'\d+',self.input)[0]]
-        values=[self.input]
+        values=[self.tabPosition]
         for child in self.FileBlock.findChildren((QtWidgets.QLineEdit, QtWidgets.QComboBox)):
 
             if type(child) is QtWidgets.QLineEdit:
@@ -418,18 +444,18 @@ class FileBlock(QtWidgets.QGroupBox):
     def saveInput(self):
 
         #update model info from fileblock
-        self.model.assignTimeChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timechannelvalue.name).currentText(),position=int(self.input)-1)
-        self.model.assignTimeChannel(SetupTag.assignFormat, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timechannelformat.name).currentText(),position=int(self.input)-1)
-        self.model.assignDateChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.datechannelvalue.name).currentText(), position=int(self.input) - 1)
-        self.model.assignDateChannel(SetupTag.assignFormat, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.datechannelformat.name).currentText(),position=int(self.input)-1)
-        self.model.assignInputFileDir(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiledirvalue.name).text(),position=int(self.input)-1)
-        self.model.assignInputFileType(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiletypevalue.name).currentText(),position=int(self.input)-1)
+        self.model.assignTimeChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timechannelvalue.name).currentText(), position=int(self.tabPosition) - 1)
+        self.model.assignTimeChannel(SetupTag.assignFormat, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timechannelformat.name).currentText(), position=int(self.tabPosition) - 1)
+        self.model.assignDateChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.datechannelvalue.name).currentText(), position=int(self.tabPosition) - 1)
+        self.model.assignDateChannel(SetupTag.assignFormat, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.datechannelformat.name).currentText(), position=int(self.tabPosition) - 1)
+        self.model.assignInputFileDir(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiledirvalue.name).text(), position=int(self.tabPosition) - 1)
+        self.model.assignInputFileType(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiletypevalue.name).currentText(), position=int(self.tabPosition) - 1)
         self.model.assignTimeZone(SetupTag.assignValue,
-                                       self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timezonevalue.name).currentText(),
-                                       position=int(self.input) - 1)
+                                  self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timezonevalue.name).currentText(),
+                                  position=int(self.tabPosition) - 1)
         self.model.assignUseDST(SetupTag.assignValue,
-                                       str(self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.usedstvalue.name).isChecked()),
-                                       position=int(self.input) - 1)
+                                str(self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.usedstvalue.name).isChecked()),
+                                position=int(self.tabPosition) - 1)
 
         self.saveTables()
         return
@@ -438,8 +464,26 @@ class FileBlock(QtWidgets.QGroupBox):
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):
         buttonFunction()
+
     def validate(self):
+        '''
+        Checks that all the required fields in for an input directory have been set and valid files have been found
+        :return: boolean - True if required fields have been set, otherwise false.
+        '''
         #validate the file input fields before allowing component information to be collected
+        if (self.preview.header == []) | (self.preview.header == None):
+            self.validated = False
+            return False
+        if ((self.model.dateChannelValue == '') |(self.model.dateChannelValue == None)) & ((self.model.timeChannelValue == '') | (self.model.timeChannelValue == None)):
+            self.validated = False
+            return False
+        if ((self.model.dateChannelValue != '') & (self.model.dateChannelValue != None)) & ((self.model.dateChannelFormat == '') | (self.mdoel.dateChannelFormat == None)):
+            self.validated = False
+            return False
+        if ((self.model.timeChannelValue != '') & (self.model.timeChannelValue != None)) & (
+                (self.model.timeChannelFormat == '') | (self.mdoel.timeChannelFormat == None)):
+            self.validated = False
+            return False
 
     def filterTables(self):
         tables = self.findChildren(QtWidgets.QTableView)
@@ -459,10 +503,10 @@ class FileBlock(QtWidgets.QGroupBox):
         self.model.assignComponentNames(SetupTag.assignValue, ' '.join(names))
         #df is a pandas dataframe  of component information
         df = self.dbhandler.getComponentsTable(self.filter)
-        self.model.assignComponentName(SetupTag.assignValue,[','.join(df['component_name'].tolist())],position=int(self.input)-1)
-        self.model.assignHeaderName(SetupTag.assignValue,[','.join(df['original_field_name'].tolist())],position=int(self.input)-1)
-        self.model.assignComponentAttribute(SetupTag.assignValue,[','.join([x if x is not None else 'NA' for x in df['attribute'].tolist()])],position=int(self.input)-1)
-        self.model.assignComponentAttribute(SetupTag.assignUnits,[','.join([x if x is not None else 'NA' for x in df['units'].tolist()])],position=int(self.input)-1)
+        self.model.assignComponentName(SetupTag.assignValue, [','.join(df['component_name'].tolist())], position=int(self.tabPosition) - 1)
+        self.model.assignHeaderName(SetupTag.assignValue, [','.join(df['original_field_name'].tolist())], position=int(self.tabPosition) - 1)
+        self.model.assignComponentAttribute(SetupTag.assignValue, [','.join([x if x is not None else 'NA' for x in df['attribute'].tolist()])], position=int(self.tabPosition) - 1)
+        self.model.assignComponentAttribute(SetupTag.assignUnits, [','.join([x if x is not None else 'NA' for x in df['units'].tolist()])], position=int(self.tabPosition) - 1)
 
         loC = [self.model.makeNewComponent(df['component_name'],x['original_field_name'],
                                      x['units'],x['attribute'],x['component_type']) for i,x in df.iterrows()]

@@ -1,12 +1,12 @@
 #Form for display model run parameters
 from PyQt5 import QtWidgets, QtCore, QtGui
-from UserInterface.makeButtonBlock import makeButtonBlock
-from UserInterface.TableHandler import TableHandler
-from UserInterface.ModelSetTable import SetTableModel, SetTableView
-from UserInterface.ModelRunTable import RunTableModel, RunTableView
-from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-from Controller.UIToInputHandler import UIToHandler
-from UserInterface.Pages import Pages
+from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
+from MiGRIDS.UserInterface.TableHandler import TableHandler
+from MiGRIDS.UserInterface.ModelSetTable import SetTableModel, SetTableView
+from MiGRIDS.UserInterface.ModelRunTable import RunTableModel, RunTableView
+from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.UserInterface.Pages import Pages
 import datetime
 import os
 

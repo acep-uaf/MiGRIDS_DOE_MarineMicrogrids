@@ -2,7 +2,7 @@
 import logging
 
 from PyQt5 import QtWidgets
-from UserInterface.DisplayWriter import DisplayWriter, QtHandler
+from MiGRIDS.UserInterface.DisplayWriter import DisplayWriter, QtHandler
 
 handler = QtHandler()
 

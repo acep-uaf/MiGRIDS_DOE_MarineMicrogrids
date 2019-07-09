@@ -1,10 +1,10 @@
 #MainForm is the parent for for all sections of the User Interface
 #it consists of a navigation tree and pages
 from PyQt5 import QtWidgets, QtCore, QtGui,QtSql
-from UserInterface.ConsoleDisplay import ConsoleDisplay
+from MiGRIDS.UserInterface.ConsoleDisplay import ConsoleDisplay
 
-from UserInterface.FormSetup import FormSetup
-from UserInterface.switchProject import saveProject
+from MiGRIDS.UserInterface.FormSetup import FormSetup
+from MiGRIDS.UserInterface.switchProject import saveProject
 
 class MainForm(QtWidgets.QMainWindow):
 
@@ -160,13 +160,13 @@ class PageBlock(QtWidgets.QTabWidget):
 
 
     def initUI(self):
-        from UserInterface.FormSetup import FormSetup
-        from UserInterface.ResultsSetup import ResultsSetup
-        from UserInterface.FormModelRuns import FormModelRun
-        from UserInterface.FormOptimize import FormOptimize
-        from UserInterface.ResultsModel import ResultsModel
-        from UserInterface.ResultsOptimize import ResultsOptimize
-        from UserInterface.FormContainer import FormContainer
+        from MiGRIDS.UserInterface.FormSetup import FormSetup
+        from MiGRIDS.UserInterface.ResultsSetup import ResultsSetup
+        from MiGRIDS.UserInterface.FormModelRuns import FormModelRun
+        from MiGRIDS.UserInterface.FormOptimize import FormOptimize
+        from MiGRIDS.UserInterface.ResultsModel import ResultsModel
+        from MiGRIDS.UserInterface.ResultsOptimize import ResultsOptimize
+        from MiGRIDS.UserInterface.FormContainer import FormContainer
 
         self.addTab(FormContainer(self,[FormSetup(self), ResultsSetup(self)],'Setup'), 'Setup')
         self.addTab(FormContainer(self, [FormModelRun(self), ResultsModel(self)],'Model'), 'Model')
@@ -178,8 +178,8 @@ class PageBlock(QtWidgets.QTabWidget):
     #Creates model and optimize tabs
     #this is called after a project name is set
     def enableTabs(self):
-        from UserInterface.FormModelRuns import FormModelRun
-        from UserInterface.FormOptimize import FormOptimize
+        from MiGRIDS.UserInterface.FormModelRuns import FormModelRun
+        from MiGRIDS.UserInterface.FormOptimize import FormOptimize
 
         c1 = self.findChild(FormModelRun)
         c1.show()

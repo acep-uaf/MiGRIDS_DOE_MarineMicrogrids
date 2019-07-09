@@ -2,8 +2,8 @@
 #
 import sys
 from PyQt5 import QtWidgets,QtSql,QtGui,QtCore
-from UserInterface.switchProject import clearProjectDatabase
-from UserInterface.FormMain import MainForm
+from MiGRIDS.UserInterface.switchProject import clearProjectDatabase
+from MiGRIDS.UserInterface.FormMain import MainForm
 
 def callUIForm():
     '''call to show the user interface'''

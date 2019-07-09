@@ -453,3 +453,6 @@ class ProjectSQLiteHandler:
             return code[0]
         else:
             return None
+
+    def getAllRecords(self,table):
+        return self.cursor.execute("select * from " + table).fetchall()

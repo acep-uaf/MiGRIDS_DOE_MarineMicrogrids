@@ -2,7 +2,7 @@
 import os
 
 from PyQt5 import QtWidgets, QtCore
-from Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.Controller.UIToInputHandler import UIToHandler
 
 
 

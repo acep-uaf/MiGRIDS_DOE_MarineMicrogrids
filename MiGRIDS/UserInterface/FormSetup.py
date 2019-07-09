@@ -8,20 +8,20 @@ In the case of a windspeed file a windspeed netcdf file will be generated and po
 on each wtg components descriptor file.'''
 import os
 from PyQt5 import QtCore, QtWidgets, QtGui
-from UserInterface.ModelSetupInformation import ModelSetupInformation
+from MiGRIDS.UserInterface.ModelSetupInformation import ModelSetupInformation
 
-from Controller.UIToInputHandler import UIToHandler
-from UserInterface.makeButtonBlock import makeButtonBlock
-from UserInterface.ResultsSetup import  ResultsSetup
-from UserInterface.FormModelRuns import SetsTableBlock
-from UserInterface.Pages import Pages
-from UserInterface.Delegates import ClickableLineEdit
-from UserInterface.FileBlock import FileBlock
-from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-from UserInterface.ModelSetupInformation import SetupTag
-from UserInterface.switchProject import switchProject
-from UserInterface.getFilePaths import getFilePath
-from UserInterface.replaceDefaultDatabase import replaceDefaultDatabase
+from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
+from MiGRIDS.UserInterface.ResultsSetup import  ResultsSetup
+from MiGRIDS.UserInterface.FormModelRuns import SetsTableBlock
+from MiGRIDS.UserInterface.Pages import Pages
+from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
+from MiGRIDS.UserInterface.FileBlock import FileBlock
+from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.UserInterface.ModelSetupInformation import SetupTag
+from MiGRIDS.UserInterface.switchProject import switchProject
+from MiGRIDS.UserInterface.getFilePaths import getFilePath
+from MiGRIDS.UserInterface.replaceDefaultDatabase import replaceDefaultDatabase
 
 class FormSetup(QtWidgets.QWidget):
     global model

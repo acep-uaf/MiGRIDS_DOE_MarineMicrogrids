@@ -1,10 +1,10 @@
 import shutil
 import os
 from PyQt5 import QtWidgets,QtSql
-from UserInterface.Delegates import ClickableLineEdit, ComboDelegate
-from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-from UserInterface.ModelSetupInformation import ModelSetupInformation
-from UserInterface.ModelRunTable import RunTableModel
+from MiGRIDS.UserInterface.Delegates import ClickableLineEdit, ComboDelegate
+from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.UserInterface.ModelSetupInformation import ModelSetupInformation
+from MiGRIDS.UserInterface.ModelRunTable import RunTableModel
 def switchProject(caller):
     '''saves an existing project, clears the database and initiates a new project'''
     saveProject(caller.model.setupFolder)
