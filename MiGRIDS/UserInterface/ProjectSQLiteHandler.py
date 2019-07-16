@@ -159,40 +159,48 @@ class ProjectSQLiteHandler:
         project_path text,
         project_name text);""")
 
-        #component table
-        self.cursor.execute("DROP TABLE IF EXISTS components")
-        self.cursor.executescript("""CREATE TABLE components
+        #component files contains information for loading component data
+        self.cursor.execute("DROP TABLE IF EXISTS component_files")
+        self.cursor.executescript("""CREATE TABLE component_files
          (_id integer primary key,
-         inputfiledir text,
-         original_field_name text,
-         component_type text,
-         component_name text,
-         units text,
-         scale numeric,
-         offset numeric,
-         attribute text,
-         tags text,
-         
-         FOREIGN KEY (component_type) REFERENCES ref_component_type(code),
-         FOREIGN KEY (units) REFERENCES ref_universal_units(code),
-         FOREIGN KEY (attribute) REFERENCES ref_attributes(code)
-         
+         component_id integer,
+         inputfile integer,
+         original_field_name text
          );""")
-
         self.connection.commit()
-        self.cursor.execute("DROP TABLE IF EXISTS sets")
+
+
+        #component contains information that is relevant to the loaded component data
+        self.cursor.execute("DROP TABLE IF EXISTS component")
+        self.cursor.executescript("""CREATE TABLE component
+                 (_id integer primary key,
+                 component_type text,
+                 component_name text,
+                 units text,
+                 scale numeric,
+                 offset numeric,
+                 attribute text,       
+                 FOREIGN KEY (component_type) REFERENCES ref_component_type(code),
+                 FOREIGN KEY (units) REFERENCES ref_universal_units(code),
+                 FOREIGN KEY (attribute) REFERENCES ref_attributes(code)
+                  );""")
+        self.connection.commit()
+
+        self.cursor.execute("DROP TABLE IF EXISTS set_components")
         self.cursor.executescript("""
-        CREATE TABLE IF NOT EXISTS sets
+        CREATE TABLE IF NOT EXISTS set_components
         (_id integer primary key,
-        set_name text , 
-        component text ,
-        change_tag text,
-        to_value text);""")
+        set_id integer , 
+        component_id integer,
+        tag text,
+        tag_value text);""")
+
 
         self.cursor.execute("DROP TABLE IF EXISTS input_files")
         self.cursor.executescript("""
                 CREATE TABLE IF NOT EXISTS input_files
                 (_id integer primary key,
+                project_id integer,
                 inputfiletypevalue text , 
                 datatype text ,
                 inputfiledirvalue text,
@@ -215,9 +223,9 @@ class ProjectSQLiteHandler:
                      parameter text,
                      parameter_value text);""")
 
-        self.cursor.execute("DROP TABLE IF EXISTS runs")
+        self.cursor.execute("DROP TABLE IF EXISTS run")
         self.cursor.executescript("""
-                CREATE TABLE IF NOT EXISTS runs
+                CREATE TABLE IF NOT EXISTS run
                 (_id integer primary key,
                 set_id text,
                 set_name text
@@ -227,11 +235,13 @@ class ProjectSQLiteHandler:
         self.cursor.executescript("""
                         CREATE TABLE IF NOT EXISTS setup
                         (_id integer primary key,
+                        project integer,
                         set_name unique,
                         date_start text,
                         date_end text,
                         timestep integer,
-                        component_names text
+                        timeunit text
+                        
                         );""")
 
         self.cursor.execute("INSERT INTO setup (set_name,timestep,date_start,date_end) values('default',1,'2016-01-01','2016-12-31')")
@@ -255,26 +265,58 @@ class ProjectSQLiteHandler:
         '''
 
         self.connection.commit()
+    def clearTable(self,table):
+        self.cursor.execute("Delete From " + table)
+        self.connection.commit()
 
     #get the set info for a specific set or default values if no set is specified
     #String -> dictionary
-    def getSetInfo(self,set='default'):
+    def getSetInfo(self,set='set0'):
         setDict = {}
-        #get tuple
-        values = self.cursor.execute("select timestep, date_start, date_end, component_names from setup where set_name = '" + set + "'").fetchone()
-        if values is None:
-            values = self.cursor.execute(
-                "select timestep, date_start, date_end, component_names from setup where set_name = 'default'").fetchone()
+        #get tuple for basic set info
+        values = self.cursor.execute("select project_name, timestep, timeunit, date_start, date_end from setup join project on setup.project = project._id where set_name = '" + set + "'").fetchone()
+        if values is not None:
+            setDict['project name'] = values[0]
+            setDict['timestep.value'] = values[1]
+            setDict['timestep.unit']=values[2]
+            setDict['date_start'] = values[3]
+            setDict['date_end'] = values[4]
+            #as long as there was basic set up info look for component setup info
+            #componentNames is a list of distinct components, order does not matter
+            setDict['componentNames'] =  self.cursor.execute("SELECT group_concat(component_name,' ') from component join set_components on component._id = set_components.component_id "
+                                                             "join setup on set_components.set_id = setup._id where set_name = '" + set + "'").fetchone()[0]
 
-        setDict['timestep'] = values[0]
-        setDict['date_start'] = values[1]
-        setDict['date_end'] = values[2]
-        setDict['component_names'] = values[3]
-        values = self.cursor.execute("select date_start, date_end from setup where set_name = 'default'").fetchone()
-        setDict['min_date'] = values[0]
-        setDict['max_date'] = values[1]
-        if setDict.get('component_names') is None:
-            setDict['component_names'] = []
+
+
+            #componentChannels has ordered lists for directories and the components they contain. A component can have data in more than one directory and file type, in which case it would
+            #be listed more than once in componentChannels
+            values = self.cursor.execute(
+            "select group_concat(inputfiledirvalue,' '), group_concat(inputfiletypevalue,' '),group_concat(component_name,' '),"
+            "group_concat(original_field_name, ' '),group_concat(attribute, ' '), group_concat(units, ' '),group_concat(datechannelvalue, ' '),group_concat(timechannelvalue,' '),"
+            "group_concat(datechannelformat, ' '),group_concat(timechannelformat, ' '), "
+            "group_concat(timezonevalue, ' '), group_concat(usedstvalue, ' ') "
+            "from input_files join "
+            "(select component._id as component_id, inputfile, component_name, original_field_name, attribute, units from component_files "
+            "Inner JOIN component on component_files.component_id = component._id "
+            "Inner Join set_components on component._id = set_components.component_id "
+            "Inner Join setup on set_components.set_id = setup._id  where set_name = '" + set + "' ORDER BY component_id) as components"
+            " ON components.inputfile = input_files._id ORDER BY input_files._id").fetchone()
+
+            if values is not None:
+                setDict['inputFileDir'] = values[0]
+                setDict['inputFileType'] = values[1]
+                setDict['componentChannels.componentName']= values[2]
+                setDict['componentChannels.headerName'] = values[3]
+                setDict['componentChannels.componentName'] = values[4]
+                setDict['componentChannels.componentAttribute.value'] = values[5]
+                setDict['componentChannels.componentAttribute.unit'] = values[6]
+                setDict['dateChannel.value']=values[7]
+                setDict['dateChannel.format'] = values[8]
+                setDict['timeChannel.value'] = values[9]
+                setDict['timeChannel.format'] = values[10]
+
+        else:
+            return None
 
         return setDict
     #inserts a single record into a specified table given a list of fields to insert values into and a list of values
@@ -401,16 +443,24 @@ class ProjectSQLiteHandler:
         codes = (codes['code']).tolist()
 
         return codes
-    #returns a list of components associated with a project
+
     def getComponentNames(self):
-
+        '''
+        returns a list of names for components in the components table
+        :return: list of string component names
+        '''
         names = self.cursor.execute("select component_name from components").fetchall()
-        if names is not None:
+        if len(names) >0:
             names = [''.join(i) for i in names if i is not None]
-
             return pd.Series(names).tolist()
         return []
+
     def getComponentsTable(self, filter):
+        '''
+
+        :param filter: String name of inputfiledir
+        :return: pandas.dataframe of component attributes editable in the component table
+        '''
         sql = """select component_name, component_type, original_field_name, units,attribute from components where inputfiledir = ?"""
         df = pd.read_sql_query(sql,self.connection,params=[filter])
         '''sql = """select component_name, 'env', original_field_name, units,attribute from environment where inputfiledir = ?"""

@@ -21,12 +21,16 @@ from MiGRIDS.UserInterface.getFilePaths import getFilePath
 class UIToHandler():
     #generates an setup xml file based on information in a ModelSetupInformation object
     #ModelSetupInformation -> None
-    def makeSetup(self, setupInfo):
+    def makeSetup(self):
        # write the information to a setup xml
         # create a mostly blank xml setup file, componentNames is a SetupTag class so we need the value
-        buildProjectSetup(setupInfo.project, setupInfo.setupFolder, setupInfo.componentNames.value)
+        dbhandler=ProjectSQLiteHandler()
+        project = dbhandler.getProject()
+        setupFolder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', project, 'InputData','Setup'])
+        components = dbhandler.getComponentNames('set0')
+        buildProjectSetup(project, setupFolder,components )
         #fill in project data into the setup xml and create descriptor xmls if they don't exist
-        fillProjectData(setupInfo.setupFolder, setupInfo)
+        fillProjectData(setupFolder)
         return
 
     #string, string -> Soup

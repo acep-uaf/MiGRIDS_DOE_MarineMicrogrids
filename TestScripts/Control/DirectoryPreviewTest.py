@@ -15,6 +15,7 @@ class DirectoryPreviewTest(unittest.TestCase):
         self.subpath = os.path.join(os.path.dirname(__file__), '..','..','MiGRIDSProjects', 'SampleProject', 'InputData',
                              'TimeSeriesData')
 
+
     #object created
     def test_createEmptyObject(self):
         with self.assertRaises(NoValidFilesError):

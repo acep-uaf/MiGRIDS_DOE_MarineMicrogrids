@@ -8,7 +8,7 @@ In the case of a windspeed file a windspeed netcdf file will be generated and po
 on each wtg components descriptor file.'''
 import os
 from PyQt5 import QtCore, QtWidgets, QtGui
-from MiGRIDS.UserInterface.ModelSetupInformation import ModelSetupInformation
+#from MiGRIDS.UserInterface.ModelSetupInformation import ModelSetupInformation
 
 from MiGRIDS.Controller.UIToInputHandler import UIToHandler
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
@@ -18,14 +18,14 @@ from MiGRIDS.UserInterface.Pages import Pages
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.FileBlock import FileBlock
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-from MiGRIDS.UserInterface.ModelSetupInformation import SetupTag
+#from MiGRIDS.UserInterface.ModelSetupInformation import SetupTag
 from MiGRIDS.UserInterface.switchProject import switchProject
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.replaceDefaultDatabase import replaceDefaultDatabase
 
 class FormSetup(QtWidgets.QWidget):
     global model
-    model = ModelSetupInformation()
+    #model = ModelSetupInformation()
     def __init__(self, parent):
         super().__init__(parent)
         self.lastProjectPath = parent.lastProjectPath
@@ -310,47 +310,64 @@ class FormSetup(QtWidgets.QWidget):
         btn.clicked.connect(self.saveTreeInput)
         return wiztree
 
+    def assignProjectPath(self, name):
 
+            self.project = name
+
+            self.setupFolder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', self.project, 'InputData','Setup'])
+
+            self.componentFolder = getFilePath(self.setupFolder ,'Components')
+            projectFolder = getFilePath(self.setupFolder, 'Project')
+            #self.outputFolder = getFilePath(self.projectFolder, 'OutputData')
+
+            #if there isn't a setup folder then its a new project
+            if not os.path.exists(self.setupFolder):
+                #make the project folder
+                os.makedirs(self.setupFolder)
+            if not os.path.exists(self.componentFolder):
+                #make the component
+                os.makedirs(self.componentFolder)
+            return projectFolder
     def saveTreeInput(self):
         '''
-        save the input in the wizard tree attribute to the ModelSetupInformation data model
+        save the input in the wizard tree attribute to the database
         :return: None
         '''
 
-        model = self.model
+        dbhandler = ProjectSQLiteHandler()
         model.assignProject(self.WizardTree.field('project'))
-        model.assignTimeStep(SetupTag.assignValue, self.WizardTree.field('timeInterval'))
-        model.assignTimeStep(SetupTag.assignUnits, self.WizardTree.field('timeUnit'))
-        model.assignRunTimesteps(SetupTag.assignValue, self.WizardTree.field('sdate') + ' ' + self.WizardTree.field('edate'))
+        dbhandler.insertRecord("project",['project_name','project_path'],[self.WizardTree.field('project'),self.assignProjectPath(self.WizardTree.field('project'))])
+        dbhandler.insertRecord("setup",['set_name','timestep','timeunit','date_start','date_end'],['set0',self.WizardTree.field('timeInterval'),self.WizardTree.field('timeUnit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
+
         return
 
-    def sendSetupInputToModel(self):
-        '''
-        Reads data from gui and sends to the ModelSetupInformation data model
-        reads through all the file tabs to collect input from all tabs
-        :return: None
-        '''
-
-        #extract data from every tab
-        tabWidget = self.findChild(QtWidgets.QTabWidget)
-        for t in range(tabWidget.count()):
-            page = tabWidget.widget(t)
-            # cycle through the input children in the topblock
-            for child in page.FileBlock.findChildren((QtWidgets.QLineEdit, QtWidgets.QComboBox)):
-
-                if type(child) is QtWidgets.QLineEdit:
-                    value = child.text()
-                elif type(child) is ClickableLineEdit:
-                    value = child.text()
-                elif type(child) is QtWidgets.QComboBox:
-                    value = child.itemText(child.currentIndex())
-                #append to appropriate list
-                attr = child.objectName()
-                model.assign(attr,value,position=int(page.input)-1)
-
-            model.setComponents(page.saveTables())
-
-            return
+    # def sendSetupInputToModel(self): Not necessary if submitting to database
+    #     '''
+    #     Reads data from gui and sends to the ModelSetupInformation data model
+    #     reads through all the file tabs to collect input from all tabs
+    #     :return: None
+    #     '''
+    #
+    #     #extract data from every tab
+    #     tabWidget = self.findChild(QtWidgets.QTabWidget)
+    #     for t in range(tabWidget.count()):
+    #         page = tabWidget.widget(t)
+    #         # cycle through the input children in the topblock
+    #         for child in page.FileBlock.findChildren((QtWidgets.QLineEdit, QtWidgets.QComboBox)):
+    #
+    #             if type(child) is QtWidgets.QLineEdit:
+    #                 value = child.text()
+    #             elif type(child) is ClickableLineEdit:
+    #                 value = child.text()
+    #             elif type(child) is QtWidgets.QComboBox:
+    #                 value = child.itemText(child.currentIndex())
+    #             #append to appropriate list
+    #             attr = child.objectName()
+    #             model.assign(attr,value,position=int(page.input)-1)
+    #
+    #         model.setComponents(page.saveTables())
+    #
+    #         return
 
     #TODO this should be done on a seperate thread
     def createInputFiles(self):
@@ -359,7 +376,7 @@ class FormSetup(QtWidgets.QWidget):
         '''
         self.addProgressBar()
         self.progress.setRange(0, 0)
-        self.sendSetupInputToModel()
+        #self.sendSetupInputToModel()
         # check all the required fields are filled
         dbhandler = ProjectSQLiteHandler()
         if not dbhandler.dataComplete():
@@ -374,7 +391,7 @@ class FormSetup(QtWidgets.QWidget):
         dbhandler.closeDatabase()
 
         # start with the setupxml
-        self.model.writeNewXML()
+        writeNewXML()
 
         # import datafiles
         handler = UIToHandler()

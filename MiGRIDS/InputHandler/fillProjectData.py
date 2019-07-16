@@ -6,13 +6,13 @@
 # fill in information about the project into the descriptor and setup xml files
 #
 #String, ModelSetupInformation - > None
-def fillProjectData(projectDir = '',setupInfo = None):
+def fillProjectData(projectDir=None):
     '''
     Calls function to create project data files depending on what parameters are provided
-    Does not interact directly with User Interface but takes object containing relevent information passed
-    from user interface through controller.If setupInfo is none then csv files are assumed.
-    :param projectDir: [string] the directory that project data is saved in
-    :param setupInfo: [ModelSetupInformation] a model of setup information collected from the user interface
+    If a projectDir is specified then files are created from csv files found in that directory
+    If not projectDir is specified information contained in project_manager database is used to create input files.
+    :param projectDir: [string] the directory that project data is saved in. If none, the project directory will be retrieved from the project
+    manager database and xml files will be filled from information in the database.
     :return: None
     '''
     # general imports
@@ -20,22 +20,10 @@ def fillProjectData(projectDir = '',setupInfo = None):
     import os
     here = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(here)
-    import tkinter as tk
-    from tkinter import filedialog
-    from InputHandler.fillProjectDataFromCSV import fillProjectDataFromCSV
-    from InputHandler.fillProjectDataFromUI  import fillProjectDataFromUI
-
-    # get the project directory. This is all that should be needed, since folder structure and filenames should be
-    # standardized
-    # if project directory not specified, ask for it
-    if projectDir == '':
-        print('Choose the project directory')
-        root = tk.Tk()
-        root.withdraw()
-        projectDir = filedialog.askdirectory()
-
-    if setupInfo is None:
+    from MiGRIDS.InputHandler.fillProjectDataFromCSV import fillProjectDataFromCSV
+    from MiGRIDS.InputHandler.fillProjectDataFromDb  import fillProjectDataFromDb
+    if projectDir is not None:
         fillProjectDataFromCSV(projectDir)
-    else:
-        fillProjectDataFromUI(setupInfo)
+    elif projectDir is None:
+        fillProjectDataFromDb()
     return

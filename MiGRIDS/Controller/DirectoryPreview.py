@@ -46,7 +46,8 @@ class DirectoryPreview:
         '''
         try:
            lof = [os.path.join(self.directory,f) for f in os.listdir(self.directory) if (f[- len(self.fileType):] == self.fileType.replace('MET','txt')) | (f[- len(self.fileType):] == self.fileType.lower())]
-        except:
+        except Exception as e:
+            print(e)
             raise NoValidFilesError("No valid files found in directory")
         if len(lof) <= 0:
             raise NoValidFilesError("No valid files found in directory")
