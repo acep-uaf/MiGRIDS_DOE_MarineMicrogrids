@@ -32,7 +32,7 @@ class ProjectSQLiteHandler:
             return False
         return True
     #String, integer -> String
-    def getComponentData(self, column, row):
+    '''def getComponentData(self, column, row):
         if column != '':
             values = self.cursor.execute("select " + column + " from components limit ?", [row+1]).fetchall()
 
@@ -41,7 +41,7 @@ class ProjectSQLiteHandler:
                 if value is not None:
                     return value
 
-        return
+        return'''
 
     def createRefTable(self, tablename):
         self.cursor.execute("DROP TABLE  If EXISTS " + tablename)
@@ -55,14 +55,16 @@ class ProjectSQLiteHandler:
                             """
                             )
         self.connection.commit()
-    def getDataTypeCodes(self):
-        return self.cursor.execute("Select code from ref_file_type").fetchall()
+
+    '''def getDataTypeCodes(self):
+        return self.cursor.execute("Select code from ref_file_type").fetchall()'''
 
     def updateDefaultSetup(self,values):
         self.cursor.prepare(
             "UPDATE setup set date_start = ?, date_end = ?, component_names = ? where set_name = 'default'",
             [values['date_start'],values['date_end'],values['component_names']])
         self.connection.commit()
+
     #String, ListOfTuples -> None
     def addRefValues(self, tablename, values):
 
@@ -269,9 +271,12 @@ class ProjectSQLiteHandler:
         self.cursor.execute("Delete From " + table)
         self.connection.commit()
 
-    #get the set info for a specific set or default values if no set is specified
-    #String -> dictionary
     def getSetInfo(self,set='set0'):
+        '''
+        Creates a dictionary of setup information for a specific set, default is set 0 which is the base case
+        :param set: String name of the set to get information for
+        :return: dictionary of xml tags and values to be written to a setup.xml file
+        '''
         setDict = {}
         #get tuple for basic set info
         values = self.cursor.execute("select project_name, timestep, timeunit, date_start, date_end from setup join project on setup.project = project._id where set_name = '" + set + "'").fetchone()
@@ -307,13 +312,14 @@ class ProjectSQLiteHandler:
                 setDict['inputFileType'] = values[1]
                 setDict['componentChannels.componentName']= values[2]
                 setDict['componentChannels.headerName'] = values[3]
-                setDict['componentChannels.componentName'] = values[4]
-                setDict['componentChannels.componentAttribute.value'] = values[5]
-                setDict['componentChannels.componentAttribute.unit'] = values[6]
-                setDict['dateChannel.value']=values[7]
+                setDict['componentChannels.componentAttribute.value'] = values[4]
+                setDict['componentChannels.componentAttribute.unit'] = values[5]
+                setDict['dateChannel.value']=values[6]
                 setDict['dateChannel.format'] = values[8]
-                setDict['timeChannel.value'] = values[9]
-                setDict['timeChannel.format'] = values[10]
+                setDict['timeChannel.value'] = values[7]
+                setDict['timeChannel.format'] = values[9]
+                setDict['timeZone'] =  values[10]
+                setDict['inputDST'] = values[11]
 
         else:
             return None
@@ -322,6 +328,13 @@ class ProjectSQLiteHandler:
     #inserts a single record into a specified table given a list of fields to insert values into and a list of values
     #String, ListOfString, ListOfString
     def insertRecord(self, table, fields, values):
+        '''
+        Insert a record in a specified table
+        :param table: String name of the table to insert a record in
+        :param fields: List of String field names
+        :param values: List of values in to insert into fields
+        :return: Boolean True if record was added
+        '''
         string_fields = ','.join(fields)
         string_values = ','.join('?' * len(values))
         try:
@@ -332,9 +345,16 @@ class ProjectSQLiteHandler:
             print(e)
             return False
 
-    # updates a single record in a specified table given a field to match, value to match, list of fields to insert values into and a list of values
-    # String, ListOfString, ListOfString, ListOfString, ListOfString
     def updateRecord(self,table, keyField,keyValue,fields,values):
+        '''
+        Update the fields for a specific record in a table. The record is identified by its keyField with the specified keyValue
+        :param table: String table name of the table containing the record to update
+        :param keyField: List of String name of the field containing the record identifier
+        :param keyValue: List of Value to find in the keyField; records with this value in thier key field will be updated
+        :param fields: List of String field names to update
+        :param values: List of values to replace in respective fields
+        :return: Boolean True if successfully updated
+        '''
         updateFields = ', '.join([a + " = '" + b + "'" for a,b in zip(fields,values)])
 
         keyFields = ', '.join([a + " = '" + b + "'" for a,b in zip(keyField,keyValue)])
@@ -350,9 +370,13 @@ class ProjectSQLiteHandler:
             return False
         return
 
-    #resturns a string that combines code and descriptor columns from a reference table into a single '-' sepearted string
-    #String -> String
+
     def getRefInput(self, tables):
+        '''
+        returns a string that combines code and descriptor columns from a reference table into a single '-' sepearted string
+        :param tables: List of tables to include in the list
+        :return: a list of '-' seperated code and description columns from a reference table
+        '''
         #table is a list of tables
 
         # create list of values for a combo box
@@ -363,13 +387,16 @@ class ProjectSQLiteHandler:
             for v in range(len(values)):
                 valueStrings.append(values.loc[v, 'code'] + ' - ' + values.loc[v, 'description'])
         return valueStrings
-    #returns the number of components of a specific type withing the component table
-    #String -> integer
+
     def getTypeCount(self,componentType):
         import re
+        ''' finds the count of a specific component type within a project
+        :param componentType: the type of component to get a count for
+        :return integer count of a component type
+        '''
         #get the highest component name (biggest number)
-        finalName = self.cursor.execute("SELECT component_name FROM components where component_type = '" + componentType + "' ORDER BY component_name DESC").fetchone()
-        if finalName[0] is not None:
+        finalName = self.cursor.execute("SELECT component_name FROM component where component_type = '" + componentType + "' ORDER BY component_name DESC").fetchone()
+        if finalName is not None:
             finalName=finalName[0]
             #extract the numbers in the name
             count = re.findall(r'\d+',finalName)
@@ -379,48 +406,28 @@ class ProjectSQLiteHandler:
                 count = int(count[0])
                 return count +1
         return 0
+
     def dataCheck(self,table):
-        import re
-        #get the highest component name (biggest number)
-        data = self.cursor.execute("SELECT * FROM " + table).fetchall()
-        return data
-    #returns a list of column names for a table
-    # String -> list
-    def getHeaders(self,table):
-        #Todo read from database
-        headers = self.cursor.execute("select sql from sqlite_master where name = " + table + " and type = 'table'")
+       '''
+       Retrieve all the records from a table
+       :param table: String name of the table to retrieve records from
+       :return: List of tuples, each tuple is a record
+       '''
+       data = self.cursor.execute("SELECT * FROM " + table).fetchall()
+       return data
 
-        return headers
-    #returns true if a field within the specified table has a reference constraint
-    #String, String -> Boolean
-    def hasRef(self,column, table):
 
-        sql = self.cursor.execute("SELECT sql FROM sqlite_master WHERE type = 'table' and name = '" + table + "'").fetchone()
-        if column + ') references ' in sql[0].lower():
-            return True
-        return False
-    #returns the name of a reference table for a specified column in a table
-    #String, String -> String
-    def getRef(self,column, table):
-        s1 = self.cursor.execute("SELECT sql FROM sqlite_master WHERE type = 'table' and name = '" + table + "'").fetchone()
-        s1 = s1[0].lower()
-        s2 = column + ") references "
-        table = s1[s1.find(s2) + len(s2):].replace("(code)", "")
-        table = table.replace(")","")
-        table = table.split(",")[0]
 
-        table = table.strip()
-
-        return table
     #updates the component table with a key and values in a dictionary
     #Dictionary -> None
     def updateComponent(self, dict):
         for k in dict.keys():
             try:
-                self.cursor.execute("UPDATE components SET " + k + " = ? WHERE component_name = ?", [dict[k],dict['component_name']])
+                self.cursor.execute("UPDATE component SET " + k + " = ? WHERE component_name = ?", [dict[k],dict['component_name']])
             except:
                 print('%s column was not found in the data table' %k)
         self.connection.commit()
+
     #determines if a component record needs to be created or updated and implements the correct function
     #returns true if the record is a new record and was added to the table
     #dictionary -> Boolean

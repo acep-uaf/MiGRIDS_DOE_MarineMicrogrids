@@ -65,7 +65,7 @@ class FileBlock(QtWidgets.QGroupBox):
     # -> QVBoxLayout
     def createFileTab(self):
         self.dbhandler = ProjectSQLiteHandler()
-        print(self.dbhandler.getDataTypeCodes())
+        #print(self.dbhandler.getDataTypeCodes())
         windowLayout = QtWidgets.QVBoxLayout()
         self.createTopBlock('Setup',self.assignFileBlock)
         l = self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name)

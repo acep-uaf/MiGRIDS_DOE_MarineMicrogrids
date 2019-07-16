@@ -80,7 +80,7 @@ class ProjectSQLiteHandlerTest(unittest.TestCase):
 
 
     def clearDatabase(self):
-        tablelist = ['setup','set_components','components','project','run']
+        tablelist = ['setup','set_components','component','component_files','project','run']
         for t in tablelist:
             self.handler.clearTable(t)
 
@@ -101,12 +101,40 @@ class ProjectSQLiteHandlerTest(unittest.TestCase):
         self.assertEqual(len(self.handler.getAllRecords("ref_time_format")), 5)
 
     def test_getSetInfo(self):
+        #test on empty database
+        mydict = self.handler.getSetInfo()
+        self.assertEqual(mydict, None)
         self.insertTestData()
         mydict = self.handler.getSetInfo('set0')
         print(mydict)
         self.assertEqual(mydict['inputFileType'],'CSV CSV MET')
         self.assertEqual(mydict['componentNames'], 'load0 wtg0')
 
+
+    def test_getProjectPath(self):
+        self.insertTestData()
+        self.assertEqual(self.handler.getProjectPath(),os.path.join(os.path.dirname(__file__), '..','..','MiGRIDSProjects','SampleProject1'))
+
+    def test_updateRecord(self):
+        self.insertTestData()
+        self.handler.updateRecord('setup',['set_name'],['set0'],['date_start','date_end'],['3','5'])
+        self.assertEqual(self.handler.getSetInfo()['date_start'],'3')
+        self.assertEqual(self.handler.getSetInfo()['date_end'],'5')
+
+    def test_getComponentType(self):
+        self.assertEqual(self.handler.getTypeCount('ees'),0)
+        self.insertTestData()
+        self.assertEqual(self.handler.getTypeCount('ees'),0)
+        self.assertEqual(self.handler.getTypeCount('wtg'),1)
+
+    def test_updateComponent(self):
+        self.insertTestData()
+        #update component that doesnt exist
+        self.handler.updateComponent({'component_name': 'wtg1', 'attribute': 'P'})
+        self.assertEqual(self.handler.getSetInfo()['componentChannels.componentAttribute.value'], 'P P WS')
+        #update component that does exist
+        self.handler.updateComponent({'component_name': 'wtg0', 'attribute': 'P'})
+        self.assertEqual(self.handler.getSetInfo()['componentChannels.componentAttribute.value'],'P P P')
 
 
 if __name__ == '__main__':
