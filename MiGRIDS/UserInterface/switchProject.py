@@ -3,18 +3,19 @@ import os
 from PyQt5 import QtWidgets,QtSql
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit, ComboDelegate
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-from MiGRIDS.UserInterface.ModelSetupInformation import ModelSetupInformation
 from MiGRIDS.UserInterface.ModelRunTable import RunTableModel
 def switchProject(caller):
     '''saves an existing project, clears the database and initiates a new project'''
-    saveProject(caller.model.setupFolder)
+    dbhandler = ProjectSQLiteHandler()
+    pathTo = os.path.join(dbhandler.getProjectPath(),'InputData','Setup')
+    saveProject(pathTo)
     print(type(caller))
     print(caller.objectName())
     del caller.model
-    newmodel = ModelSetupInformation()
+
     clearProjectDatabase(caller)
 
-    return newmodel
+    return
 
 def saveProject(pathTo):
     '''saves the current project database to the specified path'''
@@ -29,7 +30,6 @@ def clearProjectDatabase(caller=None):
     # get the name of the last project worked on
     lastProjectPath = handler.getProjectPath()
     handler.makeDatabase()
-    print(handler.dataCheck('components'))
     handler.closeDatabase()
     #the forms need to be cleared or data will get re-written to database
     if caller is not None:

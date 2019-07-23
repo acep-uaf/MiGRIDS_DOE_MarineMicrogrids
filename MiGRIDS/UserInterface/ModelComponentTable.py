@@ -31,9 +31,9 @@ class ComponentTableView(QtWidgets.QTableView):
 
         #combo columns
         self.setItemDelegateForColumn(ComponentFields.DIRECTORY.value, TextDelegate(self))
-        self.setItemDelegateForColumn(ComponentFields.TYPE.value, RelationDelegate(self, 'component_type'))
-        self.setItemDelegateForColumn(ComponentFields.ATTRIBUTE.value, RelationDelegate(self, 'component_attribute'))
-        self.setItemDelegateForColumn(ComponentFields.UNITS.value, RelationDelegate(self, 'component_units'))
+        self.setItemDelegateForColumn(ComponentFields.TYPE.value, RelationDelegate(self, 'componenttype'))
+        self.setItemDelegateForColumn(ComponentFields.ATTRIBUTE.value, RelationDelegate(self, 'componentattributevalue'))
+        self.setItemDelegateForColumn(ComponentFields.UNITS.value, RelationDelegate(self, 'componentattributeunit'))
         self.setItemDelegateForColumn(ComponentFields.CUSTOMIZE.value, ComponentFormOpenerDelegate(self, '+'))
 
 #data model to fill component table
@@ -42,7 +42,7 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
 
         QtSql.QSqlTableModel.__init__(self, parent)
         #values to use as headers for component table
-        self.header = ['ID','Directory','Field', 'Type', 'Component Name', 'Units', 'Scale',
+        self.header = ['ID','Directory','Field', 'Type', 'Component Name', 'Unit', 'Scale',
                     'Offset','Attribute','Customize']
         self.setTable('components')
         #leftjoin so null values ok

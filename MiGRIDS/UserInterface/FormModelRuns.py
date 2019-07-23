@@ -191,7 +191,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
 
     #->QtWidgets.QLineEdit
     def componentSelector(self,**kwargs):
-        from UserInterface.Delegates import ClickableLineEdit
+        from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
         #if components are not provided use the default list
         if kwargs.get("components"):
             components = kwargs.get("components")
@@ -206,37 +206,37 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         return widg
     #fills the setup portion of a set tab with either default values or current database values
     #String -> None
-    def fillSetInfo(self, set = 'default'):
+    def fillSetInfo(self, set = 'set0'):
 
         databaseHandler = ProjectSQLiteHandler()
         # dictionary of set info
         setInfo = databaseHandler.getSetInfo(set)
-        databaseHandler.closeDatabase()
-        if type(setInfo['component_names']) == str:
-            self.componentDefault = setInfo['component_names'].split(',')
-        else:
-            self.componentDefault = setInfo['component_names']
-        start = datetime.datetime.strptime(setInfo['min_date'],'%Y-%m-%d')
-        end = datetime.datetime.strptime(setInfo['max_date'],'%Y-%m-%d')
+        if setInfo != None:
+            if type(setInfo['componentnamesvalue']) == str:
+                self.componentDefault = setInfo['componentnamesvalue'].split(',')
+            else:
+                self.componentDefault = setInfo['componentnamesvalue']
+            start = datetime.datetime.strptime(setInfo['min_date'],'%Y-%m-%d')
+            end = datetime.datetime.strptime(setInfo['max_date'],'%Y-%m-%d')
 
 
-        #dates are strings here but they need to be datetimes
-        self.startDate = setInfo.get('date_start')
-        self.endDate = setInfo.get('date_end')
-        self.getDefaultDates(start=self.startDate, end=self.endDate)
-        #fillSetInfo the widget values
+            #dates are strings here but they need to be datetimes
+            self.startDate = setInfo.get('date_start')
+            self.endDate = setInfo.get('date_end')
+            self.getDefaultDates(start=self.startDate, end=self.endDate)
+            #fillSetInfo the widget values
 
-        self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'startDate'))
-        self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'endDate'),False)
-        self.findChild(QtWidgets.QDateEdit, 'startDate').setDateRange(start, end)
-        self.findChild(QtWidgets.QDateEdit, 'endDate').setDateRange(start, end)
-        self.findChild(QtWidgets.QLineEdit,'componentNames').setText(','.join(self.componentDefault))
-        self.updateComponentDelegate(self.componentDefault)
+            self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'startDate'))
+            self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'endDate'),False)
+            self.findChild(QtWidgets.QDateEdit, 'startDate').setDateRange(start, end)
+            self.findChild(QtWidgets.QDateEdit, 'endDate').setDateRange(start, end)
+            self.findChild(QtWidgets.QLineEdit,'componentNames').setText(','.join(self.componentDefault))
+            self.updateComponentDelegate(self.componentDefault)
 
         return
     #update the component drop down in the set table to include the selected or default components
     def updateComponentDelegate(self,components):
-        from UserInterface.Delegates import ComboDelegate, ComponentFormOpenerDelegate
+        from MiGRIDS.UserInterface.Delegates import ComboDelegate, ComponentFormOpenerDelegate
         # find the component drop down delegate and reset its list to the selected components
         tv = self.findChild(QtWidgets.QWidget, 'sets')
 
@@ -249,8 +249,8 @@ class SetsTableBlock(QtWidgets.QGroupBox):
 
     @QtCore.pyqtSlot()
     def componentCellClicked(self):
-        from UserInterface.DialogComponentList import ComponentSetListForm
-        from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+        from MiGRIDS.UserInterface.DialogComponentList import ComponentSetListForm
+        from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 
         import pandas as pd
         handler = ProjectSQLiteHandler('project_manager')

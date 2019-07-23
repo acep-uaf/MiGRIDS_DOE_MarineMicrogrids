@@ -138,7 +138,7 @@ class MainForm(QtWidgets.QMainWindow):
         setupForm.closeEvent(event)
 
         # copy the project database to the project folder and save xmls
-        if 'projectFolder' in setupForm.model.__dict__.keys():
+        if 'projectFolder' in setupForm.__dict__.keys():
              saveProject(setupForm.model.projectFolder)
 
         else:

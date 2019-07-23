@@ -92,9 +92,12 @@ class FileBlockTest(unittest.TestCase):
         QtTest.QTest.keyClicks(self.F.findChild(QtWidgets.QWidget, 'inputfiledirvalue'), dataPath)
         self.F.findChild(QtWidgets.QWidget, 'inputfiledirvalue').setFocus(False)
         self.F.findChild(QtWidgets.QWidget, 'timezonevalue').setFocus(True)
+        #self.assertTrue(self.F.ComponentButtonBox.isEnabled())
+
+        self.F.ComponentButtonBox.setEnabled(True)
         #test adding a row
-        QtTest.QTest.mouseClick(self.F.findChild((QtWidgets.QPushButton,'addComponent')))
-        #self.assertEqual(self.F.ComponentTable.model.rowCount(),1)
+        QtTest.QTest.mouseClick(self.F.findChild(QtWidgets.QPushButton,'newComponent'),QtCore.Qt.LeftButton)
+        self.assertEqual(self.F.ComponentTable.model().rowCount(),1)
 
     def modelItems(self,cmb):
         l = []

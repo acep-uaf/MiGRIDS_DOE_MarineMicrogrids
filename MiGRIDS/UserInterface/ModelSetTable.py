@@ -14,9 +14,9 @@ class SetTableView(QtWidgets.QTableView):
             import pandas as pd
 
             sqlhandler = ProjectSQLiteHandler('project_manager')
-            components = pd.read_sql_query("select component_name from components", sqlhandler.connection)
+            components = pd.read_sql_query("select componentnamevalue from component", sqlhandler.connection)
 
-            components = list(components['component_name'])
+            components = list(components['componentnamevalue'])
             sqlhandler.closeDatabase()
             return components
 

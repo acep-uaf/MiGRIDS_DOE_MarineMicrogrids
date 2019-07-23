@@ -25,6 +25,13 @@ class ProjectSQLiteHandler:
             if projectPath is not None:
                 return projectPath[0]
 
+    def getProject(self):
+        if self.tableExists('project'):
+            project = self.cursor.execute("select project_name from project").fetchone()
+            if project is not None:
+                return project[0]
+        return None
+
     def tableExists(self, table):
         try:
             self.cursor.execute("select * from " + table + " limit 1").fetchall()
@@ -166,8 +173,8 @@ class ProjectSQLiteHandler:
         self.cursor.executescript("""CREATE TABLE component_files
          (_id integer primary key,
          component_id integer,
-         inputfile integer,
-         original_field_name text
+         inputfile_id integer,
+         headernamevalue text
          );""")
         self.connection.commit()
 
@@ -176,15 +183,15 @@ class ProjectSQLiteHandler:
         self.cursor.execute("DROP TABLE IF EXISTS component")
         self.cursor.executescript("""CREATE TABLE component
                  (_id integer primary key,
-                 component_type text,
-                 component_name text,
-                 units text,
+                 componenttype text,
+                 componentnamevalue text UNIQUE,
+                 componentattributeunit text,
                  scale numeric,
                  offset numeric,
-                 attribute text,       
-                 FOREIGN KEY (component_type) REFERENCES ref_component_type(code),
-                 FOREIGN KEY (units) REFERENCES ref_universal_units(code),
-                 FOREIGN KEY (attribute) REFERENCES ref_attributes(code)
+                 componentattributevalue text,       
+                 FOREIGN KEY (componenttype) REFERENCES ref_component_type(code),
+                 FOREIGN KEY (componentattributeunit) REFERENCES ref_universal_units(code),
+                 FOREIGN KEY (componentattributevalue) REFERENCES ref_attributes(code)
                   );""")
         self.connection.commit()
 
@@ -195,7 +202,8 @@ class ProjectSQLiteHandler:
         set_id integer , 
         component_id integer,
         tag text,
-        tag_value text);""")
+        tag_value text,
+        UNIQUE (set_id, component_id, tag));""")
 
 
         self.cursor.execute("DROP TABLE IF EXISTS input_files")
@@ -206,7 +214,8 @@ class ProjectSQLiteHandler:
                 inputfiletypevalue text , 
                 datatype text ,
                 inputfiledirvalue text,
-                timestep text,
+                inputtimestepvalue text,
+                inputtimestepunit text,
                 datechannelvalue text,
                 datechannelformat text,
                 timechannelvalue text,
@@ -214,6 +223,8 @@ class ProjectSQLiteHandler:
                 includechannels text,
                 timezonevalue text,
                 usedstvalue text,
+                flexibleyearvalue text,
+                inpututcoffsetvalue integer,
                 FOREIGN KEY (timechannelformat) REFERENCES ref_time_format(code),
                 FOREIGN KEY (datechannelformat) REFERENCES ref_date_format(code));""")
 
@@ -230,7 +241,6 @@ class ProjectSQLiteHandler:
                 CREATE TABLE IF NOT EXISTS run
                 (_id integer primary key,
                 set_id text,
-                set_name text
                 run_name text);""")
 
         self.cursor.execute("DROP TABLE IF EXISTS setup")
@@ -241,12 +251,12 @@ class ProjectSQLiteHandler:
                         set_name unique,
                         date_start text,
                         date_end text,
-                        timestep integer,
-                        timeunit text
-                        
+                        timestepvalue integer,
+                        timestepunit text,
+                        runtimestepsvalue
                         );""")
 
-        self.cursor.execute("INSERT INTO setup (set_name,timestep,date_start,date_end) values('default',1,'2016-01-01','2016-12-31')")
+        self.cursor.execute("INSERT INTO setup (set_name,timestepvalue,date_start,date_end) values('default',1,'2016-01-01','2016-12-31')")
 
         '''self.cursor.execute("DROP TABLE IF EXISTS environment")
         self.cursor.executescript("""CREATE TABLE IF NOT EXISTS environment
@@ -271,15 +281,15 @@ class ProjectSQLiteHandler:
         self.cursor.execute("Delete From " + table)
         self.connection.commit()
 
-    def getSetInfo(self,set='set0'):
+    def getSetInfo(self,setName='set0'):
         '''
         Creates a dictionary of setup information for a specific set, default is set 0 which is the base case
-        :param set: String name of the set to get information for
+        :param setName: String name of the set to get information for
         :return: dictionary of xml tags and values to be written to a setup.xml file
         '''
         setDict = {}
         #get tuple for basic set info
-        values = self.cursor.execute("select project_name, timestep, timeunit, date_start, date_end from setup join project on setup.project = project._id where set_name = '" + set + "'").fetchone()
+        values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end from setup join project on setup.project = project._id where set_name = '" + setName + "'").fetchone()
         if values is not None:
             setDict['project name'] = values[0]
             setDict['timestep.value'] = values[1]
@@ -288,24 +298,27 @@ class ProjectSQLiteHandler:
             setDict['date_end'] = values[4]
             #as long as there was basic set up info look for component setup info
             #componentNames is a list of distinct components, order does not matter
-            setDict['componentNames'] =  self.cursor.execute("SELECT group_concat(component_name,' ') from component join set_components on component._id = set_components.component_id "
-                                                             "join setup on set_components.set_id = setup._id where set_name = '" + set + "'").fetchone()[0]
+            setDict['componentNames'] =  self.cursor.execute("SELECT group_concat(componentnamevalue,' ') from component join set_components on component._id = set_components.component_id "
+                                                             "join setup on set_components.set_id = setup._id where set_name = '" + setName + "'").fetchone()[0]
 
 
+            tr = self.getAllRecords('component')
 
+            tr = self.getAllRecords('component_files')
+            tr = self.getAllRecords('setup')
             #componentChannels has ordered lists for directories and the components they contain. A component can have data in more than one directory and file type, in which case it would
             #be listed more than once in componentChannels
             values = self.cursor.execute(
-            "select group_concat(inputfiledirvalue,' '), group_concat(inputfiletypevalue,' '),group_concat(component_name,' '),"
-            "group_concat(original_field_name, ' '),group_concat(attribute, ' '), group_concat(units, ' '),group_concat(datechannelvalue, ' '),group_concat(timechannelvalue,' '),"
+            "select group_concat(inputfiledirvalue,' '), group_concat(inputfiletypevalue,' '),group_concat(componentnamevalue,' '),"
+            "group_concat(headernamevalue, ' '),group_concat(componentattributevalue, ' '), group_concat(componentattributeunit, ' '),group_concat(datechannelvalue, ' '),group_concat(timechannelvalue,' '),"
             "group_concat(datechannelformat, ' '),group_concat(timechannelformat, ' '), "
             "group_concat(timezonevalue, ' '), group_concat(usedstvalue, ' ') "
             "from input_files join "
-            "(select component._id as component_id, inputfile, component_name, original_field_name, attribute, units from component_files "
-            "Inner JOIN component on component_files.component_id = component._id "
-            "Inner Join set_components on component._id = set_components.component_id "
-            "Inner Join setup on set_components.set_id = setup._id  where set_name = '" + set + "' ORDER BY component_id) as components"
-            " ON components.inputfile = input_files._id ORDER BY input_files._id").fetchone()
+            "(select component._id as component_id, inputfile_id, componentnamevalue, headernamevalue, componentattributevalue, componentattributeunit from component_files "
+            "JOIN component on component_files.component_id = component._id "
+            "Join set_components on component._id = set_components.component_id "
+            "Join setup on set_components.set_id = setup._id  where set_name = '" + setName + "' ORDER BY component_id) as components"
+            " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
 
             if values is not None:
                 setDict['inputFileDir'] = values[0]
@@ -333,17 +346,17 @@ class ProjectSQLiteHandler:
         :param table: String name of the table to insert a record in
         :param fields: List of String field names
         :param values: List of values in to insert into fields
-        :return: Boolean True if record was added
+        :return: Integer id of last row inserted, if failed returns -1
         '''
         string_fields = ','.join(fields)
         string_values = ','.join('?' * len(values))
         try:
             self.cursor.execute("INSERT INTO " + table + "(" + string_fields + ")" + "VALUES (" + string_values + ")", values)
             self.connection.commit()
-            return True
+            return self.cursor.lastrowid
         except Exception as e:
             print(e)
-            return False
+            return -1
 
     def updateRecord(self,table, keyField,keyValue,fields,values):
         '''
@@ -395,7 +408,7 @@ class ProjectSQLiteHandler:
         :return integer count of a component type
         '''
         #get the highest component name (biggest number)
-        finalName = self.cursor.execute("SELECT component_name FROM component where component_type = '" + componentType + "' ORDER BY component_name DESC").fetchone()
+        finalName = self.cursor.execute("SELECT componentnamevalue FROM component where componenttype = '" + componentType + "' ORDER BY componentnamevalue DESC").fetchone()
         if finalName is not None:
             finalName=finalName[0]
             #extract the numbers in the name
@@ -416,34 +429,60 @@ class ProjectSQLiteHandler:
        data = self.cursor.execute("SELECT * FROM " + table).fetchall()
        return data
 
+    def insertDictionaryRow(self,tablename, dict):
+        '''
+        Inserts a dictionary of values into a project_manager table.
+        Dictionary is assumed to have keys that match column names and hold orderd lists of values corresponding to each row to be inserted
+        :param tablename: String name of the table to insert records into
+        :param dict: a dictionary of colums and values as lists
+        :return:
+        '''
 
+        keys = ','.join(dict.keys())
+        question_marks = ','.join(list('?' * len(dict.keys())))
+        values = list(map(tuple, zip(*dict.values())))
+        ids = []
+        for v in values: #need to loop so we get ids for every value
+            try:
+                self.cursor.execute('INSERT INTO ' + tablename + ' (' + keys + ') VALUES (' + question_marks + ')',v ) #if insertion fails the last id gets re-appended to the list
+            except Exception as e:
+                print(e)
 
-    #updates the component table with a key and values in a dictionary
-    #Dictionary -> None
+            finally:
+                ids.append(self.cursor.lastrowid)
+        return ids
+
     def updateComponent(self, dict):
+        ''' updates a component record with values in the dictionary
+        :param dict: a dictionary containing at least the attribute 'component_name' and one other attribute that matches a field name in the component table'''
         for k in dict.keys():
             try:
-                self.cursor.execute("UPDATE component SET " + k + " = ? WHERE component_name = ?", [dict[k],dict['component_name']])
-            except:
+                self.cursor.execute("UPDATE component SET " + k + " = ? WHERE componentnamevalue = ?", [dict[k],dict['componentnamevalue']])
+            except Exception as e:
+                print(e)
                 print('%s column was not found in the data table' %k)
         self.connection.commit()
 
-    #determines if a component record needs to be created or updated and implements the correct function
-    #returns true if the record is a new record and was added to the table
-    #dictionary -> Boolean
     def writeComponent(self,componentDict):
-        if len(self.cursor.execute("SELECT * FROM components where component_name = ?", [componentDict['component_name']]).fetchall()) > 0:
+        '''
+        determines if a component record needs to be created or updated and implements the correct function
+        :param componentDict:
+        :return: Boolean True if the records is new and was added to the table
+        '''
+        if len(self.cursor.execute("SELECT * FROM component where component_name = ?", [componentDict['component_name']]).fetchall()) > 0:
             self.updateComponent(componentDict)
         else:
-            self.cursor.execute('INSERT INTO components (component_name) VALUES (?)', [componentDict['component_name']])
+            self.cursor.execute('INSERT INTO component (component_name) VALUES (?)', [componentDict['component_name']])
             self.updateComponent(componentDict)
             return True
         return False
 
-    #returns a table of values for the code column in a a reference table
-    #String -> pandas.Series
     def getCodes(self,table):
-
+        '''
+        retrieves the code values from a table
+        :param table: String name of a table containing the field 'code'
+        :return: List of Strings
+        '''
         import pandas as pd
         codes = pd.read_sql_query("select code from " + table + " ORDER BY sort_order", self.connection)
 
@@ -451,28 +490,54 @@ class ProjectSQLiteHandler:
 
         return codes
 
-    def getComponentNames(self):
+    def getComponentNames(self,setName):
         '''
         returns a list of names for components in the components table
         :return: list of string component names
         '''
-        names = self.cursor.execute("select component_name from components").fetchall()
+        names = self.cursor.execute("select componentnamevalue from component JOIN set_components on component._id = set_components.component_id where "
+                                    " set_id = (SELECT set_id from setup where set_name = '" + setName + "')").fetchall()
         if len(names) >0:
             names = [''.join(i) for i in names if i is not None]
             return pd.Series(names).tolist()
         return []
 
-    def getComponentsTable(self, filter):
+    def updateSetupInfo(self, setupDict,setName):
         '''
+        Updates the database setup tables with information from the setup.xml file
+        The setup file is a mesh of both input handler information and model run information.
+        The Project_manager database only handles the portion of the setup file that is important for creating netdfs for model running
+        The remaining attributes are modified directly in an interface to the xml file.
+        :param setupDict: a dictionary extracted from a setup xml file
+        :return: None
+        '''
+        #update actual setup fields - these have a single value and are used in models
+        #update project table
+        pid = self.insertRecord('project',['project_name','project_path'],[setupDict['project'],setupDict['projectPath']])
+        #update fields that are in the setup table
+        setId = self.insertRecord('setup',['timestepunit','timestepvalue','runtimestepsvalue','set_name','project'],
+                          [setupDict['timeStep.unit'],setupDict['timeStep.value'],setupDict['runTimeSteps.value'],'set0',pid])
 
-        :param filter: String name of inputfiledir
-        :return: pandas.dataframe of component attributes editable in the component table
-        '''
-        sql = """select component_name, component_type, original_field_name, units,attribute from components where inputfiledir = ?"""
-        df = pd.read_sql_query(sql,self.connection,params=[filter])
-        '''sql = """select component_name, 'env', original_field_name, units,attribute from environment where inputfiledir = ?"""
-        df.append(pd.read_sql_query(sql,self.connection,params=[filter]))'''
-        return df
+        #update input handler infomation
+        #this information is in the form of space delimited ordered lists that require parsing and are used by the input handler
+        self.parseInputHandlerAttributes(setupDict,setId)
+
+        return
+
+
+
+#    def getComponentsTable(self, filter):
+#       '''
+#
+#        :param filter: String name of inputfile
+#        :return: pandas.dataframe of component attributes editable in the component table
+#        '''
+#        sql = """select component_name, component_type, original_field_name, units,attribute from component join component_files one component._id = component_files.component_id where inputfile = ?"""
+#        df = pd.read_sql_query(sql,self.connection,params=[filter])
+#        '''sql = """select component_name, 'env', original_field_name, units,attribute from environment where inputfiledir = ?"""
+#        df.append(pd.read_sql_query(sql,self.connection,params=[filter]))'''
+#        return df
+
     def getInputPath(self, pathNum):
         '''returns the file folder for the given input file number (corrasponds to fileblock in setup page)'''
         path = self.cursor.execute("select inputfiledirvalue from input_files where _id = " + pathNum).fetchone()
@@ -513,3 +578,50 @@ class ProjectSQLiteHandler:
 
     def getAllRecords(self,table):
         return self.cursor.execute("select * from " + table).fetchall()
+
+    def parseInputHandlerAttributes(self, setupDict, setID):
+        '''
+        Parses the portion of a setup dictionary (dictionary producd from setup.xml) into various project_manager tables
+        that are relevent to the InputHandler.
+        :param setupDict: A dictionary with keys that match a setup.xml files attributes
+        :param setID: The name of the set that componenent attributes belong to
+        :return: None
+        '''
+        fileAttributes = ['inputFileDir.value', 'inputFileType.value', 'dateChannel.format',
+                          'dateChannel.value', 'timeChannel.format', 'timeChannel.value', 'timeZone.value',
+                          'flexibleYear.value', 'inputtimestepvalue', 'inpututcoffsetvalue']
+        componentFiles = ['headerName.value']  # plus file id and component id
+        componentAttributes = ['componentName.value', 'componentAttribute.unit',
+                               'componentAttribute.value', ]
+        files = {key.lower().replace(".", ""): value.split(' ') for key, value in setupDict.items() if
+                 key in fileAttributes}
+
+        components = {key.lower().replace(".", ""): value.split(' ') for key, value in setupDict.items() if
+                      key in componentAttributes}
+        filecomponents = {key.lower().replace(".", ""): value.split(' ') for key, value in setupDict.items() if
+                      key in componentFiles}
+        components['componenttype'] = [self.inferComponentType(k) for k in components['componentnamevalue']]
+        filecomponent = {}
+        # insert the pieces
+
+        idlist = self.insertDictionaryRow('input_files', files)
+        filecomponents['inputfile_id'] = idlist
+        idlist = self.insertDictionaryRow('component',
+                                          components)  # duplicate components should fail here, but list will still be original length
+        filecomponents['component_id'] = idlist
+        self.insertDictionaryRow('component_files', filecomponents)
+        for i in idlist:
+            self.insertRecord('set_components', ['set_id', 'component_id', 'tag'], [setID, i,'None'])
+
+        return fileAttributes + componentAttributes + componentFiles
+
+    # returns a possible component type inferred from the components column name
+    def inferComponentType(self,componentname):
+        import re
+        try:
+           match = re.match(r"([a-z]+)([0-9]+)", componentname, re.I)
+           if match:
+                componentType = match.group(1)
+                return componentType
+        except:
+            return

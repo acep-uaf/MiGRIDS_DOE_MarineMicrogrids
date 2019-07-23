@@ -27,10 +27,10 @@ class UIToHandler():
         dbhandler=ProjectSQLiteHandler()
         project = dbhandler.getProject()
         setupFolder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', project, 'InputData','Setup'])
-        components = dbhandler.getComponentNames('set0')
-        buildProjectSetup(project, setupFolder,components )
+        components = dbhandler.getComponentNames('Set0')
+        buildProjectSetup(project, setupFolder,components)
         #fill in project data into the setup xml and create descriptor xmls if they don't exist
-        fillProjectData(setupFolder)
+        fillProjectData()
         return
 
     #string, string -> Soup
@@ -49,7 +49,7 @@ class UIToHandler():
     #pass a component name, component folder and soup object to be written to a component descriptor
     #string, string, soup -> None
     def writeComponentSoup(self, component, fileDir, soup):
-        from InputHandler.createComponentDescriptor import createComponentDescriptor
+        from MiGRIDS.InputHandler.createComponentDescriptor import createComponentDescriptor
         #soup is an optional argument, without it a template xml will be created.
         createComponentDescriptor(component, fileDir, soup)
         return
@@ -123,9 +123,9 @@ class UIToHandler():
     #String, String, String -> DataClass
     def loadFixData(self, setupFile):
 
-        from InputHandler.getUnits import getUnits
-        from InputHandler.fixBadData import fixBadData
-        from InputHandler.fixDataInterval import fixDataInterval
+        from MiGRIDS.InputHandler.getUnits import getUnits
+        from MiGRIDS.InputHandler.fixBadData import fixBadData
+        from MiGRIDS.InputHandler.fixDataInterval import fixDataInterval
 
         inputDictionary = {}
         Village = readXmlTag(setupFile, 'project', 'name')[0]
@@ -243,7 +243,7 @@ class UIToHandler():
     #generate netcdf files for model running
     #dataframe, dictionary -> None
     def createNetCDF(self, lodf,componentDict,setupFolder):
-        from InputHandler.dataframe2netcdf import dataframe2netcdf
+        from MiGRIDS.InputHandler.dataframe2netcdf import dataframe2netcdf
         outputDirectory = getFilePath(setupFolder, 'Processed')
         netCDFList = []
         #if there isn't an output directory make one
@@ -313,9 +313,9 @@ class UIToHandler():
     #String, ComponentTable, SetupInformation
     def runModels(self, currentSet, componentTable, setupInfo):
         from PyQt5 import QtWidgets
-        from Model.Operational.generateRuns import generateRuns
-        from UserInterface.makeAttributeXML import makeAttributeXML, writeAttributeXML
-        from Model.Operational.runSimulation import runSimulation
+        from MiGRIDS.Model.Operational.generateRuns import generateRuns
+        from MiGRIDS.UserInterface.makeAttributeXML import makeAttributeXML, writeAttributeXML
+        from MiGRIDS.Model.Operational.runSimulation import runSimulation
         #generate xml's based on inputs
         #call to run models
 
@@ -351,10 +351,14 @@ class UIToHandler():
         #now start running models
         runSimulation(projectSetDir=setDir)
 
-    def inputHandlerToUI(self, setupFolder, setupInfo):
-        from InputHandler.getSetupInformation import getSetupInformation
-        # assign tag values in the setupxml to the setupInfo model
-        getSetupInformation(os.path.join(setupFolder, setupInfo.project + 'Setup.xml'), setupInfo)
+    def inputHandlerToUI(self,setupFile):
+        from MiGRIDS.InputHandler.getSetupInformation import getSetupInformation
+
+
+        #setupInfo is a dictionary of setup tags and values to be inserted into the database
+        setupInfo = getSetupInformation(setupFile)
+        dbhandler = ProjectSQLiteHandler()
+        dbhandler.updateSetupInfo(setupInfo)
         return
 
     # creates a soup object from set attribute xml file

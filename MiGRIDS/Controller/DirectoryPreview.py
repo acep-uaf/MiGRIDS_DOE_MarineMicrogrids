@@ -13,8 +13,9 @@ import pandas as pd
 from MiGRIDS.Controller.Exceptions.NoValidFilesError import NoValidFilesError
 from MiGRIDS.Controller.Exceptions.NoMatchException import NoMatchException
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+import MiGRIDS.UserInterface.ModelFileInfoTable as F
 
-class DirectoryPreview:
+class DirectoryPreview():
     '''Attributes:
         files - is a list of files
         header - is a list of field names collected from the first file read
@@ -24,14 +25,8 @@ class DirectoryPreview:
         timeColumn - is  the time column, None if not available
         '''
 
-    def __init__(self, directory, fileType):
-        self.directory = directory
-        self.fileType = fileType
-        self.timeColumn = None
-        self.dateColumn = None
-        self.timeFormat = None
-        self.dateFormat = None
-
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
         try:
             self.files = self.listFiles()
             self.preview(self.files[0])
@@ -45,7 +40,7 @@ class DirectoryPreview:
         :return: list of files found in a directory that match a specified file type
         '''
         try:
-           lof = [os.path.join(self.directory,f) for f in os.listdir(self.directory) if (f[- len(self.fileType):] == self.fileType.replace('MET','txt')) | (f[- len(self.fileType):] == self.fileType.lower())]
+           lof = [os.path.join(self.__dict__.get(F.InputFileFields.inputfiledirvalue.name),f) for f in os.listdir(self.__dict__.get(F.InputFileFields.inputfiledirvalue.name)) if (f[- len(self.__dict__.get(F.InputFileFields.inputfiletypevalue.name)):] == self.__dict__.get(F.InputFileFields.inputfiletypevalue.name).replace('MET','txt')) | (f[- len(self.__dict__.get(F.InputFileFields.inputfiletypevalue.name)):] == self.__dict__.get(F.InputFileFields.inputfiletypevalue.name).lower())]
         except Exception as e:
             print(e)
             raise NoValidFilesError("No valid files found in directory")
@@ -59,15 +54,18 @@ class DirectoryPreview:
         :param file: a CSV,TXT,MET, or nc file
         :return: list of field names within the specified file
         '''
-        if (self.fileType.lower() == 'csv'):
-            headerlist = self.previewCSV(file)
-        elif (self.fileType.lower() == 'met'):
-            headerlist = self.previewMET(file)
-        elif (self.fileType.lower() == 'nc'):
-            headerlist = self.previewNetCDF(file)
-        elif(self.fileType.lower() == 'txt'):
-            headerlist = self.previewTXT(file)
-        return headerlist
+        try:
+            if (self.__dict__.get(F.InputFileFields.inputfiletypevalue.name).lower() == 'csv'):
+                self.previewCSV(file)
+            elif (self.__dict__.get(F.InputFileFields.inputfiletypevalue.name).lower() == 'met'):
+                self.previewMET(file)
+            elif (self.__dict__.get(F.InputFileFields.inputfiletypevalue.name).lower() == 'nc'):
+                self.previewNetCDF(file)
+            elif(self.__dict__.get(F.InputFileFields.inputfiletypevalue.name).lower() == 'txt'):
+                self.previewTXT(file)
+            return
+        except AttributeError as e:
+            print('Can not create preview. Input file type is not set')
 
     class datetime:
         #local datetime object to store format information
@@ -120,9 +118,9 @@ class DirectoryPreview:
         :return: None. Set's class attributes.
         '''
         try:
-            self.dateColumn = self.header[self.whichColumns('date')[0]]
+            self.__setattr__(F.InputFileFields.datechannelvalue.name,self.header[self.whichColumns('date')[0]])
             if(len(df)>0):
-               sampleDate = df[self.dateColumn][0]
+               sampleDate = df[self.__dict__.get(F.InputFileFields.datechannelvalue.name)][0]
             else:
                 sampleDate = None
 
@@ -132,8 +130,9 @@ class DirectoryPreview:
             print(e)
         finally:
             try:
-                self.timeColumn = self.header[self.whichColumns('time')[0]]
-                sampleTime = df[self.timeColumn][0]
+               
+                self.__setattr__(F.InputFileFields.timechannelvalue.name, self.header[self.whichColumns('time')[0]])
+                sampleTime = df[self.__dict__.get(F.InputFileFields.timechannelvalue.name)][0]
 
             except IndexError as e:
                 # no time column found, time gets set to empty string
@@ -145,12 +144,12 @@ class DirectoryPreview:
                     else:
                         datetimeformat = self.extractFormat((str(sampleDate) + ' ' + str(sampleTime)).strip())
 
-                    self.dateFormat = datetimeformat.dateFormat
-                    self.timeFormat = datetimeformat.timeFormat
+                    self.__setattr__(F.InputFileFields.datechannelformat.name,datetimeformat.dateFormat)
+                    self.__setattr__(F.InputFileFields.timechannelformat.name,datetimeformat.timeFormat)
                 except NoMatchException as e:
                     print(e.message)
-                    self.dateFormat = None
-                    self.timeFormat = None
+                    self.__setattr__(F.InputFileFields.datechannelformat.name, None)
+                    self.__setattr__(F.InputFileFields.timechannelformat.name, None)
 
     def previewCSV(self, file):
         '''
@@ -185,13 +184,13 @@ class DirectoryPreview:
         with open(file, 'r', errors='ignore') as openfile:
             self.header = self.lineFromKeyWord(metWORD,openfile)
             try:
-                self.dateColumn = self.header[self.whichColumns('date')[0]]
+                self.__setattr__(F.InputFileFields.datechannelvalue.name,self.header[self.whichColumns('date')[0]])
             except IndexError as e:
-                self.datecolumn = None
+                self.__setattr__(F.InputFileFields.datechannelvalue.name,None)
             try:
-                self.timeColumn = self.header[self.whichColumns('time')[0]]
+                self.__setattr__(F.InputFileFields.timechannelvalue.name,self.header[self.whichColumns('time')[0]])
             except IndexError as e:
-                self.timecolumn=None
+                self.__setattr__(F.InputFileFields.datechannelvalue.name,self.timecolumn,None)
 
             dataline = openfile.readline().split('\t')
             if len(dataline) != 0:
@@ -213,12 +212,12 @@ class DirectoryPreview:
                                 datetimeformat = self.extractFormat(sampleDate)
                             else:
                                 datetimeformat = self.extractFormat((sampleDate + ' ' + sampleTime).strip())
-                            self.dateFormat = datetimeformat.dateFormat
-                            self.timeFormat = datetimeformat.timeFormat
+                            self.__setattr__(F.InputFileFields.datechannelformat.name,datetimeformat.dateFormat)
+                            self.__setattr__(F.InputFileFields.timechannelformat.name,datetimeformat.timeFormat)
                         except NoMatchException as e:
                             print(e.message)
-                            self.dateFormat = None
-                            self.timeFormat = None
+                            self.__setattr__(F.InputFileFields.datechannelformat.name, None)
+                            self.__setattr__(F.InputFileFields.timechannelformat.name, None)
 
     def previewNetCDF(self, file):
         '''
@@ -232,38 +231,38 @@ class DirectoryPreview:
 
         #look for date time columns
         try:
-            self.dateColumn = self.header[self.whichColumns('date')[0]]
-            sampleDate = cdf.variables[self.dateColumn]
+            self.__setattr__(F.InputFileFields.datechannelvalue.name, self.header[self.whichColumns('date')[0]])
+            sampleDate = cdf.variables[self.__dict__.get(F.InputFileFields.datechannelvalue.name)]
         except IndexError as e:
             # No date column found moves on to find time and date gets set to empty string
-            self.dateColumn = ''
+            self.__setattr__(F.InputFileFields.datechannelvalue.name, '')
             sampleDate = ''
             print(e)
         finally:
             try:
-                self.timeColumn = self.header[self.whichColumns('time')[0]]
-                var = cdf.variables[self.timeColumn]
+                self.__setattr__(F.InputFileFields.timechannelvalue.name, self.header[self.whichColumns('time')[0]])
+                var = cdf.variables[self.__dict__.get(F.InputFileFields.timechannelvalue.name)]
                 sampleTime = var[0:1][0]
             except IndexError as e:
                 # no time column found, time gets set to empty string
-                self.timeColumn = ''
+                self.__setattr__(F.InputFileFields.timechannelvalue.name,'')
                 sampleTime = ''
             finally:
                 #get format
                 try:
-                    if(self.dateColumn == '') & (self.timeColumn != ''):
-                        self.dateColumn = self.timeColumn
-                    if(self.dateColumn != '') | (self.timeColumn != ''):
+                    if(self.__dict__.get(F.InputFileFields.datechannelvalue.name) == '') & (self.__dict__.get(F.InputFileFields.timechannelvalue.name) != ''):
+                        self.__setattr__(F.InputFileFields.datechannelvalue.name,self.__dict__.get(F.InputFileFields.timechannelvalue.name))
+                    if(self.__dict__.get(F.InputFileFields.datechannelvalue.name) != '') | (self.__dict__.get(F.InputFileFields.timechannelvalue.name) != ''):
                         if (sampleDate == sampleTime):
                             datetimeformat = self.extractFormat(sampleDate)
                         else:
                             datetimeformat = self.extractFormat((str(sampleDate) + ' ' + str(sampleTime)).strip())
-                        self.dateFormat = datetimeformat.dateFormat
-                        self.timeFormat = datetimeformat.timeFormat
+                        self.__setattr__(F.InputFileFields.datechannelformat.name, datetimeformat.dateFormat)
+                        self.__setattr__(F.InputFileFields.timechannelformat.name,datetimeformat.timeFormat)
                 except NoMatchException as e:
                     print(e.message)
-                    self.dateFormat = None
-                    self.timeFormat = None
+                    self.__setattr__(F.InputFileFields.datechannelformat.name, None)
+                    self.__setattr__(F.InputFileFields.timechannelformat.name, None)
 
         cdf.close()
 

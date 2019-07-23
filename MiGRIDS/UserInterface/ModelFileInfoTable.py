@@ -4,17 +4,21 @@ from enum import Enum
 
 class InputFileFields(Enum):
     _id=0
-    inputfiletypevalue=1
-    datatype=2
-    inputfiledirvalue=3
-    timestep=4
-    datechannelvalue=5
-    datechannelformat=6
-    timechannelvalue=7
-    timechannelformat=8
-    includechannels=9
-    timezonevalue=10
-    usedstvalue=11
+    project_id = 1
+    inputfiletypevalue=2
+    datatype=3
+    inputfiledirvalue=4
+    inputtimestepvalue=5
+    inputtimestepunit=6
+    datechannelvalue=7
+    datechannelformat=8
+    timechannelvalue=9
+    timechannelformat=10
+    includechannels=11
+    timezonevalue=12
+    usedstvalue=13
+    flexibleyearvalue=14
+    inpututcoffsetvalue=15
 
 #subclass of QTableView for displaying inputFile information
 class FileInfoTableView(QtWidgets.QTableView):
