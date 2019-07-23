@@ -283,22 +283,12 @@ class FileBlock(QtWidgets.QGroupBox):
             self.ComponentTable = T.ComponentTableView(self)
             self.ComponentTable.setObjectName('components')
             m = T.ComponentTableModel(self)
-
-
-
             self.ComponentTable.hideColumn(1)
             self.ComponentTable.setModel(m)
             self.ComponentTable.hideColumn(0)
             self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
             tableGroup.addWidget(self.ComponentTable, 1)
-        '''else:
-            tv = E.EnvironmentTableView(self)
-            tv.setObjectName('environment')
-            m = E.EnvironmentTableModel(self)
 
-            tv.setModel(m)
-            tv.hideColumn(0)
-            tableGroup.addWidget(tv, 1)'''
         self.filterTables()
         gb.setLayout(tableGroup)
         gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -458,7 +448,7 @@ class FileBlock(QtWidgets.QGroupBox):
 
     def assignFileBlock(self,value):
         self.FileBlock = value
-        self.FileBlock.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        #self.FileBlock.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.FileBlock.sizePolicy().retainSizeWhenHidden()
         self.FileBlock.setObjectName('fileInput')
 
