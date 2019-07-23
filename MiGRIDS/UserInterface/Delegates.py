@@ -42,7 +42,7 @@ class ComboDelegate(QtWidgets.QItemDelegate):
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
-        from UserInterface.getComponentAttributesAsList import getComponentAttributesAsList
+        from MiGRIDS.UserInterface.getComponentAttributesAsList import getComponentAttributesAsList
         self.commitData.emit(self.sender())
         #if its the sets table then the attribute list needs to be updated
         if self.name == 'componentName':
@@ -111,6 +111,7 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
     def setEditorData(self, editor, index):
         m = index.model()
         relation = m.relation(index.column())
+        #TODO filter possible components
         if relation.isValid():
             pmodel = QtSql.QSqlTableModel()
             pmodel.setTable(relation.tableName())
@@ -128,27 +129,8 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
     def currentIndexChanged(self):
 
         self.commitData.emit(self.sender())
-        #if a type from the components table was just set then fill in the component name unless it is already named
-        if (self.name == 'component_type') & (self.parent.objectName() == 'components'):
-            #get the table view object
-            tv = self.parent
-            #combo is the combo box that is sending these data
-            combo = self.sender()
-            #current row
-            currentRow = tv.indexAt(combo.pos()).row()
+        return
 
-            #check if there is already a component name
-            currentName = tv.model().data(tv.model().index(currentRow,4))
-            if (currentName == '') | (currentName is None) | (currentName == 'NA') | (currentName[0:3] != self.sender().currentText()):
-                #get the number of components of this type -
-                handler = ProjectSQLiteHandler()
-                i = handler.getTypeCount(self.sender().currentText())
-                name = self.sender().currentText() + str(i)
-                tv.model().setData(tv.model().index(currentRow,4),name)
-                tv.model().submitAll()
-                tv.model().select()
-                handler.closeDatabase()
-            return
 #QLineEdit that when clicked performs an action
 class ClickableLineEdit(QtWidgets.QLineEdit):
     clicked = QtCore.pyqtSignal()
@@ -178,10 +160,10 @@ class ComponentFormOpenerDelegate(QtWidgets.QItemDelegate):
 
     @QtCore.pyqtSlot()
     def cellButtonClicked(self, index):
-        from UserInterface.formFromXML import formFromXML
-        from Controller.UIToHandler import UIToHandler
-        from UserInterface.ModelComponentTable import  ComponentTableModel
-        from UserInterface.ModelComponentTable import  ComponentFields
+        from MiGRIDS.UserInterface.formFromXML import formFromXML
+        from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+        from MiGRIDS.UserInterface.ModelComponentTable import  ComponentTableModel
+        from MiGRIDS.UserInterface.ModelComponentTable import  ComponentFields
 
         import os
 

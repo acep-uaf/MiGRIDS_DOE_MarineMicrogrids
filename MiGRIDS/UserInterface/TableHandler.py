@@ -12,11 +12,12 @@ class TableHandler():
         # get the model
         tableView = self.parent.findChild((QtWidgets.QTableView), table)
         model = tableView.model()
-
+        print(model.rowCount())
         # insert an empty row as the last record
         model.insertRows(model.rowCount(), 1)
+        print(model.rowCount())
         model.submitAll()
-
+        print(model.rowCount())
         #this makes the first column editable (set, filedir, ect.)
         tableView.openPersistentEditor(model.index(model.rowCount()-1, 1))
 

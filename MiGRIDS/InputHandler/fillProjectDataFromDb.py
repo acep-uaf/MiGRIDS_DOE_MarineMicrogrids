@@ -22,28 +22,30 @@ def fillProjectDataFromDb():
                                     *['..', '..', 'MiGRIDSProjects', dbhandler.getProject(), 'InputData', 'Setup'])
 
     #each field in the setup table gets an xml tag
-    generalSetupInfo = dbhandler.getSetInfo('set0')
-    for k in generalSetupInfo.keys():  # for each key in the model attributes
-        #read key values
+    #TODO make getSetInfo handle upper and lower case Set
+    generalSetupInfo = dbhandler.getSetInfo('Set0')
+    if generalSetupInfo != None:
+        for k in generalSetupInfo.keys():  # for each key in the model attributes
+            #read key values
 
-        for v in generalSetupInfo[k].keys():
-            attr = v
-            value = generalSetupInfo[k][v]
-            writeXmlTag(projectSetup, k, attr, value, setupFolder)
+            for v in generalSetupInfo[k].keys():
+                attr = v
+                value = generalSetupInfo[k][v]
+                writeXmlTag(projectSetup, k, attr, value, setupFolder)
 
 
-    #look for component descriptor files for all componentName
-    componentDir = os.path.join(setupInfo.setupFolder, *['..','Components'])
+        #look for component descriptor files for all componentName
+        componentDir = os.path.join(setupFolder, *['..','Components'])
 
-    #component is a string
-    if (setupInfo.componentNames.value is not None):
-        #use as list not string
-        if (len(setupInfo.componentNames.value.split()) >0):
-            for component in setupInfo.componentNames.value.split(): # for each component
+        #component is a string
+        if (generalSetupInfo['componentNames.value'] is not None):
+            #use as list not string
+            if (len(generalSetupInfo['componentNames.value'].split()) >0):
+                for component in generalSetupInfo['componentNames.value'].split(): # for each component
 
-                 #if there isn't a component descriptor file create one
-                 if not os.path.exists(os.path.join(componentDir, component + 'Descriptor.xml')):
-                     createComponentDescriptor(component, componentDir)
+                     #if there isn't a component descriptor file create one
+                     if not os.path.exists(os.path.join(componentDir, component + 'Descriptor.xml')):
+                         createComponentDescriptor(component, componentDir)
 
 
 

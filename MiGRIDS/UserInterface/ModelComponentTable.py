@@ -4,19 +4,20 @@ ComponentTableView is a default table view tied to the component table in projec
 '''
 from MiGRIDS.UserInterface.Delegates import *
 import MiGRIDS.UserInterface.ModelFileInfoTable as F
+from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 from enum import Enum
 
 class ComponentFields(Enum):
-    ID=0
-    DIRECTORY =1
-    ORIGINALFIELD = 2
-    TYPE = 3
-    NAME = 4
-    UNITS = 5
-    SCALE = 6
-    OFFSET = 7
-    ATTRIBUTE = 8
-    CUSTOMIZE = 9
+    _id=0
+    inputfile_id =1
+    headernamevalue = 2
+    componenttype = 3
+    component_id = 4
+    componentattributeunit = 5
+    componentattributevalue = 6
+    componentscale = 7
+    componentoffset = 8
+    customize = 9
 
 #QTableView for displaying component information
 class ComponentTableView(QtWidgets.QTableView):
@@ -29,12 +30,15 @@ class ComponentTableView(QtWidgets.QTableView):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
         self.resizeColumnsToContents()
 
+
         #combo columns
-        self.setItemDelegateForColumn(ComponentFields.DIRECTORY.value, TextDelegate(self))
-        self.setItemDelegateForColumn(ComponentFields.TYPE.value, RelationDelegate(self, 'componenttype'))
-        self.setItemDelegateForColumn(ComponentFields.ATTRIBUTE.value, RelationDelegate(self, 'componentattributevalue'))
-        self.setItemDelegateForColumn(ComponentFields.UNITS.value, RelationDelegate(self, 'componentattributeunit'))
-        self.setItemDelegateForColumn(ComponentFields.CUSTOMIZE.value, ComponentFormOpenerDelegate(self, '+'))
+        self.setItemDelegateForColumn(ComponentFields.inputfile_id.value, TextDelegate(self))
+
+        self.setItemDelegateForColumn(ComponentFields.component_id.value,RelationDelegate(self,'componentnamevalue'))
+        self.setItemDelegateForColumn(ComponentFields.componenttype.value, RelationDelegate(self, 'componenttype'))
+        self.setItemDelegateForColumn(ComponentFields.componentattributevalue.value, RelationDelegate(self, 'componentattributevalue'))
+        self.setItemDelegateForColumn(ComponentFields.componentattributeunit.value, RelationDelegate(self, 'componentattributeunit'))
+        self.setItemDelegateForColumn(ComponentFields.customize.value, ComponentFormOpenerDelegate(self, '+'))
 
 #data model to fill component table
 class ComponentTableModel(QtSql.QSqlRelationalTableModel):
@@ -42,23 +46,27 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
 
         QtSql.QSqlTableModel.__init__(self, parent)
         #values to use as headers for component table
-        self.header = ['ID','Directory','Field', 'Type', 'Component Name', 'Unit', 'Scale',
-                    'Offset','Attribute','Customize']
-        self.setTable('components')
+        self.header = ['ID','Directory','Field', 'Type', 'Component Name', 'Unit', 'Attribute','Scale',
+                    'Offset','Customize']
+        self.setTable('component_files')
         #leftjoin so null values ok
         self.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
         #set the dropdowns
 
-        self.setRelation(3,QtSql.QSqlRelation('ref_component_type','code','code'))
-        self.setRelation(8, QtSql.QSqlRelation('ref_attributes','code','code'))
-        self.setRelation(5, QtSql.QSqlRelation('ref_power_units', 'code', 'code'))
+        #self.setRelation(ComponentFields.component_id.value,QtSql.QSqlRelation('component','_id','componentnamevalue'))
+        self.setRelation(ComponentFields.inputfile_id.value, QtSql.QSqlRelation('input_file','_id','inputfiledirvalue'))
+        self.setRelation(ComponentFields.componenttype.value,QtSql.QSqlRelation('ref_component_type','code','code'))
+        self.setRelation(ComponentFields.componentattributevalue.value, QtSql.QSqlRelation('ref_attributes','code','code'))
+        self.setRelation(ComponentFields.componentattributeunit.value, QtSql.QSqlRelation('ref_power_units', 'code', 'code'))
         #database gets updated when fields are changed
         self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
+
+
         #select the data to display filtered to the input directory selected
-
         dirm = parent.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiledirvalue.name).text()
+        handler = ProjectSQLiteHandler()
 
-        #self.setFilter('fileinputdir = ' + dirm)
+        self.setFilter('inputfile_id = ' + str(handler.getId('input_files','inputfiledirvalue',dirm)))
         #self.setQuery(runQuery)
         self.select()
 

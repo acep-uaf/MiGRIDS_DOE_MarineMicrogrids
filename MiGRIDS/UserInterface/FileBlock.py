@@ -20,8 +20,6 @@ from PyQt5 import QtWidgets,QtCore,QtSql
 # The file block is a group of widgets for entering file specific inputs
 #its parent is FormSetup
 from MiGRIDS.Controller.DirectoryPreview import DirectoryPreview
-from MiGRIDS.UserInterface.Delegates import RelationDelegate
-
 
 '''class Filter(QtCore.QObject):
     def eventFilter(self, widget, event):
@@ -91,19 +89,11 @@ class FileBlock(QtWidgets.QGroupBox):
         # save the input to the setup data model and into the database
         # self.saveInput()
         # update the filedir path - this should be handled by mapper
-        '''if self.dbhandler.getInputPath(str(self.tabPosition)) is None:
-            self.dbhandler.insertRecord('input_files', [F.InputFileFields.inputfiledirvalue.name], [selectedFolder])
-        else:
-            self.dbhandler.updateRecord('input_files', [F.InputFileFields._id.name], [str(self.tabPosition)], [F.InputFileFields.inputfiledirvalue.name], [selectedFolder])
-        '''
-        # filter the component and environemnt input tables to the current input directory
-        print(selectedFolder)
-        #self.mapper.submit()
 
+        # filter the component and environemnt input tables to the current input directory
+        print("Input folder %s is %s" %(self.tabPosition,selectedFolder))
         self.filterTables()
         try:
-            #self.saveInput()
-            #self.model.writeNewXML()
             self.createPreview(selectedFolder,
                                self.findChild(QtWidgets.QComboBox,
                                               F.InputFileFields.inputfiletypevalue.name).currentText())
@@ -136,8 +126,8 @@ class FileBlock(QtWidgets.QGroupBox):
         '''
         try:
             self.preview = DirectoryPreview(inputfiledirvalue=folder,inputfiletypevalue=fileType)
-            self.showPreview(self.preview)
-            #TODO need to submit all as well
+            self.showPreview(self.preview) #saveInput gets called after preview shown
+
         except NoValidFilesError as e:
             print(e)
 
@@ -355,7 +345,11 @@ class FileBlock(QtWidgets.QGroupBox):
         # add an empty record to the table
         handler = TableHandler(self)
         filedir = self.FileBlock.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
-        handler.functionForNewRecord(table,fields=[1],values=[filedir])
+        id = self.dbhandler.getId('input_files','inputfiledirvalue',filedir)
+        handler.functionForNewRecord(table,fields=[1],values=[id])
+        #TODO remove debug statements
+        print(self.ComponentTable.model().rowCount())
+        print(self.dbhandler.getAllRecords('component'))
 
     # delete the selected record from the specified datatable
     # String -> None
@@ -418,9 +412,8 @@ class FileBlock(QtWidgets.QGroupBox):
         return self.ComponentButtonBox
 
     # TODO this needs to change if its populating from a table
-    # inserts data from the data model into corresponding boxes on the screen
-    # SetupInfo -> None
-    def fillData(self, model,i):
+
+    '''def fillData(self, model,i):
 
         # dictionary of attributes of the class SetupTag belonging to a SetupInformation Model
         d = model.getSetupTags()
@@ -454,6 +447,7 @@ class FileBlock(QtWidgets.QGroupBox):
         self.filterTables()
 
         return
+    '''
     # Setters
     #(String, number, list or Object) ->
     '''def assignEnvironmentBlock(self, value):
@@ -511,19 +505,6 @@ class FileBlock(QtWidgets.QGroupBox):
     def saveInput(self):
 
         #update model info from fileblock
-        '''self.model.assignTimeChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timechannelvalue.name).currentText(), position=int(self.tabPosition) - 1)
-        self.model.assignTimeChannel(SetupTag.assignFormat, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timechannelformat.name).currentText(), position=int(self.tabPosition) - 1)
-        self.model.assignDateChannel(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.datechannelvalue.name).currentText(), position=int(self.tabPosition) - 1)
-        self.model.assignDateChannel(SetupTag.assignFormat, self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.datechannelformat.name).currentText(), position=int(self.tabPosition) - 1)
-        self.model.assignInputFileDir(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiledirvalue.name).text(), position=int(self.tabPosition) - 1)
-        self.model.assignInputFileType(SetupTag.assignValue, self.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiletypevalue.name).currentText(), position=int(self.tabPosition) - 1)
-        self.model.assignTimeZone(SetupTag.assignValue,
-                                  self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.timezonevalue.name).currentText(),
-                                  position=int(self.tabPosition) - 1)
-        self.model.assignUseDST(SetupTag.assignValue,
-                                str(self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.usedstvalue.name).isChecked()),
-                                position=int(self.tabPosition) - 1)
-                                '''
         row = self.mapper.currentIndex()
         self.mapper.submit()
         self.mapper.setCurrentIndex(row)
@@ -534,6 +515,7 @@ class FileBlock(QtWidgets.QGroupBox):
     def setValid(self,valid):
         '''
         Adjusts the FileBlock form to reflect whether or not the inputs are valid
+        The component table becomes enabled and editable
         :param valid: Boolean whether or not the file block info is valid
         :return: None
         '''
@@ -549,19 +531,11 @@ class FileBlock(QtWidgets.QGroupBox):
     def validate(self):
         '''
         Checks that all the required fields in for an input directory have been set and valid files have been found
+        A file block must contain either a date or time field with a specified format, a file type and a input directory
         :return: boolean - True if required fields have been set, otherwise false.
         '''
         #validate the file input fields before allowing component information to be collected
-        print("model has")
-        print(self.fileBlockModel.data(self.fileBlockModel.index(0,1)))
-        print(self.fileBlockModel.data(self.fileBlockModel.index(0, 2)))
-        print(self.fileBlockModel.data(self.fileBlockModel.index(0, 3)))
-        print(self.fileBlockModel.data(self.fileBlockModel.index(0, 4)))
-        print(self.fileBlockModel.data(self.fileBlockModel.index(0, 7)))
-        print(self.fileBlockModel.data(self.fileBlockModel.index(0, 8)))
-        print(self.fileBlockModel.data(self.fileBlockModel.index(0, 9)))
-        print(self.fileBlockModel.data(self.fileBlockModel.index(0, 10)))
-        print(self.fileBlockModel.data(self.fileBlockModel.index(0, 11)))
+        #TODO remove debug code
         print("Database has:")
         print(self.dbhandler.getAllRecords("input_files"))
 
@@ -611,15 +585,6 @@ class FileBlock(QtWidgets.QGroupBox):
         component names, units, scale, offset, attribute, fieldname get saved'''
 
         self.ComponentTable.model.submitAll()
-        #names = self.dbhandler.getComponentNames()
-        #names = list(set(names))
-        #self.model.assignComponentNames(SetupTag.assignValue, ' '.join(names))
-        #df is a pandas dataframe  of component information
-        #df = self.dbhandler.getComponentsTable(self.filter)
-        #self.model.assignComponentName(SetupTag.assignValue, [','.join(df['component_name'].tolist())], position=int(self.tabPosition) - 1)
-        #self.model.assignHeaderName(SetupTag.assignValue, [','.join(df['original_field_name'].tolist())], position=int(self.tabPosition) - 1)
-        #self.model.assignComponentAttribute(SetupTag.assignValue, [','.join([x if x is not None else 'NA' for x in df['attribute'].tolist()])], position=int(self.tabPosition) - 1)
-        #self.model.assignComponentAttribute(SetupTag.assignUnits, [','.join([x if x is not None else 'NA' for x in df['units'].tolist()])], position=int(self.tabPosition) - 1)
 
         #loC = [makeNewComponent(df['component_name'],x['original_field_name'],
         #                             x['units'],x['attribute'],x['component_type']) for i,x in df.iterrows()]

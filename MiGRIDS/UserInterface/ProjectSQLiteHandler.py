@@ -169,12 +169,21 @@ class ProjectSQLiteHandler:
         project_name text);""")
 
         #component files contains information for loading component data
+        #components can have different units, scale and offset in their input files than in their output files
         self.cursor.execute("DROP TABLE IF EXISTS component_files")
         self.cursor.executescript("""CREATE TABLE component_files
          (_id integer primary key,
-         component_id integer,
          inputfile_id integer,
-         headernamevalue text
+         headernamevalue text,
+         componenttype text,
+         component_id integer,
+         componentattributeunit text,
+         componentattributevalue text,
+         componentscale double,
+         componentoffset double,
+         FOREIGN KEY (componentattributeunit) REFERENCES ref_universal_units(code),
+         FOREIGN KEY (componentattributevalue) REFERENCES ref_attributes(code)
+ 
          );""")
         self.connection.commit()
 
@@ -185,14 +194,8 @@ class ProjectSQLiteHandler:
                  (_id integer primary key,
                  componenttype text,
                  componentnamevalue text UNIQUE,
-                 componentattributeunit text,
-                 scale numeric,
-                 offset numeric,
-                 componentattributevalue text,       
-                 FOREIGN KEY (componenttype) REFERENCES ref_component_type(code),
-                 FOREIGN KEY (componentattributeunit) REFERENCES ref_universal_units(code),
-                 FOREIGN KEY (componentattributevalue) REFERENCES ref_attributes(code)
-                  );""")
+                 FOREIGN KEY (componenttype) REFERENCES ref_component_type(code)
+                 );""")
         self.connection.commit()
 
         self.cursor.execute("DROP TABLE IF EXISTS set_components")
@@ -356,6 +359,17 @@ class ProjectSQLiteHandler:
             return self.cursor.lastrowid
         except Exception as e:
             print(e)
+            return -1
+    def getId(self,table,keyField,keyValue):
+        ''' get the id of the first record with a keyField equal to the specified keyValue
+        :param table: String name of the table to query
+        :param keyField: String name of the table column to match
+        :param keyValue: String value to find in the table
+        :return: integer, -1 if a matching record is not found'''
+        i = self.cursor.execute("SELECT _id from " + table + " WHERE " + keyField + " = ?",[keyValue]).fetchone()
+        if i is not None:
+            return i[0]
+        else:
             return -1
 
     def updateRecord(self,table, keyField,keyValue,fields,values):
@@ -556,8 +570,9 @@ class ProjectSQLiteHandler:
         return True
     '''gets a list of possible component types from the ref_component_type table'''
     def getComponentTypes(self):
-        loT = pd.read_sql_query("select code from ref_component_type",self.connection)
-        loT = pd.Series(loT).tolist()
+        loT = self.cursor.execute("select code,description from ref_component_type").fetchall()
+
+        print(loT)
         return loT
 
     def getPossibleDateTimes(self):
@@ -575,7 +590,14 @@ class ProjectSQLiteHandler:
             return code[0]
         else:
             return None
+    def getComponentByType(self,mytype):
+        '''
 
+        :param mytype:
+        :return:
+        '''
+        codes = self.cursor.execute("select _id, componentnamevalue from component WHERE componenttype = ?", [mytype]).fetchall()
+        return codes
     def getAllRecords(self,table):
         return self.cursor.execute("select * from " + table).fetchall()
 
