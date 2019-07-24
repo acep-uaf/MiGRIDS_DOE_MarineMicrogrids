@@ -335,11 +335,11 @@ class FileBlock(QtWidgets.QGroupBox):
         # add an empty record to the table
         handler = TableHandler(self)
         filedir = self.FileBlock.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
+        self.saveInput()
         id = self.dbhandler.getId('input_files','inputfiledirvalue',filedir)
         handler.functionForNewRecord(table,fields=[1],values=[id])
-        #TODO remove debug statements
-        print(self.ComponentTable.model().rowCount())
-        print(self.dbhandler.getAllRecords('component'))
+
+
 
     # delete the selected record from the specified datatable
     # String -> None

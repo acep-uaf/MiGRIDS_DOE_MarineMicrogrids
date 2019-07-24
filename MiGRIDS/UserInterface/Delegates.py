@@ -118,7 +118,7 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
             pmodel.select()
             editor.setModel(pmodel)
             editor.setModelColumn(pmodel.fieldIndex(relation.displayColumn()))
-            editor.setCurrentIndex(editor.findText(m.data(index)))
+            editor.setCurrentIndex(editor.findText(str(m.data(index))))
 
     def setModelData(self,editor, model, index):
          model.setData(index, editor.itemText(editor.currentIndex()))

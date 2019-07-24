@@ -30,10 +30,8 @@ class ComponentTableView(QtWidgets.QTableView):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
         self.resizeColumnsToContents()
 
-
         #combo columns
-        self.setItemDelegateForColumn(ComponentFields.inputfile_id.value, TextDelegate(self))
-
+        #self.setItemDelegateForColumn(ComponentFields.inputfile_id.value, TextDelegate(self))
         self.setItemDelegateForColumn(ComponentFields.component_id.value,RelationDelegate(self,'componentnamevalue'))
         self.setItemDelegateForColumn(ComponentFields.componenttype.value, RelationDelegate(self, 'componenttype'))
         self.setItemDelegateForColumn(ComponentFields.componentattributevalue.value, RelationDelegate(self, 'componentattributevalue'))
@@ -53,11 +51,11 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         self.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
         #set the dropdowns
 
-        #self.setRelation(ComponentFields.component_id.value,QtSql.QSqlRelation('component','_id','componentnamevalue'))
-        self.setRelation(ComponentFields.inputfile_id.value, QtSql.QSqlRelation('input_file','_id','inputfiledirvalue'))
+        self.setRelation(ComponentFields.component_id.value,QtSql.QSqlRelation('component','componentnamevalue','componentnamevalue'))
+        #self.setRelation(ComponentFields.inputfile_id.value, QtSql.QSqlRelation('input_file','_id','inputfiledirvalue'))
         self.setRelation(ComponentFields.componenttype.value,QtSql.QSqlRelation('ref_component_type','code','code'))
         self.setRelation(ComponentFields.componentattributevalue.value, QtSql.QSqlRelation('ref_attributes','code','code'))
-        self.setRelation(ComponentFields.componentattributeunit.value, QtSql.QSqlRelation('ref_power_units', 'code', 'code'))
+        self.setRelation(ComponentFields.componentattributeunit.value, QtSql.QSqlRelation('ref_units', 'code', 'code'))
         #database gets updated when fields are changed
         self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
 
