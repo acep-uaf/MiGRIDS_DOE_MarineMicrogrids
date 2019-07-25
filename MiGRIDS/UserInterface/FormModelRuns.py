@@ -135,6 +135,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
     #if no values are provided the values are drawn from the database
     #tuple(s) -> None
     def getDefaultDates(self, **kwargs):
+        #TODO this should come from a preview
         #tuples
         start = kwargs.get('start')
         end = kwargs.get('end')
@@ -234,18 +235,15 @@ class SetsTableBlock(QtWidgets.QGroupBox):
             self.updateComponentDelegate(self.componentDefault)
 
         return
-    #update the component drop down in the set table to include the selected or default components
+
+
     def updateComponentDelegate(self,components):
         from MiGRIDS.UserInterface.Delegates import ComboDelegate, ComponentFormOpenerDelegate
         # find the component drop down delegate and reset its list to the selected components
         tv = self.findChild(QtWidgets.QWidget, 'sets')
+        tableHandler = TableHandler(self)
+        tableHandler.updateComponentDelegate(components,tv,'componentName')
 
-        cbs = tv.findChildren(ComboDelegate)
-        for c in cbs:
-
-            if c.name == 'componentName':
-                lm = c.values
-                lm.setStringList(components)
 
     @QtCore.pyqtSlot()
     def componentCellClicked(self):
@@ -256,9 +254,9 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         handler = ProjectSQLiteHandler('project_manager')
 
         # get the cell, and open a listbox of possible components for this project
-        checked = pd.read_sql_query("select component_name from components", handler.connection)
+        checked = pd.read_sql_query("select componentnamevalue from component", handler.connection)
 
-        checked = list(checked['component_name'])
+        checked = list(checked['componentnamevalue'])
         handler.closeDatabase()
         # checked is a comma seperated string but we need a list
         #checked = checked.split(',')
@@ -322,27 +320,24 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         # currentSet
         currentSet = self.set
         #set info needs to be updated in the database
-        setInfo = (
-            currentSet,
-            self.findChild(QtWidgets.QDateEdit,'startDate').text(),
+
+        values = [currentSet,self.findChild(QtWidgets.QDateEdit,'startDate').text(),
             self.findChild(QtWidgets.QDateEdit, 'endDate').text(),
-            self.findChild(QtWidgets.QLineEdit,'timestep').text(),
-            self.findChild(QtWidgets.QLineEdit,'componentNames').text()
-        )
-        sqlhandler = ProjectSQLiteHandler()
+            self.findChild(QtWidgets.QLineEdit,'timestepvalue').text(),
+            self.findChild(QtWidgets.QComboBox, 'timestepunit').Currenttext()]
+
+        dbhandler = ProjectSQLiteHandler()
         try:
-            sqlhandler.cursor.execute("INSERT INTO setup(set_name, date_start, date_end, timestep, component_names) VALUES(?,?,?,?,?)",setInfo)
+            dbhandler.insertRecord('setup',['set_name', 'date_start', 'date_end', 'timestepvalue','timestepunit'],values)
         except:
-            sqlhandler.cursor.execute(
-                "UPDATE setup set date_start = ?, date_end=?, timestep=?, component_names=? WHERE set_name = '" + setInfo[0] + "'", setInfo[1:])
-        sqlhandler.connection.commit()
-        sqlhandler.closeDatabase()
+            dbhandler.updateRecord('setup',['set_name'],currentSet,['date_start', 'date_end', 'timestepvalue','timestepunit'], values[1:])
+        dbhandler.addComponentsToSet(self.findChild(QtWidgets.QLineEdit,'componentNames').text().split(","))
+
         uihandler = UIToHandler()
 
         # component table is the table associated with the button
         componentTable = self.findChild(SetTableView).model()
         if componentTable.rowCount() > 0:
-
             uihandler.runModels(currentSet, componentTable,self.window().findChild(QtWidgets.QWidget,'setupDialog').model)
         else:
             msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Add components",

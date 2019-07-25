@@ -25,14 +25,18 @@ class ComponentTableView(QtWidgets.QTableView):
         # column 1 gets autfilled with filedir
         self.column1 = kwargs.get('column1')
         QtWidgets.QTableView.__init__(self, *args)
-
+        fields = kwargs.get('fields')
 
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
         self.resizeColumnsToContents()
+        handler = ProjectSQLiteHandler()
 
+        comps= handler.getAsRefTable('component', '_id', 'componentnamevalue')
+        print(comps)
+        fields = ['field1','field2']
         #combo columns
-        #self.setItemDelegateForColumn(ComponentFields.inputfile_id.value, TextDelegate(self))
-        self.setItemDelegateForColumn(ComponentFields.component_id.value,RelationDelegate(self,'componentnamevalue'))
+        self.setItemDelegateForColumn(ComponentFields.headernamevalue.value,ComboDelegate(self,QtCore.QStringListModel(fields),'headernamevalue'))
+        self.setItemDelegateForColumn(ComponentFields.component_id.value,ComboDelegate(self, RefTableModel(comps),'componentnamevalue'))
         self.setItemDelegateForColumn(ComponentFields.componenttype.value, RelationDelegate(self, 'componenttype'))
         self.setItemDelegateForColumn(ComponentFields.componentattributevalue.value, RelationDelegate(self, 'componentattributevalue'))
         self.setItemDelegateForColumn(ComponentFields.componentattributeunit.value, RelationDelegate(self, 'componentattributeunit'))

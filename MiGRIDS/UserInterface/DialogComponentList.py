@@ -19,11 +19,11 @@ class ComponentSetListForm(QtWidgets.QDialog):
    #Make a list widget with checkboxes and a list of components
     def makeListWidget(self):
         import pandas as pd
-        from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+        from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
         sqlhandler = ProjectSQLiteHandler('project_manager')
-        self.components = pd.read_sql_query("select component_name from components",sqlhandler.connection)
+        self.components = pd.read_sql_query("select componentnamevalue from component",sqlhandler.connection)
 
-        self.components = list(self.components['component_name'])
+        self.components = list(self.components['componentnamevalue'])
         checked = [x in self.checked for x in self.components]
         sqlhandler.closeDatabase()
         listWidget = QtWidgets.QListWidget()

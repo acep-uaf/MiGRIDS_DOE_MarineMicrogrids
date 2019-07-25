@@ -1,6 +1,15 @@
 from PyQt5  import QtWidgets, QtSql, QtCore
+from enum import Enum
 from MiGRIDS.UserInterface.Delegates import TextDelegate, ComboDelegate
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+
+class SetFields(Enum):
+    _id=0
+    set_id =1
+    component_id = 2
+    tag = 3
+    value = 4
+
 #subclass of QTableView for displaying set information
 class SetTableView(QtWidgets.QTableView):
     def __init__(self, *args, **kwargs):
@@ -12,12 +21,9 @@ class SetTableView(QtWidgets.QTableView):
 
         def makeComponentList():
             import pandas as pd
-
-            sqlhandler = ProjectSQLiteHandler('project_manager')
-            components = pd.read_sql_query("select componentnamevalue from component", sqlhandler.connection)
-
+            dbhandler = ProjectSQLiteHandler('project_manager')
+            components = pd.read_sql_query("select componentnamevalue from component", dbhandler.connection)
             components = list(components['componentnamevalue'])
-            sqlhandler.closeDatabase()
             return components
 
         values = QtCore.QStringListModel(makeComponentList())
@@ -32,14 +38,13 @@ class SetTableModel(QtSql.QSqlTableModel):
     def __init__(self, parent):
 
         QtSql.QSqlTableModel.__init__(self, parent)
-
+        handler = ProjectSQLiteHandler()
         self.header = ['ID','Set', 'Component', 'Tag', 'Value']
-
-        self.setTable('sets')
+        self.setTable('set_components')
 
         self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         #the set table gets filtered to only show records for that set
-        self.setFilter('set_name = ' + parent.set)
+        self.setFilter('set_id = ' + str(handler.getId('setup','set_name',parent.set)))
         self.select()
 
 

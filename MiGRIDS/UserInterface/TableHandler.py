@@ -1,4 +1,6 @@
 from PyQt5 import QtWidgets
+
+import MiGRIDS
 from MiGRIDS.Controller.UIToInputHandler import UIToHandler
 class TableHandler():
 
@@ -28,6 +30,29 @@ class TableHandler():
             values = kwargs.get('values')
             for i,n in enumerate(fields):
                 tableView.model().setData(model.index(model.rowCount()-1, n), values[i])
+
+    # update the component drop down in the set table to include the selected or default components
+    def updateComponentDelegate(self, loi,tv,cmbName):
+        '''
+        Update the list of possible values for a combobox that uses a ComboDelegate
+        :param loi: A list of items to submit as the new combo list
+        :param tv: a table view that contains a combo delegate
+        :param cmbName: the objectName of the combo delegate
+        :return:
+        '''
+        from MiGRIDS.UserInterface.Delegates import ComboDelegate, ComponentFormOpenerDelegate
+        # find the appropriate drop down and replace the list of values
+        cbs = tv.findChildren(ComboDelegate)
+        for c in cbs:
+            if c.name == cmbName:
+                lm = c.values
+                print(type(lm))
+                if isinstance(lm,MiGRIDS.UserInterface.Delegates.RefTableModel):
+                    lm.updateModel(loi)
+                else:
+                    lm.setStringList(loi)
+                print(c.values)
+
 
     #removes selected records from the table and its underlying sql table
     #String -> None

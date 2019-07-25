@@ -154,6 +154,12 @@ class FileBlock(QtWidgets.QGroupBox):
             except AttributeError as e:
                 print(name + " not set")
                 pass
+        #the component table needs to be updated to reflect the file input and preview - update table filter
+
+        tableHandler = TableHandler(self)
+        tableHandler.updateComponentDelegate(preview.header,self.ComponentTable,'headernamevalue')
+        tableHandler.updateComponentDelegate(self.dbhandler.getAsRefTable('component', '_id', 'componentnamevalue'), self.ComponentTable, 'componentnamevalue')
+
         self.saveInput()
 
     def createTopBlock(self,title, fn):
@@ -338,8 +344,6 @@ class FileBlock(QtWidgets.QGroupBox):
         self.saveInput()
         id = self.dbhandler.getId('input_files','inputfiledirvalue',filedir)
         handler.functionForNewRecord(table,fields=[1],values=[id])
-
-
 
     # delete the selected record from the specified datatable
     # String -> None

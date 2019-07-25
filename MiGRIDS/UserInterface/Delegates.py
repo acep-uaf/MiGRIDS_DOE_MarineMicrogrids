@@ -21,12 +21,12 @@ class ComboDelegate(QtWidgets.QItemDelegate):
         combo.activated.connect(self.currentIndexChanged)
         return combo
 
-    def makeList(self,box, values):
+    '''def makeList(self,box, values):
 
         self.values = values
         for i in range(box.count()):
             box.removeItem(i)
-        box.addItems(self.values)
+        box.addItems(self.values)'''
 
     def setEditorData(self, editor, index):
         editor.blockSignals(True)
@@ -37,8 +37,7 @@ class ComboDelegate(QtWidgets.QItemDelegate):
 
     #write model data
     def setModelData(self,editor, model, index):
-
-        model.setData(index, editor.itemText(editor.currentIndex()))
+         model.setData(index, editor.itemText(editor.currentIndex()))
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
@@ -212,3 +211,29 @@ class ComponentFormOpenerDelegate(QtWidgets.QItemDelegate):
             msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
             msg.exec()
 
+class RefTableModel(QtCore.QAbstractTableModel):
+    def __init__(self, dataIn, parent=None, *args, **kwargs):
+        QtCore.QAbstractTableModel.__init__(self, parent, *args)
+        self.arraydata = dataIn
+
+    def rowCount(self, parent):
+        return len(self.arraydata)
+
+    def columnCount(self, parent):
+        if(len(self.arraydata)>0):
+            return len(self.arraydata[0])
+        else:
+            return 0
+
+    def data(self, index, role):
+        if not index.isValid():
+            return QtCore.QVariant()
+        elif role == QtCore.Qt.DisplayRole:
+           return QtCore.QVariant(self.arraydata[index.row()][1]) #column 1 is display data
+        elif role == QtCore.Qt.UserRole:
+            return QtCore.QVariant(self.arraydata[index.row()][0]) #column 0 is id
+        else:
+            return QtCore.QVariant()
+
+    def updateModel(self, newArray):
+        self.arraydata = newArray

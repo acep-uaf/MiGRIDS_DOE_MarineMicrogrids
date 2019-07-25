@@ -284,15 +284,16 @@ class ProjectSQLiteHandler:
         self.cursor.execute("Delete From " + table)
         self.connection.commit()
 
-    def getSetInfo(self,setName='set0'):
+    def getSetInfo(self,setName='Set0'):
         '''
         Creates a dictionary of setup information for a specific set, default is set 0 which is the base case
         :param setName: String name of the set to get information for
         :return: dictionary of xml tags and values to be written to a setup.xml file
         '''
         setDict = {}
+        tr = self.getAllRecords('setup')
         #get tuple for basic set info
-        values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end from setup join project on setup.project = project._id where set_name = '" + setName + "'").fetchone()
+        values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end from setup join project on setup.project = project._id where lower(set_name) = '" + setName.lower() + "'").fetchone()
         if values is not None:
             setDict['project name'] = values[0]
             setDict['timestep.value'] = values[1]
@@ -469,12 +470,13 @@ class ProjectSQLiteHandler:
     def updateComponent(self, dict):
         ''' updates a component record with values in the dictionary
         :param dict: a dictionary containing at least the attribute 'component_name' and one other attribute that matches a field name in the component table'''
-        for k in dict.keys():
+        for k in [key for key in dict.keys() if key != 'componentnamevalue']:
             try:
-                self.cursor.execute("UPDATE component SET " + k + " = ? WHERE componentnamevalue = ?", [dict[k],dict['componentnamevalue']])
+                self.cursor.execute("UPDATE component_files SET " + k + " = ? WHERE component_id = (SELECT _id from component WHERE componentnamevalue = ?)", [dict[k],dict['componentnamevalue']])
             except Exception as e:
                 print(e)
                 print('%s column was not found in the data table' %k)
+                continue
         self.connection.commit()
 
     def writeComponent(self,componentDict):
@@ -504,11 +506,13 @@ class ProjectSQLiteHandler:
 
         return codes
 
-    def getComponentNames(self,setName):
+    def getComponentNames(self,setName = 'Set0'):
         '''
-        returns a list of names for components in the components table
+        returns a list of names for components in the set_components table. Defaults to set0
+        :param setName: String name of the set
         :return: list of string component names
         '''
+
         names = self.cursor.execute("select componentnamevalue from component JOIN set_components on component._id = set_components.component_id where "
                                     " set_id = (SELECT set_id from setup where set_name = '" + setName + "')").fetchall()
         if len(names) >0:
@@ -516,7 +520,7 @@ class ProjectSQLiteHandler:
             return pd.Series(names).tolist()
         return []
 
-    def updateSetupInfo(self, setupDict,setName):
+    def updateSetupInfo(self, setupDict):
         '''
         Updates the database setup tables with information from the setup.xml file
         The setup file is a mesh of both input handler information and model run information.
@@ -530,7 +534,7 @@ class ProjectSQLiteHandler:
         pid = self.insertRecord('project',['project_name','project_path'],[setupDict['project'],setupDict['projectPath']])
         #update fields that are in the setup table
         setId = self.insertRecord('setup',['timestepunit','timestepvalue','runtimestepsvalue','set_name','project'],
-                          [setupDict['timeStep.unit'],setupDict['timeStep.value'],setupDict['runTimeSteps.value'],'set0',pid])
+                          [setupDict['timeStep.unit'],setupDict['timeStep.value'],setupDict['runTimeSteps.value'],'Set0',pid])
 
         #update input handler infomation
         #this information is in the form of space delimited ordered lists that require parsing and are used by the input handler
@@ -590,6 +594,21 @@ class ProjectSQLiteHandler:
             return code[0]
         else:
             return None
+    def getAsRefTable(self,table,*args):
+        '''
+        get a list of id and code and description values from a reference table
+        if rgs are provided those fields are returned instead of code and description
+        :param table: String name of the reference table
+        :return: List of tuples
+        '''
+        fields =[]
+        for arg in args:
+            fields.append(arg)
+        if len(fields) == 0:
+            fields = ['_id', 'code','description']
+        stringFields = str.join(",",fields)
+        return self.cursor.execute("SELECT " + stringFields + " FROM " + table).fetchall()
+
     def getComponentByType(self,mytype):
         '''
 
@@ -612,9 +631,9 @@ class ProjectSQLiteHandler:
         fileAttributes = ['inputFileDir.value', 'inputFileType.value', 'dateChannel.format',
                           'dateChannel.value', 'timeChannel.format', 'timeChannel.value', 'timeZone.value',
                           'flexibleYear.value', 'inputtimestepvalue', 'inpututcoffsetvalue']
-        componentFiles = ['headerName.value']  # plus file id and component id
-        componentAttributes = ['componentName.value', 'componentAttribute.unit',
-                               'componentAttribute.value', ]
+        componentFiles = ['headerName.value', 'componentAttribute.unit',
+                               'componentAttribute.value']  # plus file id and component id
+        componentAttributes = ['componentName.value']
         files = {key.lower().replace(".", ""): value.split(' ') for key, value in setupDict.items() if
                  key in fileAttributes}
 
@@ -647,3 +666,16 @@ class ProjectSQLiteHandler:
                 return componentType
         except:
             return
+
+    def addComponentsToSet(self,setid,loc):
+        '''
+        Adds a list of component names to the set_components table
+        :param loc: A list of component names from the component table
+        :param setid: the id of a valid set from the setup table
+        :return: None. Updates the set_components table
+        '''
+        try:
+            self.cursor.execute("INSERT INTO set_components (set_id, component_id, tag) SELECT " + setid + ", _id, 'None' FROM component WHERE componentnamevalue IN " + loc)
+        except Exception as e:
+            print(e)
+        self.connection.commit()
