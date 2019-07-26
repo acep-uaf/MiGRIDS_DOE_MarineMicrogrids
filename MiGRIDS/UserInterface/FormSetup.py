@@ -237,10 +237,10 @@ class FormSetup(QtWidgets.QWidget):
         #self.displayModelData() this should be done with binding
 
         #Look for an existing project database and replace the default one with it
-        if os.path.exists(os.path.join(self.model.projectFolder,'project_manager')):
+        if os.path.exists(os.path.join(self.projectFolder,'project_manager')):
             print('An existing project database was found for %s.' %self.model.project)
 
-            replaceDefaultDatabase(os.path.join(self.model.projectFolder, 'project_manager'))
+            replaceDefaultDatabase(os.path.join(self.projectFolder, 'project_manager'))
             self.projectDatabase = True
         else:
             self.projectDatabase = False
@@ -336,7 +336,7 @@ class FormSetup(QtWidgets.QWidget):
             self.setupFolder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', self.project, 'InputData','Setup'])
             self.componentFolder = getFilePath(self.setupFolder ,'Components')
             projectFolder = getFilePath(self.setupFolder, 'Project')
-            #self.outputFolder = getFilePath(self.projectFolder, 'OutputData')
+            self.projectFolder = projectFolder
 
             #if there isn't a setup folder then its a new project
             if not os.path.exists(self.setupFolder):
@@ -346,6 +346,7 @@ class FormSetup(QtWidgets.QWidget):
                 #make the component
                 os.makedirs(self.componentFolder)
             return projectFolder
+
     def saveTreeInput(self):
         '''
         save the input in the wizard tree attribute to the database
@@ -497,9 +498,10 @@ class FormSetup(QtWidgets.QWidget):
     def closeEvent(self, event):
         #save xmls
         if 'projectFolder' in self.__dict__.keys():
-            self.sendSetupInputToModel()
+            #self.sendSetupInputToModel()
             # on close save the xml files
-            self.writeNewXML()
+            handler = UIToHandler()
+            handler.makeSetup()
             self.dbHandler.closeDatabase
         #close the fileblocks
         for i in range(self.tabs.count()):
@@ -543,9 +545,9 @@ class FormSetup(QtWidgets.QWidget):
         #component dictionary comes from setupXML's
         MainWindow = self.window()
         setupForm = MainWindow.findChild(QtWidgets.QWidget,'setupDialog')
-        setupModel= setupForm.model
-        if 'setupFolder' in setupModel.__dict__.keys():
-            setupFile = os.path.join(setupModel.setupFolder, setupModel.project + 'Setup.xml')
+        #TODO fix to pull from database
+        if 'setupFolder' in self.__dict__.keys():
+            setupFile = os.path.join(self.setupFolder, self.project + 'Setup.xml')
             componentModel = setupForm.findChild(QtWidgets.QWidget,'components').model()
             #From the setup file read the location of the input pickle
             #by replacing the current pickle with the loaded one the user can manually edit the input and
@@ -554,19 +556,18 @@ class FormSetup(QtWidgets.QWidget):
             if data:
                 df = data.fixed
                 componentDict = {}
-                if 'components' not in setupModel.__dict__.keys():
+                if 'components' not in self.__dict__.keys():
                     #generate components
                     setupForm.makeComponentList(componentModel)
-                for c in setupModel.components:
+                for c in self.components:
                     componentDict[c.column_name] = c.toDictionary()
                 #filesCreated is a list of netcdf files that were generated
-                filesCreated = handler.createNetCDF(df, componentDict,setupModel.setupFolder)
+                filesCreated = handler.createNetCDF(df, componentDict,self.setupFolder)
                 self.netCDFsLoaded.setText(', '.join(filesCreated))
             else:
                 print("no data found")
 
     #generate a list of Component objects based on attributes specified ModelSetupInformation
-    #
     def getComponentsFromSetup(self):
         for i,c in enumerate(self.model.componentName.value):
             self.model.makeNewComponent(c,self.model.headerName.value[i],

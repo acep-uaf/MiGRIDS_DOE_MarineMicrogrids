@@ -1,11 +1,21 @@
 import unittest
 import os
+from PyQt5 import QtSql
 from MiGRIDS.Controller.DirectoryPreview import DirectoryPreview
 from MiGRIDS.Controller.Exceptions.NoMatchException import NoMatchException
 from MiGRIDS.Controller.Exceptions.NoValidFilesError import NoValidFilesError
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 
 class DirectoryPreviewTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        db = QtSql.QSqlDatabase.addDatabase('QSQLITE')
+        db.setDatabaseName('project_manager')
+
+        handler = ProjectSQLiteHandler()
+        # get the name of the last project worked on
+        handler.makeDatabase()
 
     def setUp(self):
         #create a project directory with a project_database
@@ -19,33 +29,33 @@ class DirectoryPreviewTest(unittest.TestCase):
     #object created
     def test_createEmptyObject(self):
         with self.assertRaises(NoValidFilesError):
-            o = DirectoryPreview(None,None)
+            o = DirectoryPreview()
 
     #Raise error if no directory provided
     def test_createEmptyFileType(self):
         with self.assertRaises(NoValidFilesError):
-            o = DirectoryPreview(None, 'csv')
+            o = DirectoryPreview(inputfiletypevalue='csv')
 
     #test is dependent on data files in sample project
     #create valid object with date column and valid date format
     def test_createObject(self):
-        o=DirectoryPreview(self.path,'csv')
-        self.assertEqual(o.directory,self.path)
-        self.assertEqual(o.dateColumn,'DATE')
-        self.assertEqual(o.dateFormat,"YYYY-MM-DD")
+        o=DirectoryPreview(inputfiledirvalue=self.path,inputfiletypevalue='csv')
+        self.assertEqual(o.inputfiledirvalue,self.path)
+        self.assertEqual(o.datechannelvalue,'DATE')
+        self.assertEqual(o.datechannelformat,"YYYY-MM-DD")
 
     #object with empty directory
     def test_EmptyDirectory(self):
         with self.assertRaises(NoValidFilesError):
-            o = DirectoryPreview(self.subpath, 'csv')
+            o = DirectoryPreview(inputfiledirvalue = self.subpath, inputfiletypevalue='csv')
 
     #test listFiles method
     def test_listFilesSampleProject(self):
-        o = DirectoryPreview(self.path,'csv')
+        o = DirectoryPreview(inputfiledirvalue=self.path,inputfiletypevalue='csv')
         self.assertEqual(len(o.listFiles()),3)
 
     def test_extractDateTimeFormat(self):
-        o = DirectoryPreview(self.path,'csv')
+        o = DirectoryPreview(inputfiledirvalue=self.path,inputfiletypevalue='csv')
         self.assertEqual(o.extractFormat('2018-09-22 08:11').dateFormat,"YYYY-MM-DD")
         self.assertEqual(o.extractFormat('2018-09-22 08:11').timeFormat, "HH:MM")
         self.assertEqual(o.extractFormat('08:11').timeFormat, "HH:MM")
@@ -55,70 +65,75 @@ class DirectoryPreviewTest(unittest.TestCase):
 
     def test_previewcsv(self):
         file =self.writeTestDateCSV()
-        o = DirectoryPreview(os.path.dirname(__file__),"csv")
+        o = DirectoryPreview(inputfiledirvalue=os.path.dirname(__file__),inputfiletypevalue="csv")
         self.assertListEqual(list(o.header),['date','v1'])
-        self.assertEqual(o.dateColumn,'date')
-        self.assertEqual(o.dateFormat, "MM/DD/YYYY")
-        self.assertEqual(o.timeColumn, None)
-        self.assertEqual(o.timeFormat,"HH:MM")
+        self.assertEqual(o.datechannelvalue,'date')
+        self.assertEqual(o.datechannelformat, "MM/DD/YYYY")
+        with self.assertRaises(AttributeError):
+            o.timechannelvalue == None
+        self.assertEqual(o.timechannelformat,"HH:MM")
         self.deleteTestFile(file)
 
         file =self.writeTestDaysCSV()
-        o = DirectoryPreview(os.path.dirname(__file__), "csv")
+        o = DirectoryPreview(inputfiledirvalue=os.path.dirname(__file__),inputfiletypevalue= "csv")
         self.assertListEqual(list(o.header), ['date', 'v1'])
-        self.assertEqual(o.dateColumn, 'date')
-        self.assertEqual(o.dateFormat, "days")
-        self.assertEqual(o.timeColumn, None)
-        self.assertEqual(o.timeFormat, None)
+        self.assertEqual(o.datechannelvalue, 'date')
+        self.assertEqual(o.datechannelformat, "days")
+        with self.assertRaises(AttributeError):
+            o.timechannelvalue== None
+        self.assertEqual(o.timechannelformat, None)
         self.deleteTestFile(file)
 
     def test_previewMET(self):
         file = self.writeTestMET()
-        o = DirectoryPreview(os.path.dirname(__file__), "MET")
+        o = DirectoryPreview(inputfiledirvalue=os.path.dirname(__file__), inputfiletypevalue="MET")
 
         self.assertEqual(o.header[0],'Date & Time Stamp')
         #the time and date columns will be the same field
-        self.assertEqual(o.dateColumn, 'Date & Time Stamp')
-        self.assertEqual(o.dateFormat, 'YYYY-MM-DD')
-        self.assertEqual(o.timeColumn, 'Date & Time Stamp')
-        self.assertEqual(o.timeFormat, 'HH:MM:SS')
+        self.assertEqual(o.datechannelvalue, 'Date & Time Stamp')
+        self.assertEqual(o.datechannelformat, 'YYYY-MM-DD')
+        self.assertEqual(o.timechannelvalue, 'Date & Time Stamp')
+        self.assertEqual(o.timechannelformat, 'HH:MM:SS')
         self.deleteTestFile(file)
 
     def test_previewtxt(self):
         file = self.writeTestDateTXT()
-        o = DirectoryPreview(os.path.dirname(__file__), "txt")
+        o = DirectoryPreview(inputfiledirvalue=os.path.dirname(__file__),inputfiletypevalue="txt")
         self.assertListEqual(list(o.header), ['date', 'v1'])
-        self.assertEqual(o.dateColumn, 'date')
-        self.assertEqual(o.dateFormat, "MM/DD/YYYY")
-        self.assertEqual(o.timeColumn, None)
-        self.assertEqual(o.timeFormat, "HH:MM")
+        self.assertEqual(o.datechannelvalue, 'date')
+        self.assertEqual(o.datechannelformat, "MM/DD/YYYY")
+        with self.assertRaises(AttributeError):
+            o.timechannelvalue== None
+
+        self.assertEqual(o.timechannelformat, "HH:MM")
         self.deleteTestFile(file)
 
         file = self.writeTestDaysTXT()
-        o = DirectoryPreview(os.path.dirname(__file__), "txt")
+        o = DirectoryPreview(inputfiledirvalue=os.path.dirname(__file__), inputfiletypevalue="txt")
         self.assertListEqual(list(o.header), ['date', 'v1'])
-        self.assertEqual(o.dateColumn, 'date')
-        self.assertEqual(o.dateFormat, "days")
-        self.assertEqual(o.timeColumn, None)
-        self.assertEqual(o.timeFormat, None)
+        self.assertEqual(o.datechannelvalue, 'date')
+        self.assertEqual(o.datechannelformat, "days")
+        with self.assertRaises(AttributeError):
+            o.timechannelvalue == None
+        self.assertEqual(o.timechannelformat, None)
         self.deleteTestFile(file)
     def test_previewCDF(self):
         file = self.writeTestDateNetCDF()
-        o = DirectoryPreview(os.path.dirname(__file__), "nc")
+        o = DirectoryPreview(inputfiledirvalue=os.path.dirname(__file__), inputfiletypevalue="nc")
         self.assertListEqual(list(o.header), ['time', 'value'])
-        self.assertEqual(o.dateColumn, 'time')
-        self.assertEqual(o.dateFormat, "MM/DD/YYYY")
-        self.assertEqual(o.timeColumn, 'time')
-        self.assertEqual(o.timeFormat, "HH:MM")
+        self.assertEqual(o.datechannelvalue, 'time')
+        self.assertEqual(o.datechannelformat, "MM/DD/YYYY")
+        self.assertEqual(o.timechannelvalue, 'time')
+        self.assertEqual(o.timechannelformat, "HH:MM")
         self.deleteTestFile(file)
 
         file = self.writeTestDaysNetCDF()
-        o = DirectoryPreview(os.path.dirname(__file__), "nc")
+        o = DirectoryPreview(inputfiledirvalue=os.path.dirname(__file__), inputfiletypevalue="nc")
         self.assertListEqual(list(o.header), ['time', 'value'])
         #self.assertEqual(o.dateColumn, 'time')
         #self.assertEqual(o.dateFormat, "days")
-        self.assertEqual(o.timeColumn, 'time')
-        self.assertEqual(o.timeFormat, None)
+        self.assertEqual(o.timechannelvalue, 'time')
+        self.assertEqual(o.timechannelformat, None)
         self.deleteTestFile(file)
 
     def deleteTestFile(self,file):
@@ -211,7 +226,5 @@ class DirectoryPreviewTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    handler = ProjectSQLiteHandler()
-    handler.makeDatabase()
     unittest.main()
-    os.remove(os.path.join(os.path.dirname(__file__),'project_manager'))
+

@@ -21,18 +21,20 @@ def fillProjectDataFromDb():
     setupFolder = os.path.join(os.path.dirname(__file__),
                                     *['..', '..', 'MiGRIDSProjects', dbhandler.getProject(), 'InputData', 'Setup'])
 
-    #each field in the setup table gets an xml tag
-    #TODO make getSetInfo handle upper and lower case Set
+    #each field in the setup table gets an xml tag that matches the setup.xml file
     generalSetupInfo = dbhandler.getSetInfo('Set0')
     if generalSetupInfo != None:
         for k in generalSetupInfo.keys():  # for each key in the model attributes
+            tags = k.split('.')
             #read key values
-
-            for v in generalSetupInfo[k].keys():
-                attr = v
-                value = generalSetupInfo[k][v]
+            if len(tags)>1:
+                attr = tags[len(tags)-1] #the last value after '.' is the attr
+                value = generalSetupInfo[k]
+                writeXmlTag(projectSetup, tags[len(tags) -2], attr, value, setupFolder)
+            else:
+                attr = k # the last value after '.' is the attr
+                value = generalSetupInfo[k]
                 writeXmlTag(projectSetup, k, attr, value, setupFolder)
-
 
         #look for component descriptor files for all componentName
         componentDir = os.path.join(setupFolder, *['..','Components'])

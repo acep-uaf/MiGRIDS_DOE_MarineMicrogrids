@@ -66,11 +66,11 @@ class ProjectSQLiteHandler:
     '''def getDataTypeCodes(self):
         return self.cursor.execute("Select code from ref_file_type").fetchall()'''
 
-    def updateDefaultSetup(self,values):
+    '''def updateDefaultSetup(self,values):
         self.cursor.prepare(
-            "UPDATE setup set date_start = ?, date_end = ?, component_names = ? where set_name = 'default'",
+            #"UPDATE setup set date_start = ?, date_end = ?, component_names = ? where set_name = 'default'",
             [values['date_start'],values['date_end'],values['component_names']])
-        self.connection.commit()
+        self.connection.commit()'''
 
     #String, ListOfTuples -> None
     def addRefValues(self, tablename, values):
@@ -259,7 +259,7 @@ class ProjectSQLiteHandler:
                         runtimestepsvalue
                         );""")
 
-        self.cursor.execute("INSERT INTO setup (set_name,timestepvalue,date_start,date_end) values('default',1,'2016-01-01','2016-12-31')")
+        #self.cursor.execute("INSERT INTO setup (set_name,timestepvalue,date_start,date_end) values('default',1,'2016-01-01','2016-12-31')")
 
         '''self.cursor.execute("DROP TABLE IF EXISTS environment")
         self.cursor.executescript("""CREATE TABLE IF NOT EXISTS environment
@@ -302,7 +302,7 @@ class ProjectSQLiteHandler:
             setDict['date_end'] = values[4]
             #as long as there was basic set up info look for component setup info
             #componentNames is a list of distinct components, order does not matter
-            setDict['componentNames'] =  self.cursor.execute("SELECT group_concat(componentnamevalue,' ') from component join set_components on component._id = set_components.component_id "
+            setDict['componentNames.value'] =  self.cursor.execute("SELECT group_concat(componentnamevalue,' ') from component join set_components on component._id = set_components.component_id "
                                                              "join setup on set_components.set_id = setup._id where set_name = '" + setName + "'").fetchone()[0]
 
 
@@ -316,7 +316,7 @@ class ProjectSQLiteHandler:
             "select group_concat(inputfiledirvalue,' '), group_concat(inputfiletypevalue,' '),group_concat(componentnamevalue,' '),"
             "group_concat(headernamevalue, ' '),group_concat(componentattributevalue, ' '), group_concat(componentattributeunit, ' '),group_concat(datechannelvalue, ' '),group_concat(timechannelvalue,' '),"
             "group_concat(datechannelformat, ' '),group_concat(timechannelformat, ' '), "
-            "group_concat(timezonevalue, ' '), group_concat(usedstvalue, ' ') "
+            "group_concat(timezonevalue, ' '), group_concat(usedstvalue, ' '), group_concat(inpututcoffsetvalue, ' '), group_concat(flexibleyearvalue, ' ') "
             "from input_files join "
             "(select component._id as component_id, inputfile_id, componentnamevalue, headernamevalue, componentattributevalue, componentattributeunit from component_files "
             "JOIN component on component_files.component_id = component._id "
@@ -325,18 +325,21 @@ class ProjectSQLiteHandler:
             " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
 
             if values is not None:
-                setDict['inputFileDir'] = values[0]
-                setDict['inputFileType'] = values[1]
-                setDict['componentChannels.componentName']= values[2]
-                setDict['componentChannels.headerName'] = values[3]
+                setDict['inputFileDir.value'] = values[0]
+                setDict['inputFileType.value'] = values[1]
+                setDict['componentChannels.componentName.value']= values[2]
+                setDict['componentChannels.headerName.value'] = values[3]
                 setDict['componentChannels.componentAttribute.value'] = values[4]
                 setDict['componentChannels.componentAttribute.unit'] = values[5]
                 setDict['dateChannel.value']=values[6]
                 setDict['dateChannel.format'] = values[8]
                 setDict['timeChannel.value'] = values[7]
                 setDict['timeChannel.format'] = values[9]
-                setDict['timeZone'] =  values[10]
-                setDict['inputDST'] = values[11]
+                setDict['timeZone.value'] =  values[10]
+                setDict['inputDST.value'] = values[11]
+                setDict['inputUTCOffset.unit']  ='hr'
+                setDict['inputUTCOffset.value']=values[12]
+                setDict['flexibleyear.value']=values[13]
 
         else:
             return None
@@ -520,7 +523,7 @@ class ProjectSQLiteHandler:
             return pd.Series(names).tolist()
         return []
 
-    def updateSetupInfo(self, setupDict):
+    def updateSetupInfo(self, setupDict, setName):
         '''
         Updates the database setup tables with information from the setup.xml file
         The setup file is a mesh of both input handler information and model run information.
@@ -534,7 +537,7 @@ class ProjectSQLiteHandler:
         pid = self.insertRecord('project',['project_name','project_path'],[setupDict['project'],setupDict['projectPath']])
         #update fields that are in the setup table
         setId = self.insertRecord('setup',['timestepunit','timestepvalue','runtimestepsvalue','set_name','project'],
-                          [setupDict['timeStep.unit'],setupDict['timeStep.value'],setupDict['runTimeSteps.value'],'Set0',pid])
+                          [setupDict['timeStep.unit'],setupDict['timeStep.value'],setupDict['runTimeSteps.value'],setName,pid])
 
         #update input handler infomation
         #this information is in the form of space delimited ordered lists that require parsing and are used by the input handler

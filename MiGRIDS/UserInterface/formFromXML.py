@@ -44,8 +44,8 @@ class formFromXML(QtWidgets.QDialog):
     #BeautifulSoup QVBoxLayout -> QVBoxLayout
     def displayXML(self, soup, vlayout):
         from bs4 import Comment
-        from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-        from UserInterface.gridLayoutSetup import setupGrid
+        from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+        from MiGRIDS.UserInterface.gridLayoutSetup import setupGrid
         g1 = {'headers': [1,2,3,4,5],
               'rowNames': [],
               'columnWidths': [2, 1, 1, 1, 1]}

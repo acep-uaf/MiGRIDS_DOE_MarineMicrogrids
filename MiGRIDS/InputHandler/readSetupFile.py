@@ -7,6 +7,7 @@ Created on Sat Oct  6 17:53:34 2018
 import os
 from MiGRIDS.InputHandler.getUnits import getUnits
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
+from bs4 import BeautifulSoup
 
 def readSetupFile(fileName):
     ''' Reads a setup.xml file and creates a dictionary of attributes used during the data import process.
@@ -18,10 +19,16 @@ def readSetupFile(fileName):
         setupDir = os.path.dirname(fileName)
         # input specification
         inputDictionary = {}
+        soup = BeautifulSoup(open(fileName).read())
+        for tag in soup.find_all():
+            if tag.name not in ['component','childOf','type']:
+                for a in tag.attrs:
+                    inputDictionary[tag.name + "." + a]=tag[a]
+
         #filelocation is the raw timeseries file.
         #if multiple files specified look for raw_wind directory
         # input a list of subdirectories under the GBSProjects directory
-
+        '''
         inputDictionary['setupDir'] = setupDir
 
         lol = readXmlTag(fileName,'inputFileDir','value')
@@ -29,18 +36,18 @@ def readSetupFile(fileName):
 
 
         # file type
-        inputDictionary['fileType'] = readXmlTag(fileName,'inputFileType','value')
+        inputDictionary['inputFileType.value'] = readXmlTag(fileName,'inputFileType','value')
 
-        inputDictionary['outputInterval'] = readXmlTag(fileName,'timeStep','value')
-        inputDictionary['outputIntervalUnit'] = readXmlTag(fileName,'timeStep','unit')
-        inputDictionary['runTimeSteps'] = readXmlTag(fileName,'runTimeSteps','value')
+        inputDictionary['timestep.value'] = readXmlTag(fileName,'timeStep','value')
+        inputDictionary['timestep.unit'] = readXmlTag(fileName,'timeStep','unit')
+        inputDictionary['runTimeSteps.value'] = readXmlTag(fileName,'runTimeSteps','value')
 
         # get date and time values
-        inputDictionary['dateColumnName'] = readXmlTag(fileName,'dateChannel','value')
-        inputDictionary['dateColumnFormat'] = readXmlTag(fileName,'dateChannel','format')
-        inputDictionary['timeColumnName'] = readXmlTag(fileName,'timeChannel','value')
-        inputDictionary['timeColumnFormat'] = readXmlTag(fileName,'timeChannel','format')
-        inputDictionary['utcOffsetValue'] = readXmlTag(fileName,'inputUTCOffset','value')
+        inputDictionary['dateChannel.value'] = readXmlTag(fileName,'dateChannel','value')
+        inputDictionary['dateChannel.format'] = readXmlTag(fileName,'dateChannel','format')
+        inputDictionary['timeChannel.value'] = readXmlTag(fileName,'timeChannel','value')
+        inputDictionary['timeChannel.format'] = readXmlTag(fileName,'timeChannel','format')
+        inputDictionary['inputUTCOffset'] = readXmlTag(fileName,'inputUTCOffset','value')
         inputDictionary['utcOffsetUnit'] = readXmlTag(fileName,'inputUTCOffset','unit')
         inputDictionary['dst'] = readXmlTag(fileName,'inputDST','value')
         inputDictionary['timeZone'] = readXmlTag(fileName,'timeZone','value')
@@ -59,6 +66,7 @@ def readSetupFile(fileName):
          # get data units and header names
         inputDictionary['columnNames'], inputDictionary['componentUnits'], \
         inputDictionary['componentAttributes'],inputDictionary['componentNames'], inputDictionary['useNames'] = getUnits(projectName,setupDir)
+    '''
     except Exception as e:
         print(e)
         return

@@ -32,8 +32,8 @@ class ComponentTableView(QtWidgets.QTableView):
         handler = ProjectSQLiteHandler()
 
         comps= handler.getAsRefTable('component', '_id', 'componentnamevalue')
-        print(comps)
-        fields = ['field1','field2']
+
+        fields = []
         #combo columns
         self.setItemDelegateForColumn(ComponentFields.headernamevalue.value,ComboDelegate(self,QtCore.QStringListModel(fields),'headernamevalue'))
         self.setItemDelegateForColumn(ComponentFields.component_id.value,ComboDelegate(self, RefTableModel(comps),'componentnamevalue'))

@@ -597,6 +597,7 @@ class FileBlock(QtWidgets.QGroupBox):
                                        setupValues[1:])
             self.saveTables()
             # on leave save the xml files
-            self.model.writeNewXML()
+            handler = UIToHandler()
+            handler.makeSetup()
 
         self.dbhandler.closeDatabase()

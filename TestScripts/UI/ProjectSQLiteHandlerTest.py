@@ -57,23 +57,24 @@ class ProjectSQLiteHandlerTest(unittest.TestCase):
 
 
         self.handler.insertRecord('component',
-                                  ['componenttype', 'componentnamevalue', 'componentattributeunit',
-                                   'scale', 'offset', 'componentattributevalue'],
-                                  ['load', 'load0', 'kW', '1', '0', 'P'])
+                                  ['componenttype', 'componentnamevalue'],
+                                  ['load', 'load0'])
         self.handler.insertRecord('component',
-                                  ['componenttype', 'componentnamevalue', 'componentattributeunit',
-                                   'scale', 'offset', 'componentattributevalue'],
-                                  ['wtg', 'wtg0', 'm/s', '1', '0', 'WS'])
+                                  ['componenttype', 'componentnamevalue'],
+                                  ['wtg', 'wtg0'])
 
-        self.handler.insertRecord('component_files',['component_id','inputfile_id','headernamevalue'],
-                                              [1,1,'Villagekw'])
+        self.handler.insertRecord('component_files',['component_id','inputfile_id','headernamevalue', 'componentattributeunit',
+                                   'componentattributevalue'],
+                                              [1,1,'Villagekw','kW','P'])
         self.handler.insertRecord('component_files',
-                                  ['component_id','inputfile_id', 'headernamevalue'],
-                                  [1,2, 'loadkw'])
+                                  ['component_id','inputfile_id', 'headernamevalue', 'componentattributeunit',
+                                   'componentattributevalue'],
+                                  [1,2, 'loadkw','kW','P'])
         self.handler.insertRecord('component_files',
-                                  ['component_id','inputfile_id', 'headernamevalue'],
-                                  [2,3, 'CH3Avg'])
-        self.handler.insertRecord('setup',['project','set_name','timestep','timeunit'],
+                                  ['component_id','inputfile_id', 'headernamevalue', 'componentattributeunit',
+                                   'componentattributevalue'],
+                                  [2,3, 'CH3Avg','m/s','WS'])
+        self.handler.insertRecord('setup',['project','set_name','timestepvalue','timestepunit'],
                                   [1,'Set0',1,'s'])
         self.handler.insertRecord('set_components',['set_id','component_id'],[1,1])
         self.handler.insertRecord('set_components', ['set_id', 'component_id'], [1, 2])
@@ -134,28 +135,40 @@ class ProjectSQLiteHandlerTest(unittest.TestCase):
 
     def test_insertDictionaryRow(self):
         #insert 1 row of data and id should be 1
-        d = {'componentnamevalue':['wtg8'],'componentattributevalue':['P'],'componentattributeunit':['kW']}
+        d = {'componentnamevalue':['wtg8']}
         self.assertListEqual(self.handler.insertDictionaryRow("component",d),[1])
         #insert 2 more rows
-        d = {'componentnamevalue': ['wtg9','load0'], 'componentattributevalue': ['WS','P'], 'componentattributeunit': ['m/s','kW']}
+        d = {'componentnamevalue': ['wtg9','load0']}
         self.assertListEqual(self.handler.insertDictionaryRow('component',d),[2,3])
         self.assertEqual(len(self.handler.getAllRecords('component')), 3)
 
         #insert dictionary with mismatched column names
-        d = {'componentnamevalue': ['wtg8'], 'componentAtributevalue': ['P'], 'componentattributeunit': ['kW']}
+        d = {'componentnamevalue': ['wtg8']}
         '''with self.assertRaises(Exception):
             self.handler.insertDictionaryRow("component", d)'''
 
     def test_parseInputHandlerAttributes(self):
         #dictionary with to input directories for load0
-        d = {'project': 'SampleProject', 'childOf': 'childOf', 'inputFileDir': 'inputFileDir', 'inputFileDir.value': 'SampleProject,InputData,TimeSeriesData,RawData,HighRes SampleProject,InputData,TimeSeriesData,RawData,LowRes  SampleProject,InputData,TimeSeriesData,RawData,RawWind', 'inputFileType': 'inputFileType', 'inputFileType.value': 'CSV CSV MET', 'inputFileFormat': 'inputFileFormat', 'inputFileFormat.value': 'AVEC', 'componentNames': 'componentNames', 'componentNames.value': 'load0 wtg1', 'componentChannels': 'componentChannels', 'headerName': 'headerName', 'headerName.value': 'Villagekw loadkw CH3Avg ', 'componentName': 'componentName', 'componentName.value': 'load0 load0 wtg0', 'componentAttribute': 'componentAttribute', 'componentAttribute.unit': 'kW kW m/s', 'componentAttribute.value': 'P P WS', 'dateChannel': 'dateChannel', 'dateChannel.format': 'infer infer infer', 'dateChannel.value': 'DATE DATE  Date_&_Time_Stamp', 'timeChannel': 'timeChannel', 'timeChannel.format': 'infer infer infer ', 'timeChannel.value': 'DATE DATE Date_&_Time_Stamp', 'timeZone': 'timeZone', 'timeZone.name': 'timeZone', 'timeZone.value': 'America/Anchorage America/Anchorage America/Anchorage', 'inputUTCOffset': 'inputUTCOffset', 'inputUTCOffset.unit': 'hr', 'inputUTCOffset.value': '-9 -9 -9', 'inputDST': 'inputDST', 'inputDST.unit': 'bool', 'inputDST.value': 'TRUE TRUE TRUE', 'realLoadChannel': 'realLoadChannel', 'realLoadChannel.unit': 'kW', 'realLoadChannel.value': '', 'flexibleYear': 'flexibleYear', 'flexibleYear.value': 'True True True True', 'flexibleYear.unit': 'bool', 'minRealLoad': 'minRealLoad', 'minRealLoad.unit': '', 'minRealLoad.value': '', 'maxRealLoad': 'maxRealLoad', 'maxRealLoad.unit': '', 'maxRealLoad.value': '', 'imaginaryLoadChannel': 'imaginaryLoadChannel', 'imaginaryLoadChannel.unit': '', 'imaginaryLoadChannel.value': '', 'inputTimeStep': 'inputTimeStep', 'inputTimeStep.unit': 's', 'inputTimeStep.value': '2 900 600', 'timeStep': 'timeStep', 'timeStep.unit': 's', 'timeStep.value': '1', 'runTimeSteps': 'runTimeSteps', 'runTimeSteps.value': 'all', 'loadProfileFile': 'loadProfileFile', 'loadProfileFile.value': 'load2P.nc', 'predictLoad': 'predictLoad', 'predictLoad.value': 'predictLoad0', 'predictWind': 'predictWind', 'predictWind.value': 'predictWind0', 'eesDispatch': 'eesDispatch', 'eesDispatch.value': 'eesDispatch0', 'tesDispatch': 'tesDispatch', 'tesDispatch.value': 'tesDispatch0', 'genDispatch': 'genDispatch', 'genDispatch.value': 'genDispatch0', 'genSchedule': 'genSchedule', 'genSchedule.value': 'genSchedule0', 'wtgDispatch': 'wtgDispatch', 'wtgDispatch.value': 'wtgDispatch0', 'reDispatch': 'reDispatch', 'reDispatch.value': 'reDispatch0', 'getMinSrc': 'getMinSrc', 'getMinSrc.value': 'getMinSrc0'}
+        d = {'project': 'SampleProject', 'childOf': 'childOf', 'inputFileDir': 'inputFileDir',
+             'inputFileDir.value': 'SampleProject,InputData,TimeSeriesData,RawData,HighRes SampleProject,InputData,TimeSeriesData,RawData,LowRes  SampleProject,InputData,TimeSeriesData,RawData,RawWind', 'inputFileType': 'inputFileType', 'inputFileType.value': 'CSV CSV MET', 'inputFileFormat': 'inputFileFormat',
+             'inputFileFormat.value': 'AVEC', 'componentNames': 'componentNames', 'componentNames.value': 'load0 wtg1',
+             'componentChannels': 'componentChannels', 'headerName': 'headerName',
+             'headerName.value': 'Villagekw loadkw CH3Avg ', 'componentName': 'componentName',
+             'componentName.value': 'load0 load0 wtg0', 'componentAttribute': 'componentAttribute',
+             'componentAttribute.unit': 'kW kW m/s', 'componentAttribute.value': 'P P WS', 'dateChannel': 'dateChannel',
+             'dateChannel.format': 'infer infer infer', 'dateChannel.value': 'DATE DATE  Date_&_Time_Stamp',
+             'timeChannel': 'timeChannel', 'timeChannel.format': 'infer infer infer ', 'timeChannel.value': 'DATE DATE Date_&_Time_Stamp',
+             'timeZone': 'timeZone', 'timeZone.name': 'timeZone', 'timeZone.value': 'America/Anchorage America/Anchorage America/Anchorage',
+             'inputUTCOffset': 'inputUTCOffset', 'inputUTCOffset.unit': 'hr', 'inputUTCOffset.value': '-9 -9 -9',
+             'inputDST': 'inputDST', 'inputDST.unit': 'bool', 'inputDST.value': 'TRUE TRUE TRUE', 'realLoadChannel': 'realLoadChannel',
+             'realLoadChannel.unit': 'kW', 'realLoadChannel.value': '', 'flexibleYear': 'flexibleYear', 'flexibleYear.value': 'True True True True',
+             'flexibleYear.unit': 'bool', 'minRealLoad': 'minRealLoad', 'minRealLoad.unit': '', 'minRealLoad.value': '', 'maxRealLoad': 'maxRealLoad', 'maxRealLoad.unit': '', 'maxRealLoad.value': '', 'imaginaryLoadChannel': 'imaginaryLoadChannel', 'imaginaryLoadChannel.unit': '', 'imaginaryLoadChannel.value': '', 'inputTimeStep': 'inputTimeStep', 'inputTimeStep.unit': 's', 'inputTimeStep.value': '2 900 600', 'timeStep': 'timeStep', 'timeStep.unit': 's', 'timeStep.value': '1', 'runTimeSteps': 'runTimeSteps', 'runTimeSteps.value': 'all', 'loadProfileFile': 'loadProfileFile', 'loadProfileFile.value': 'load2P.nc', 'predictLoad': 'predictLoad', 'predictLoad.value': 'predictLoad0', 'predictWind': 'predictWind', 'predictWind.value': 'predictWind0', 'eesDispatch': 'eesDispatch', 'eesDispatch.value': 'eesDispatch0', 'tesDispatch': 'tesDispatch', 'tesDispatch.value': 'tesDispatch0', 'genDispatch': 'genDispatch', 'genDispatch.value': 'genDispatch0', 'genSchedule': 'genSchedule', 'genSchedule.value': 'genSchedule0', 'wtgDispatch': 'wtgDispatch', 'wtgDispatch.value': 'wtgDispatch0', 'reDispatch': 'reDispatch', 'reDispatch.value': 'reDispatch0', 'getMinSrc': 'getMinSrc', 'getMinSrc.value': 'getMinSrc0'}
         self.handler.parseInputHandlerAttributes(d,1)
         self.assertEqual(len(self.handler.getAllRecords('component')),2)
-        self.assertListEqual(self.handler.cursor.execute("SELECT componentattributevalue from component").fetchall(),
-                             [('P',),('WS',)])
+        self.assertListEqual(self.handler.cursor.execute("SELECT componentnamevalue from component").fetchall(),
+                             [('load0',),('wtg0',)])
         self.assertListEqual(self.handler.cursor.execute("SELECT set_id from set_components").fetchall(),
                              [(1,), (1,)])
-
 
     def test_updateSetupInfo(self):
         setupxml = os.path.join(os.path.dirname(__file__), '..','..','MiGRIDSProjects','SampleProject','InputData','Setup','SampleProjectSetup.xml')
@@ -164,5 +177,25 @@ class ProjectSQLiteHandlerTest(unittest.TestCase):
         self.assertEqual(self.handler.getProject(),'SampleProject')
         self.assertEqual(self.handler.getSetInfo()['componentChannels.componentAttribute.value'], 'P P WS')
         self.assertEqual(self.handler.getSetInfo()['componentNames'],'load0 wtg0')
+
+    def test_addComponentsToSet(self):
+        self.insertTestData()
+        self.handler.insertRecord('setup', ['project', 'set_name', 'timestepvalue', 'timestepunit'],
+                                  [1, 'Set1', 1, 's'])
+        complist = ['wtg0','load0']
+        self.handler.addComponentsToSet(2,complist)
+        self.assertTrue(len(self.handler.getAllRecords('set_components')),4)
+        #insert a component that is already there
+        complist = ['load0']
+        self.handler.addComponentsToSet(2, complist)
+        self.assertTrue(len(self.handler.getAllRecords('set_components')), 4)
+        #insert for a set_id that does not exist
+        self.handler.addComponentsToSet(3, complist)
+        self.assertTrue(len(self.handler.getAllRecords('set_components')), 4)
+        #insert a component that does not exist
+        complist = ['load1']
+        self.handler.addComponentsToSet(2, complist)
+        self.assertTrue(len(self.handler.getAllRecords('set_components')), 4)
+
 if __name__ == '__main__':
     unittest.main()

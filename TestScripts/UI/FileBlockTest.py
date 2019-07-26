@@ -67,9 +67,10 @@ class FileBlockTest(unittest.TestCase):
         QtTest.QTest.keyClicks(self.F.findChild(QtWidgets.QWidget,'inputfiledirvalue'),dataPath)
         self.F.findChild(QtWidgets.QWidget, 'inputfiledirvalue').setFocus(False)
         self.assertEqual(self.F.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text(), dataPath)
+        #call create preview to fill the rest of the values and update the model
+        self.F.createPreview(dataPath,'CSV')
 
-
-        self.F.findChild(QtWidgets.QWidget, 'timezonevalue').setFocus(True)
+        self.F.findChild(QtWidgets.QWidget, 'timezonevalue').setFocus()
         self.assertTrue(self.F.findChild(QtWidgets.QWidget, 'timezonevalue').hasFocus())
 
         #filling the directory changes database record and model info
@@ -92,9 +93,11 @@ class FileBlockTest(unittest.TestCase):
         QtTest.QTest.keyClicks(self.F.findChild(QtWidgets.QWidget, 'inputfiledirvalue'), dataPath)
         self.F.findChild(QtWidgets.QWidget, 'inputfiledirvalue').setFocus(False)
         self.F.findChild(QtWidgets.QWidget, 'timezonevalue').setFocus(True)
-        #self.assertTrue(self.F.ComponentButtonBox.isEnabled())
+        #call preview to enable the component buttons
+        self.F.createPreview(dataPath,'csv')
 
-        self.F.ComponentButtonBox.setEnabled(True)
+        self.assertTrue(self.F.ComponentButtonBox.isEnabled)
+
         #test adding a row
         QtTest.QTest.mouseClick(self.F.findChild(QtWidgets.QPushButton,'newComponent'),QtCore.Qt.LeftButton)
         self.assertEqual(self.F.ComponentTable.model().rowCount(),1)
