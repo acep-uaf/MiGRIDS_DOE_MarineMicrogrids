@@ -9,17 +9,27 @@ def makeComponentSoup(component, saveDir):
     :return: BeautifulSoup
     '''
     import os
-    from InputHandler.createComponentDescriptor import createComponentDescriptor
-    from UserInterface.readComponentXML import readComponentXML
+    import re
+    from MiGRIDS.InputHandler.createComponentDescriptor import createComponentDescriptor
+    from MiGRIDS.UserInterface.readComponentXML import readComponentXML
 
-    assert(None in [saveDir, component]), "Save path is incomplete"
+    def typeOfComponent(c):
+        '''extracts the type of a component from its name
+        :param c [String] the component name which consists of a component type + number'''
+        match = re.match(r"([a-z]+)([0-9]+)", c, re.I)
+        if match:
+            componentType = match.group(1)
+            return componentType
+        return
+
+    #assert(None in [saveDir, component]), "Save path is incomplete"
     file = os.path.join(saveDir, component + 'Descriptor.xml')
     #if exists build soup
     if not os.path.isfile(file):
         # create a new xml based on template
         createComponentDescriptor(component, saveDir)
 
-    componentType = component[0:3]
+    componentType = typeOfComponent(component)
     mysoup = readComponentXML(componentType, file)
 
     return mysoup

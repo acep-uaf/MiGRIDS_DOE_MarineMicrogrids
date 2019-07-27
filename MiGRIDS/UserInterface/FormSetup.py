@@ -203,7 +203,7 @@ class FormSetup(QtWidgets.QWidget):
             overwrite = msg.exec()
             if overwrite != QtWidgets.QMessageBox.Yes:
                 self.fillSetup() # call up the wizard again so a new project name can be assigned
-        handler.makeSetup() #this line won't get reached until an original project name is generated or overwrite is chose
+        handler.makeSetup('Set0') #this line won't get reached until an original project name is generated or overwrite is chose
 
     def setupExists(self):
         '''
@@ -354,13 +354,14 @@ class FormSetup(QtWidgets.QWidget):
         '''
 
         dbhandler = ProjectSQLiteHandler()
-        dbhandler.insertRecord("project",['project_name','project_path'],[self.WizardTree.field('project'),self.assignProjectPath(self.WizardTree.field('project'))])
-        dbhandler.insertRecord("setup",['set_name','timestepvalue','timestepunit','date_start','date_end'],['set0',self.WizardTree.field('timeInterval'),self.WizardTree.field('timeUnit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
+        project_id = dbhandler.insertRecord("project",['project_name','project_path'],[self.WizardTree.field('project'),self.assignProjectPath(self.WizardTree.field('project'))])
+        set_id = dbhandler.insertRecord("setup",['project_id','set_name','timestepvalue','timestepunit','date_start','date_end'],[project_id,'Set0',self.WizardTree.field('timeInterval'),self.WizardTree.field('timeUnit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
         lot = dbhandler.getComponentTypes()
         for t in lot:
             cnt = self.WizardTree.field(t[0]+'count')
             for i in range(0,cnt):
-                dbhandler.insertRecord('component',['componentnamevalue','componenttype'],[t[0] + str(i),t[0]])
+                comp_id = dbhandler.insertRecord('component',['componentnamevalue','componenttype'],[t[0] + str(i),t[0]])
+                dbhandler.insertRecord('set_components',['component_id','set_id','tag'],[comp_id,set_id,None])
         print(dbhandler.getAllRecords('component'))
         return
 
@@ -501,7 +502,7 @@ class FormSetup(QtWidgets.QWidget):
             #self.sendSetupInputToModel()
             # on close save the xml files
             handler = UIToHandler()
-            handler.makeSetup()
+            handler.makeSetup('Set0') #The setup form always contains infromation for set0
             self.dbHandler.closeDatabase
         #close the fileblocks
         for i in range(self.tabs.count()):
@@ -568,13 +569,13 @@ class FormSetup(QtWidgets.QWidget):
                 print("no data found")
 
     #generate a list of Component objects based on attributes specified ModelSetupInformation
-    def getComponentsFromSetup(self):
+    '''def getComponentsFromSetup(self):
         for i,c in enumerate(self.model.componentName.value):
             self.model.makeNewComponent(c,self.model.headerName.value[i],
                                         self.model.componentAttribute.unit[i],
                                         self.model.componentAttribute.value[i],
                                         None)
-
+    '''
 #classes used for displaying wizard inputs
 class WizardPage(QtWidgets.QWizardPage):
     def __init__(self, inputdict,**kwargs):

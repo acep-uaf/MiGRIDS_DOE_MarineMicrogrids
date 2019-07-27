@@ -250,7 +250,7 @@ class ProjectSQLiteHandler:
         self.cursor.executescript("""
                         CREATE TABLE IF NOT EXISTS setup
                         (_id integer primary key,
-                        project integer,
+                        project_id integer,
                         set_name unique,
                         date_start text,
                         date_end text,
@@ -291,9 +291,12 @@ class ProjectSQLiteHandler:
         :return: dictionary of xml tags and values to be written to a setup.xml file
         '''
         setDict = {}
+        tr = self.getAllRecords('project')
+        print(tr)
         tr = self.getAllRecords('setup')
+        print(tr)
         #get tuple for basic set info
-        values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end from setup join project on setup.project = project._id where lower(set_name) = '" + setName.lower() + "'").fetchone()
+        values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end from setup join project on setup.project_id = project._id where lower(set_name) = '" + setName.lower() + "'").fetchone()
         if values is not None:
             setDict['project name'] = values[0]
             setDict['timestep.value'] = values[1]
@@ -307,9 +310,13 @@ class ProjectSQLiteHandler:
 
 
             tr = self.getAllRecords('component')
-
+            print(tr)
             tr = self.getAllRecords('component_files')
+            print(tr)
             tr = self.getAllRecords('setup')
+            print(tr)
+            tr = self.getAllRecords("set_components")
+            print(tr)
             #componentChannels has ordered lists for directories and the components they contain. A component can have data in more than one directory and file type, in which case it would
             #be listed more than once in componentChannels
             values = self.cursor.execute(

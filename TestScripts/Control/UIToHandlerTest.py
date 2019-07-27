@@ -1,5 +1,6 @@
 import unittest
 import os
+from bs4 import BeautifulSoup
 from PyQt5 import QtSql
 from MiGRIDS.Controller.UIToInputHandler import UIToHandler
 from MiGRIDS.InputHandler.readSetupFile import readSetupFile
@@ -18,14 +19,15 @@ class UIToHandlerTest(unittest.TestCase):
 
     def setUp(self):
         self.handler = ProjectSQLiteHandler()
+        self.u = UIToHandler()
         self.insertTestData()
 
     def tearDown(self):
        self.clearDatabase()
 
     def test_makeSetup(self):
-        handler = UIToHandler()
-        handler.makeSetup('Set0')
+
+        self.u.makeSetup('Set0')
         #there should now be a file named ''
         path = os.path.join(os.path.dirname(__file__), '..','..','MiGRIDSProjects','SampleProject1','InputData','Setup')
         self.assertEqual(os.path.exists(os.path.join(path, 'SampleProject1Setup.xml')), True)
@@ -33,7 +35,34 @@ class UIToHandlerTest(unittest.TestCase):
         self.assertEqual(dict['inputdst.value'], 'T T T')
         self.assertEqual(dict['componentnames.value'],'load0 wtg0')
         self.assertEqual(dict['componentname.value'], 'load0 load0 wtg0')
-
+    def test_makeComponentDescriptor(self):
+        #component descriptor is made with default values so we just check the file is created
+        compDir = os.path.dirname(__file__)
+        self.u.makeComponentDescriptor('wtg0WS',compDir)
+        self.assertEqual(os.path.exists('wtg0WSDescriptor.xml'), True)
+        return
+    def test_writeComponentSoup(self):
+        #write component soup writes specific component tags found in a BeautifulSoup object to a components descriptor file
+        compDir = os.path.dirname(__file__)
+        self.u.makeComponentDescriptor('wtg0WS', compDir)
+        #read in the default
+        componentSoup = self.u.makeComponentDescriptor('wtg0WS', compDir)
+        #edit an attribute
+        tag = componentSoup.findChild('powerCurveDataPoints')
+        param = tag.findChild('ws')
+        param.attrs['unit'] = 'ft/s'
+        #call writeComponentSoup
+        self.u.writeComponentSoup('wtg0WS',compDir,componentSoup)
+        #check file is created
+        self.assertEqual(os.path.exists('wtg0WSDescriptor.xml'), True)
+        #check file contains tag value
+        f = open('wtg0WSDescriptor.xml')
+        newSoup = BeautifulSoup(f.read(),'xml')
+        tag = newSoup.findChild('powerCurveDataPoints')
+        param = tag.findChild('ws')
+        self.assertEqual(param.attrs['unit'],'ft/s')
+        f.close()
+        return
     def insertTestData(self):
         self.handler.insertRecord("project",['project_name','project_path'],['SampleProject1',os.path.join(os.path.dirname(__file__), '..','..','MiGRIDSProjects','SampleProject1')])
         self.handler.insertRecord("setup", ['project', 'set_name', 'date_start', 'date_end', 'timestepvalue', 'timestepunit' ], [1,'Set0','','',1,'s'])

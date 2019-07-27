@@ -21,7 +21,7 @@ def createComponentDescriptor(component, saveDir, soup = None):
     #get the component descriptor template from the resource folder
     #component descriptor can have parent files that contain additional tags
     here = os.path.dirname(os.path.realpath(__file__))
-    componentPath = os.path.join(here, *['..','GBSModel','Resources','Components'])
+    componentPath = os.path.join(here, *['..','Model','Resources','Components'])
 
     def typeOfComponent(c):
         '''extracts the type of a component from its name

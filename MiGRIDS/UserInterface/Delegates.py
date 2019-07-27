@@ -32,7 +32,10 @@ class ComboDelegate(QtWidgets.QItemDelegate):
         editor.blockSignals(True)
 
         #set the combo to the selected index
-        editor.setCurrentText(index.model().data(index))
+        if isinstance(index.model().data(index),str):
+            editor.setCurrentText(index.model().data(index))
+        else:
+            editor.setCurrentIndex(index.model().data(index))
         editor.blockSignals(False)
 
     #write model data
@@ -194,7 +197,7 @@ class ComponentFormOpenerDelegate(QtWidgets.QItemDelegate):
 
             if component.type !="":
                 #tell the input handler to create or read a component descriptor and combine it with attributes in component
-                componentSoup = handler.makeComponentDescriptor(component.column_name, componentDir)
+                componentSoup = handler.makeComponentDescriptor(component.component_name, componentDir)
                 #data from the form gets saved to a soup, then written to xml
                 #modify the soup to reflect data in the data model
                 component.component_directory = componentDir

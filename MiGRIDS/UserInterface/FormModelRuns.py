@@ -142,13 +142,16 @@ class SetsTableBlock(QtWidgets.QGroupBox):
 
         handler = ProjectSQLiteHandler()
         if start == None:
-            start = handler.cursor.execute("select date_start from setup where set_name = 'default'").fetchone()
+            start = handler.cursor.execute("select date_start from setup where set_name = 'Set0'").fetchone()
         if end == None:
-            end = handler.cursor.execute("select date_end from setup where set_name = 'default'").fetchone()
+            end = handler.cursor.execute("select date_end from setup where set_name = 'Set0'").fetchone()
         handler.closeDatabase()
 
         #format the tuples from database output to datetime objects
-        if type(start)== str:
+        if start == None:
+            end = datetime.datetime.today().strftime('%Y-%m-%d')
+            start = (datetime.datetime.today() - datetime.timedelta(days=365)).strftime('%Y-%m-%d')
+        elif type(start)== str:
             start = datetime.datetime.strptime(start, '%Y-%m-%d')
             end = datetime.datetime.strptime(end, '%Y-%m-%d')
         else:
