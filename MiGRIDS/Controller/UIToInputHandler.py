@@ -283,9 +283,13 @@ class UIToHandler():
         file.close()
         return
 
-    #read in a pickled data object if it exists
-    #string->DataClass
     def loadInputData(self,setupFile):
+        '''
+        Read in a pickled data object if it exists. Pickled objects are created once data has begun the fixing process
+        which can be time consuming and may need to be performed in stages.
+        :param setupFile: the file path to a setup xml
+        :return: a DataClass object which consists of raw and fixed data
+        '''
 
         outputDirectory = os.path.join(os.path.dirname(setupFile), *['..','TimeSeriesData','Processed'])
         outfile = os.path.join(outputDirectory, 'processed_input_file.pkl')
@@ -297,9 +301,13 @@ class UIToHandler():
         data = pickle.load(file)
         file.close()
         return data
-    #string->ListOfComponents
-    #loads a pickled Component list
+
     def loadComponents(self, setupFile):
+        '''
+        Loads component pickle objects that were created during the data fixing process.
+        :param setupFile: String path to seup xml file
+        :return: List of Component Objects
+        '''
         outputDirectory = os.path.dirname(setupFile)
         infile = os.path.join(outputDirectory, 'components.pkl')
         if not os.path.exists(infile):
@@ -359,9 +367,13 @@ class UIToHandler():
         dbhandler.updateSetupInfo(setupInfo,setName)
         return setupInfo
 
-    # creates a soup object from set attribute xml file
-    # ->soup
+
     def getSetAttributeXML(self, xmlFile):
+        '''
+        Creates a soup object from xml file
+        :param xmlFile: String path to xml file
+        :return: BeautifulSoup soup object
+        '''
         #read the attributes xml
         infile_child = open(xmlFile, "r")  # open
         contents_child = infile_child.read()
@@ -369,7 +381,13 @@ class UIToHandler():
         soup = BeautifulSoup(contents_child, 'xml')  # turn into soup
 
         return soup
+
+
     def getComponentTypes(self):
+        '''
+        Gets a list of component types associated with a project
+        :return: List of String standardized types from component table in project_manager database
+        '''
         dbhandler = ProjectSQLiteHandler()
         loT = dbhandler.getComponentTypes()
         dbhandler.closeDatabase()

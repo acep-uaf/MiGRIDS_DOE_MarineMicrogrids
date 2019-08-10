@@ -15,7 +15,7 @@ def readCsv(inputDict):
     import numpy as np
     import os
     import pandas as pd
-    
+    from MiGRIDS.Controller.makeXMLFriendly import *
     from MiGRIDS.InputHandler.processInputDataFrame import processInputDataFrame
 
     # process input variables
@@ -32,7 +32,7 @@ def readCsv(inputDict):
     # check and see if the df column names match the input specification.
     # TODO: throw a catch in here in case it does not find the headers
     gotHeader = False
-    columnNamesFromCSV = df.columns.str.replace('\s+', '_')
+    columnNamesFromCSV = df.columns.stringToXML('\s+', '_')
     if inputDict['columnNames'][0] not in columnNamesFromCSV:
         # if the first row is not the header, look for it further down in the file
         for col in df.columns:

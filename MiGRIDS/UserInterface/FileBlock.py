@@ -69,6 +69,8 @@ class FileBlock(QtWidgets.QGroupBox):
         windowLayout.addWidget(self.FileBlock)
 
         self.createTableBlock('Components', 'components', self.assignComponentBlock)
+        #if a loaded file was valid the table block becomes active
+        self.setValid(self.validate())
         l.clicked.connect(self.lineclicked)
         windowLayout.addWidget(self.componentBlock)
 
@@ -517,9 +519,16 @@ class FileBlock(QtWidgets.QGroupBox):
         :return: None
         '''
         if (valid):
-            # enable the component buttons
-            self.ComponentButtonBox.setEnabled(True)
-            self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
+            #we can reach this point before a fileblock is done getting created
+            try:
+
+                # enable the component buttons
+                self.ComponentButtonBox.setEnabled(True)
+                self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
+            except AttributeError as a:
+                print('attempted to set component table items before component table was created')
+
+
     # calls the specified function connected to a button onClick event
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):

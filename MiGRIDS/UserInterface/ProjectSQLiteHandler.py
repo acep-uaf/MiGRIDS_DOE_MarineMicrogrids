@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import sqlite3 as lite
 
+from MiGRIDS.Controller.makeXMLFriendly import xmlToString
 from MiGRIDS.InputHandler.componentSupport import inferComponentType
 
 
@@ -313,13 +314,14 @@ class ProjectSQLiteHandler:
             #componentChannels has ordered lists for directories and the components they contain. A component can have data in more than one directory and file type, in which case it would
             #be listed more than once in componentChannels
             #We use a left join for input files to components so the input file directories will still get listed even if no components have been added
+
             values = self.cursor.execute(
             "select group_concat(COALESCE(inputfiledirvalue,'None'),' '), group_concat(COALESCE(inputfiletypevalue,'None'),' '),group_concat(componentnamevalue,' '),"
-            "group_concat(headernamevalue, ' '),group_concat(componentattributevalue, ' '), group_concat(componentattributeunit, ' '),group_concat(COALESCE(datechannelvalue,None')', ' '),group_concat(COALESCE(timechannelvalue,'None'),' '),"
+            "group_concat(headernamevalue, ' '),group_concat(componentattributevalue, ' '), group_concat(componentattributeunit, ' '),group_concat(COALESCE(datechannelvalue,'None'), ' '),group_concat(COALESCE(timechannelvalue,'None'),' '),"
             "group_concat(COALESCE(datechannelformat,'None'), ' '),group_concat(COALESCE(timechannelformat,'None'), ' '), "
             "group_concat(COALESCE(timezonevalue,'None'), ' '), group_concat(COALESCE(usedstvalue,'None'), ' '), group_concat(COALESCE(inpututcoffsetvalue,'None'), ' '), group_concat(COALESCE(flexibleyearvalue,'None'), ' ') "
             "from input_files Left JOIN "
-            "(select component._id as component_id, inputfile_id, COALESCE(componentnamevalue,'None') as componentnamevalue, COALESCE(headernamevalue,'None') as headernamevalue, COALESCE(componentattributevalue,'') as componentattributevalue, COALESCE(componentattributeunit,'None') as componentattributeunit from component_files "
+            "(select component._id as component_id, inputfile_id, COALESCE(componentnamevalue,'None') as componentnamevalue, COALESCE(headernamevalue,'None') as headernamevalue, COALESCE(componentattributevalue,'None') as componentattributevalue, COALESCE(componentattributeunit,'None') as componentattributeunit from component_files "
             "JOIN component on component_files.component_id = component._id "
             "Join set_components on component._id = set_components.component_id "
             "Join setup on set_components.set_id = setup._id  where set_name = '" + setName + "' ORDER BY component_id) as components"
@@ -340,7 +342,7 @@ class ProjectSQLiteHandler:
                 setDict['inputDST.value'] = values[11]
                 setDict['inputUTCOffset.unit']  ='hr'
                 setDict['inputUTCOffset.value']=values[12]
-                setDict['flexibleyear.value']=values[13]
+                setDict['flexibleYear.value']=values[13]
 
         else:
             return None
@@ -648,12 +650,12 @@ class ProjectSQLiteHandler:
         componentFiles = ['headerName.value', 'componentAttribute.unit',
                                'componentAttribute.value']  # plus file id and component id
         componentAttributes = ['componentName.value']
-        files = {key.lower().replace(".", ""): value.split(' ') for key, value in setupDict.items() if
+        files = {key.lower().replace(".", ""): xmlToString(value.split(' ')) for key, value in setupDict.items() if
                  key in fileAttributes}
         #sometimes setup files only contain the relative path to input files from the project directory
 
         files['inputfiledirvalue'] = [self.makePath(k) for k in files['inputfiledirvalue']] #we need to convert the list filepath to a system filepath as a string
-        components = {key.lower().replace(".", ""): value.split(' ') for key, value in setupDict.items() if
+        components = {key.lower().replace(".", ""): xmlToString(value.split(' ')) for key, value in setupDict.items() if
                       key in componentAttributes}
         filecomponents = {key.lower().replace(".", ""): value.split(' ') for key, value in setupDict.items() if
                       key in componentFiles}

@@ -26,7 +26,6 @@ def getSetupInformation(setupXML):
             setupInfo[children[i].name] = children[i].name
             if children[i].attrs is not None:
                 for k in children[i].attrs.keys():
-
                     setupInfo[children[i].name + "." + k]= children[i][k]
 
     infile.close()

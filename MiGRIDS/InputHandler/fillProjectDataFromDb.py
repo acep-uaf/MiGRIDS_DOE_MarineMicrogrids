@@ -1,5 +1,8 @@
 #fill project xml files
 #String, ModelSetupInformation - > None
+from MiGRIDS.Controller.makeXMLFriendly import stringToXML
+
+
 def fillProjectDataFromDb():
     '''
     Fills project xml files from a model object provided from the user interface.
@@ -29,11 +32,11 @@ def fillProjectDataFromDb():
             #read key values
             if len(tags)>1:
                 attr = tags[len(tags)-1] #the last value after '.' is the attr
-                value = generalSetupInfo[k]
+                value = stringToXML(generalSetupInfo[k])
                 writeXmlTag(projectSetup, tags[len(tags) -2], attr, value, setupFolder)
             else:
                 attr = k # the last value after '.' is the attr
-                value = generalSetupInfo[k]
+                value = stringToXML(generalSetupInfo[k])
                 writeXmlTag(projectSetup, k, attr, value, setupFolder)
 
         #look for component descriptor files for all componentName
