@@ -11,10 +11,7 @@ def switchProject(caller):
     saveProject(pathTo)
     print(type(caller))
     print(caller.objectName())
-    del caller.model
-
     clearProjectDatabase(caller)
-
     return
 
 def saveProject(pathTo):

@@ -1,9 +1,9 @@
 def getSetupInformation(setupXML):
     '''
-    Modifies the ModelSetupInformation object based on tags in the setup xml
+    Creates a dictionary based on tags in the setup xml
     :param setupXML: [String] path to a setup xml file
 
-    :return: None
+    :return: Dictionary with tags from setup.xml as keys
     '''
 
     from bs4 import BeautifulSoup
@@ -30,5 +30,5 @@ def getSetupInformation(setupXML):
                     setupInfo[children[i].name + "." + k]= children[i][k]
 
     infile.close()
-    setupInfo['projectPath'] = os.path.join(setupXML,'..','..')
+    setupInfo['projectPath'] = os.path.join(setupXML,'..','..','..')
     return setupInfo

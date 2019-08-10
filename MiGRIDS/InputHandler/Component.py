@@ -1,5 +1,8 @@
 
 # Component class consisting of component name, units,offset, scale, datatype, column name, original field name and attribute
+from MiGRIDS.InputHandler.componentSupport import inferComponentName, inferComponentType
+
+
 class Component:
     """A class with access to the generic characteristics of a component."""
 
@@ -21,30 +24,10 @@ class Component:
         self.source = kwargs.get('source')
         self.tags=kwargs.get('tags')
         if self.component_name is None:
-            self.inferComponentName()
+            inferComponentName(self.column_name)
         if self.type is None:
-            self.inferComponentType()
+            inferComponentType(self.column_name)
     
-    def inferComponentName(self):
-        import re
-        try:
-            match = re.match(r"([a-z]+)([0-9]+)([a-z]+)", self.column_name, re.I)
-            if match:
-                componentName = match.group(0) + match.group(1)
-                return componentName
-        except:
-            return
-        
-    # returns a possible component type inferred from the components column name
-    def inferComponentType(self):
-        import re
-        try:
-           match = re.match(r"([a-z]+)([0-9]+)", self.component_name, re.I)
-           if match:
-                componentType = match.group(1)
-                return componentType
-        except:
-            return
 
 
     # set the datatype for a column in a dataframe that contains data for a specific component

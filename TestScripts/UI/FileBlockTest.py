@@ -86,6 +86,8 @@ class FileBlockTest(unittest.TestCase):
         #if selected directory has valid data the component table becomes active
 
         self.assertTrue(self.F.ComponentButtonBox.isEnabled())
+
+
     def test_fillComponentBlock(self):
         dataPath = os.path.join(os.path.dirname(__file__), '..', '..', 'MiGRIDSProjects', 'SampleProject', 'InputData',
                                 'TimeSeriesData', 'RawData', 'HighRes')

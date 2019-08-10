@@ -40,7 +40,7 @@ class FormSetup(QtWidgets.QWidget):
         self.createButtonBlock()
         windowLayout.addWidget(self.ButtonBlock)
         #each tab is for an individual input file.
-        self.tabs = Pages(self, '1',FileBlock)
+        self.tabs = Pages(self, 'Input 1',FileBlock)
         self.tabs.setDisabled(True)
 
         # button to create a new file tab
@@ -183,7 +183,10 @@ class FormSetup(QtWidgets.QWidget):
 
     def loadSetup(self, setupFile):
         handler = UIToHandler()
-        handler.inputHandlerToUI(setupFile, self)
+        #setup is a dictionary read from the setupFile
+        setup = handler.inputHandlerToUI(setupFile,'Set0')
+        self.assignProjectPath(setup['project'])
+        self.displayModelData(setup)
 
     def fillSetup(self):
         '''
@@ -228,7 +231,7 @@ class FormSetup(QtWidgets.QWidget):
 
 
         #launch file navigator to identify setup file
-        setupFile = QtWidgets.QFileDialog.getOpenFileName(self,"Select your setup file", self.lastProjectPath, "*xml" )
+        setupFile = QtWidgets.QFileDialog.getOpenFileName(self,"Select your setup file", os.path.join(os.path.dirname(__file__),'..','..','MiGRIDSProjects'), "*xml" )
         if (setupFile == ('','')) | (setupFile is None):
             return
         self.loadSetup(setupFile[0])
@@ -238,13 +241,13 @@ class FormSetup(QtWidgets.QWidget):
 
         #Look for an existing project database and replace the default one with it
         if os.path.exists(os.path.join(self.projectFolder,'project_manager')):
-            print('An existing project database was found for %s.' %self.model.project)
+            print('An existing project database was found for %s.' %self.project)
 
             replaceDefaultDatabase(os.path.join(self.projectFolder, 'project_manager'))
             self.projectDatabase = True
         else:
             self.projectDatabase = False
-            print('An existing project database was not found for %s.' % self.model.project)
+            print('An existing project database was not found for %s.' % self.project)
 
         # record the current project
         self.dbHandler.insertRecord('project', ['project_path'], [setupFile[0]])
@@ -252,20 +255,20 @@ class FormSetup(QtWidgets.QWidget):
 
         # look for an existing data pickle
         handler = UIToHandler()
-        self.model.data= handler.loadInputData(
-            os.path.join(self.model.setupFolder, self.model.project + 'Setup.xml'))
+        self.data= handler.loadInputData(
+            os.path.join(self.setupFolder, self.project + 'Setup.xml'))
 
-        if self.model.data is not None:
-            self.updateModelPage(self.model.data)
+        if self.data is not None:
+            self.updateModelPage(self.data)
             self.dataLoaded.setText('data loaded')
             #refresh the plot
             resultDisplay = self.parent().findChild(ResultsSetup)
             resultDisplay.defaultPlot()
 
         #look for an existing component pickle or create one from information in setup xml
-        self.model.components = handler.loadComponents(os.path.join(self.model.setupFolder, self.model.project + 'Setup.xml'))
-        if self.model.components is None:
-             self.getComponentsFromSetup()
+        self.components = handler.loadComponents(os.path.join(self.setupFolder, self.project + 'Setup.xml'))
+        #if self.components is None:
+            # self.getComponentsFromSetup()
 
         #list netcdf files previously generated
         self.netCDFsLoaded.setText('Processed Files: ' + ', '.join(self.listNetCDFs()))
@@ -281,10 +284,10 @@ class FormSetup(QtWidgets.QWidget):
             msg.exec()
         else:
             self.tabs.setEnabled(True)
-            print('Loaded %s:' % model.project)
+            print('Loaded %s:' % self.project)
 
         #set the project name on the GUI form
-        self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.model.project)
+        self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.project)
 
         return
     #looks in the processed folder and lists nc files found
@@ -294,18 +297,23 @@ class FormSetup(QtWidgets.QWidget):
         produces a list of netcdf files located in the Processed folder of a project TimeSeries folder
         :return: List of Strings of names of netCDF files
         '''
-        lof = [f for f in os.listdir(getFilePath(self.model.setupFolder,'Processed')) if f[-2:] =='nc']
-        return lof
+        try:
+            lof = [f for f in os.listdir(getFilePath(self.setupFolder,'Processed')) if f[-2:] =='nc']
+            return lof
+        except FileNotFoundError as e:
+            print('No netcdf model files found.')
+            return
 
 
-    def displayModelData(self):
+    def displayModelData(self,setupInfo):
         """creates a tab for each input directory specified the SetupModelInformation model inputFileDir attribute.
         Each tab contains a FileBlock object to interact with the data input
         Each FileBlock is filled with data specific to the input directory"""
         self.tabs.removeTab(0)
         #the number of directories listed in inputFileDir indicates how many tabs are required
-        tab_count = len(self.model.inputFileDir.value)
-        #if directories have been entered then replace the first tab and create a tab for each directory #TODO should remove all previous tabs
+        folders = setupInfo['inputFileDir.value'].split(' ')
+        tab_count = len(setupInfo['inputFileDir.value'].split(' '))
+        #if directories have been entered then replace the first tab and create a tab for each directory
         if tab_count > 0:
             self.tabs.removeTab(0)
             for i in range(tab_count):
@@ -362,7 +370,7 @@ class FormSetup(QtWidgets.QWidget):
             for i in range(0,cnt):
                 comp_id = dbhandler.insertRecord('component',['componentnamevalue','componenttype'],[t[0] + str(i),t[0]])
                 dbhandler.insertRecord('set_components',['component_id','set_id','tag'],[comp_id,set_id,None])
-        print(dbhandler.getAllRecords('component'))
+
         return
 
     # def sendSetupInputToModel(self): Not necessary if submitting to database
@@ -502,7 +510,7 @@ class FormSetup(QtWidgets.QWidget):
             #self.sendSetupInputToModel()
             # on close save the xml files
             handler = UIToHandler()
-            handler.makeSetup('Set0') #The setup form always contains infromation for set0
+            handler.makeSetup('Set0') #The setup form always contains information for set0
             self.dbHandler.closeDatabase
         #close the fileblocks
         for i in range(self.tabs.count()):
@@ -520,11 +528,10 @@ class FormSetup(QtWidgets.QWidget):
         # get the set count
         tab_count = self.tabs.count() +1
         widg = FileBlock(self, tab_count)
-        #widg.fillSetInfo()
         self.tabs.addTab(widg, 'Input' + str(tab_count))
         #if its not the default empty tab fill data into form slots
-        if i>0:
-            widg.fillData(self.model,i)
+        '''if i>0:
+            widg.fillData(self.model,i)'''
 
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):
@@ -570,8 +577,8 @@ class FormSetup(QtWidgets.QWidget):
 
     #generate a list of Component objects based on attributes specified ModelSetupInformation
     '''def getComponentsFromSetup(self):
-        for i,c in enumerate(self.model.componentName.value):
-            self.model.makeNewComponent(c,self.model.headerName.value[i],
+        for i,c in enumerate(self.componentName.value):
+            self.makeNewComponent(c,self.model.headerName.value[i],
                                         self.model.componentAttribute.unit[i],
                                         self.model.componentAttribute.value[i],
                                         None)
@@ -622,7 +629,6 @@ class ComponentSelect(WizardPage):
         lot = handler.getComponentTypes() #all possible component types
 
         for i,t in enumerate(lot):
-            print(t)
             label = QtWidgets.QLabel()
             label.setText(t[1])
             comp = QtWidgets.QSpinBox()

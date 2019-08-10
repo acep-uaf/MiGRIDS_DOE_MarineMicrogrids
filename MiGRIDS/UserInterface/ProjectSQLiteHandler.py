@@ -1,9 +1,14 @@
 import pandas as pd
+import os
+import sqlite3 as lite
+
+from MiGRIDS.InputHandler.componentSupport import inferComponentType
+
 
 class ProjectSQLiteHandler:
 
     def __init__(self, database='project_manager'):
-        import sqlite3 as lite
+
         self.connection = lite.connect(database)
         self.cursor = self.connection.cursor()
         invalidAttributeCombos = {}
@@ -291,10 +296,7 @@ class ProjectSQLiteHandler:
         :return: dictionary of xml tags and values to be written to a setup.xml file
         '''
         setDict = {}
-        tr = self.getAllRecords('project')
-        print(tr)
-        tr = self.getAllRecords('setup')
-        print(tr)
+
         #get tuple for basic set info
         values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end from setup join project on setup.project_id = project._id where lower(set_name) = '" + setName.lower() + "'").fetchone()
         if values is not None:
@@ -308,24 +310,16 @@ class ProjectSQLiteHandler:
             setDict['componentNames.value'] =  self.cursor.execute("SELECT group_concat(componentnamevalue,' ') from component join set_components on component._id = set_components.component_id "
                                                              "join setup on set_components.set_id = setup._id where set_name = '" + setName + "'").fetchone()[0]
 
-
-            tr = self.getAllRecords('component')
-            print(tr)
-            tr = self.getAllRecords('component_files')
-            print(tr)
-            tr = self.getAllRecords('setup')
-            print(tr)
-            tr = self.getAllRecords("set_components")
-            print(tr)
             #componentChannels has ordered lists for directories and the components they contain. A component can have data in more than one directory and file type, in which case it would
             #be listed more than once in componentChannels
+            #We use a left join for input files to components so the input file directories will still get listed even if no components have been added
             values = self.cursor.execute(
             "select group_concat(inputfiledirvalue,' '), group_concat(inputfiletypevalue,' '),group_concat(componentnamevalue,' '),"
             "group_concat(headernamevalue, ' '),group_concat(componentattributevalue, ' '), group_concat(componentattributeunit, ' '),group_concat(datechannelvalue, ' '),group_concat(timechannelvalue,' '),"
             "group_concat(datechannelformat, ' '),group_concat(timechannelformat, ' '), "
             "group_concat(timezonevalue, ' '), group_concat(usedstvalue, ' '), group_concat(inpututcoffsetvalue, ' '), group_concat(flexibleyearvalue, ' ') "
-            "from input_files join "
-            "(select component._id as component_id, inputfile_id, componentnamevalue, headernamevalue, componentattributevalue, componentattributeunit from component_files "
+            "from input_files Left JOIN "
+            "(select COALESCE(component._id,'') as component_id, COALESCE(inputfile_id,''), COALESCE(componentnamevalue,''), COALESCE(headernamevalue,''), COALESCE(componentattributevalue,''), COALESCE(componentattributeunit,'') from component_files "
             "JOIN component on component_files.component_id = component._id "
             "Join set_components on component._id = set_components.component_id "
             "Join setup on set_components.set_id = setup._id  where set_name = '" + setName + "' ORDER BY component_id) as components"
@@ -463,9 +457,18 @@ class ProjectSQLiteHandler:
         :return:
         '''
 
+        def maxLength(dict):
+            m = 0
+            for k in dict.keys():
+                if len(dict[k]) > m:
+                    m = len(dict[k])
+            return m
+
+        ml = maxLength(dict)
         keys = ','.join(dict.keys())
         question_marks = ','.join(list('?' * len(dict.keys())))
-        values = list(map(tuple, zip(*dict.values())))
+
+        values = list(tuple(zip(*dict.values())))
         ids = []
         for v in values: #need to loop so we get ids for every value
             try:
@@ -475,6 +478,8 @@ class ProjectSQLiteHandler:
 
             finally:
                 ids.append(self.cursor.lastrowid)
+        if ml > len(ids):
+            print ('Information was missing for some input files')
         return ids
 
     def updateComponent(self, dict):
@@ -543,7 +548,7 @@ class ProjectSQLiteHandler:
         #update project table
         pid = self.insertRecord('project',['project_name','project_path'],[setupDict['project'],setupDict['projectPath']])
         #update fields that are in the setup table
-        setId = self.insertRecord('setup',['timestepunit','timestepvalue','runtimestepsvalue','set_name','project'],
+        setId = self.insertRecord('setup',['timestepunit','timestepvalue','runtimestepsvalue','set_name','project_id'],
                           [setupDict['timeStep.unit'],setupDict['timeStep.value'],setupDict['runTimeSteps.value'],setName,pid])
 
         #update input handler infomation
@@ -586,7 +591,6 @@ class ProjectSQLiteHandler:
     def getComponentTypes(self):
         loT = self.cursor.execute("select code,description from ref_component_type").fetchall()
 
-        print(loT)
         return loT
 
     def getPossibleDateTimes(self):
@@ -632,7 +636,7 @@ class ProjectSQLiteHandler:
 
     def parseInputHandlerAttributes(self, setupDict, setID):
         '''
-        Parses the portion of a setup dictionary (dictionary producd from setup.xml) into various project_manager tables
+        Parses the portion of a setup dictionary (dictionary produced from setup.xml) into various project_manager tables
         that are relevent to the InputHandler.
         :param setupDict: A dictionary with keys that match a setup.xml files attributes
         :param setID: The name of the set that componenent attributes belong to
@@ -646,13 +650,15 @@ class ProjectSQLiteHandler:
         componentAttributes = ['componentName.value']
         files = {key.lower().replace(".", ""): value.split(' ') for key, value in setupDict.items() if
                  key in fileAttributes}
+        #sometimes setup files only contain the relative path to input files from the project directory
 
+        files['inputfiledirvalue'] = [self.makePath(k) for k in files['inputfiledirvalue']] #we need to convert the list filepath to a system filepath as a string
         components = {key.lower().replace(".", ""): value.split(' ') for key, value in setupDict.items() if
                       key in componentAttributes}
         filecomponents = {key.lower().replace(".", ""): value.split(' ') for key, value in setupDict.items() if
                       key in componentFiles}
         components['componenttype'] = [self.inferComponentType(k) for k in components['componentnamevalue']]
-        filecomponent = {}
+
         # insert the pieces
 
         idlist = self.insertDictionaryRow('input_files', files)
@@ -660,11 +666,25 @@ class ProjectSQLiteHandler:
         idlist = self.insertDictionaryRow('component',
                                           components)  # duplicate components should fail here, but list will still be original length
         filecomponents['component_id'] = idlist
+        filecomponents['componenttype'] = components['componenttype']
         self.insertDictionaryRow('component_files', filecomponents)
         for i in idlist:
             self.insertRecord('set_components', ['set_id', 'component_id', 'tag'], [setID, i,'None'])
 
         return fileAttributes + componentAttributes + componentFiles
+
+
+    def makePath(self,stringlistpath):
+        '''
+
+        :param stringlistpath: a path that is a list written as a comma seperated string (as is found in setup xml
+        :return:
+        '''
+        aslist = stringlistpath.split(',')
+        if aslist[0] == self.getProject(): #if the path specification starts with the project folder, make it a complete path by adding the path to the project folder
+            return os.path.join(self.getProjectPath(),*aslist[1:])
+        else:
+            return os.path.join(*aslist)
 
     # returns a possible component type inferred from the components column name
     def inferComponentType(self,componentname):
@@ -689,3 +709,19 @@ class ProjectSQLiteHandler:
         except Exception as e:
             print(e)
         self.connection.commit()
+    def getRecordDictionary(self,table, id):
+        '''
+        returns a selected record from the specified table with as a dictionary with fields as keys
+        :param table: String table name to retrieve record from
+        :param id: int the id of the record to retrieve
+        :return: Dictionary
+        '''
+
+        conn = lite.connect('project_manager')
+        conn.row_factory = lite.Row
+        cursor = conn.cursor()
+        row = cursor.execute("SELECT * FROM " + table + " WHERE _id = ?",[id]).fetchone()
+        rowDict = dict(zip([c[0] for c in cursor.description], row))
+        cursor.close()
+        conn.close()
+        return rowDict

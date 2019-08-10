@@ -55,7 +55,7 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         self.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
         #set the dropdowns
 
-        self.setRelation(ComponentFields.component_id.value,QtSql.QSqlRelation('component','componentnamevalue','componentnamevalue'))
+        self.setRelation(ComponentFields.component_id.value,QtSql.QSqlRelation('component','_id','componentnamevalue'))
         #self.setRelation(ComponentFields.inputfile_id.value, QtSql.QSqlRelation('input_file','_id','inputfiledirvalue'))
         self.setRelation(ComponentFields.componenttype.value,QtSql.QSqlRelation('ref_component_type','code','code'))
         self.setRelation(ComponentFields.componentattributevalue.value, QtSql.QSqlRelation('ref_attributes','code','code'))
