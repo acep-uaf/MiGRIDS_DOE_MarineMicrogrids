@@ -314,12 +314,12 @@ class ProjectSQLiteHandler:
             #be listed more than once in componentChannels
             #We use a left join for input files to components so the input file directories will still get listed even if no components have been added
             values = self.cursor.execute(
-            "select group_concat(inputfiledirvalue,' '), group_concat(inputfiletypevalue,' '),group_concat(componentnamevalue,' '),"
-            "group_concat(headernamevalue, ' '),group_concat(componentattributevalue, ' '), group_concat(componentattributeunit, ' '),group_concat(datechannelvalue, ' '),group_concat(timechannelvalue,' '),"
-            "group_concat(datechannelformat, ' '),group_concat(timechannelformat, ' '), "
-            "group_concat(timezonevalue, ' '), group_concat(usedstvalue, ' '), group_concat(inpututcoffsetvalue, ' '), group_concat(flexibleyearvalue, ' ') "
+            "select group_concat(COALESCE(inputfiledirvalue,'None'),' '), group_concat(COALESCE(inputfiletypevalue,'None'),' '),group_concat(componentnamevalue,' '),"
+            "group_concat(headernamevalue, ' '),group_concat(componentattributevalue, ' '), group_concat(componentattributeunit, ' '),group_concat(COALESCE(datechannelvalue,None')', ' '),group_concat(COALESCE(timechannelvalue,'None'),' '),"
+            "group_concat(COALESCE(datechannelformat,'None'), ' '),group_concat(COALESCE(timechannelformat,'None'), ' '), "
+            "group_concat(COALESCE(timezonevalue,'None'), ' '), group_concat(COALESCE(usedstvalue,'None'), ' '), group_concat(COALESCE(inpututcoffsetvalue,'None'), ' '), group_concat(COALESCE(flexibleyearvalue,'None'), ' ') "
             "from input_files Left JOIN "
-            "(select COALESCE(component._id,'') as component_id, COALESCE(inputfile_id,''), COALESCE(componentnamevalue,''), COALESCE(headernamevalue,''), COALESCE(componentattributevalue,''), COALESCE(componentattributeunit,'') from component_files "
+            "(select component._id as component_id, inputfile_id, COALESCE(componentnamevalue,'None') as componentnamevalue, COALESCE(headernamevalue,'None') as headernamevalue, COALESCE(componentattributevalue,'') as componentattributevalue, COALESCE(componentattributeunit,'None') as componentattributeunit from component_files "
             "JOIN component on component_files.component_id = component._id "
             "Join set_components on component._id = set_components.component_id "
             "Join setup on set_components.set_id = setup._id  where set_name = '" + setName + "' ORDER BY component_id) as components"
