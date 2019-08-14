@@ -21,7 +21,7 @@ class FormModelRun(QtWidgets.QWidget):
         self.setObjectName("modelDialog")
         #the first page is for set0
         #self.tabs = SetsPages(self, 'Set0')
-        self.tabs = Pages(self,'Set0',SetsTableBlock)
+        self.tabs = Pages(self,0,SetsTableBlock)
         self.tabs.setObjectName('modelPages')
         #self.setsTable = self.tabs
         #create the run table
@@ -93,9 +93,10 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         self.init(set)
 
     def init(self, set):
-
         self.componentDefault = []
-        self.set = set
+        self.set = set #set is an integer
+        self.setName = "Set" + str(self.set) #set name is a string with a prefix
+        self.tabName = "Set " + str(self.set)
         #get default date ranges
         self.getDefaultDates()
         #main layouts
@@ -110,8 +111,8 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         #the table view filtered to the specific set for each tab
         tv = SetTableView(self,column1=self.set)
         tv.setObjectName('sets')
-        m = SetTableModel(self)
-        m.setFilter("set_name = " + set.lower())
+        m = SetTableModel(self,set)
+        m.setFilter("set_name = " + self.setName)
         tv.setModel(m)
         for r in range(m.rowCount()):
             item = m.index(r,1)
@@ -214,7 +215,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
 
         databaseHandler = ProjectSQLiteHandler()
         # dictionary of set info
-        setInfo = databaseHandler.getSetInfo(set)
+        setInfo = databaseHandler.getSetInfo(self.setName)
         if setInfo != None:
             if type(setInfo['componentnamesvalue']) == str:
                 self.componentDefault = setInfo['componentnamesvalue'].split(',')

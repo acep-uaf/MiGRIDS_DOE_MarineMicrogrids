@@ -9,8 +9,6 @@ def switchProject(caller):
     dbhandler = ProjectSQLiteHandler()
     pathTo = os.path.join(dbhandler.getProjectPath(),'InputData','Setup')
     saveProject(pathTo)
-    print(type(caller))
-    print(caller.objectName())
     clearProjectDatabase(caller)
     return
 
@@ -43,30 +41,39 @@ def clearAppForms(caller):
         #clear the data input forms
         clearForms(form.findChildren(QtWidgets.QWidget))
     return
-#recursive function to clear all forms.
+
+
+
 def clearForms(listOfWidgets):
+    '''
+    Clears the contents from a list of widgets
+    :param listOfWidgets: List of Widgets
+    :return: None
+    '''
     if len(listOfWidgets) > 0:
         #clear a widget and all its children widgets then move to the next widget
-        print(len(listOfWidgets))
-        clearInputs(listOfWidgets[0])
-        print(len(listOfWidgets))
+        clearInput(listOfWidgets[0])
         childs = listOfWidgets[0].findChildren(QtWidgets.QWidget)
         for c in childs:
             if c in listOfWidgets:
                 listOfWidgets.remove(c)
-        #listOfWidgets = listOfWidgets.remove(listOfWidgets[0].findChildren(QtWidgets.QWidget))
-        print(len(listOfWidgets))
-        #return clearForms(listOfWidgets[1:].remove(listOfWidgets[0].findChildren(QtWidgets.QWidget)))
         return clearForms(listOfWidgets[1:])
     else:
         return
-def clearInputs(widget):
-    #param: form [QtWidget] form containing input fields or SQL tables
-    #remove tab, input and table children
+
+def clearInput(widget):
+    '''
+    Clear the contents of a widget depending on what type of widget it is
+    :param widget: Any QT widget - may have children
+    :return: None
+    '''
+    #look for tabs and other children to clear
+    #tabs get removed completely
     tabWidgets = widget.findChildren(QtWidgets.QTabWidget)
     for tw in tabWidgets:
         for t in range(1,tw.count()):
             tw.removeTab(t)
+    #input widgets get cleared out - text set to empty string
     inputs = widget.findChildren((QtWidgets.QLineEdit,QtWidgets.QTextEdit,
                                 QtWidgets.QComboBox,ClickableLineEdit,ComboDelegate))
 
@@ -75,6 +82,7 @@ def clearInputs(widget):
             i.setText("")
         elif type(i) in [QtWidgets.QComboBox]:
             i.setCurrentIndex(0)
+    #SQL tables get re-selected, unless its a RunTableModle, then it gets cleared.
     tables = widget.findChildren(QtWidgets.QTableView)
     for t in tables:
         m=t.model()

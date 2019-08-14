@@ -39,12 +39,12 @@ def createComponentDescriptor(component, saveDir, soup = None):
             contents_child = template.read()
             template.close()
             soup = BeautifulSoup(contents_child, 'xml') # turn into soup
-            parent = soup.childOf.string  # find the anme of parent. if 'self', no parent file
-            parent = os.path.join(componentPath, parent)
+            parent = soup.childOf.string  # find the name of parent. if 'self', no parent file
+
             # update the component name
             soup.component.attrs['name'] = component
             while parent != 'self':  # continue to iterate if there are parents
-                fileName = parent + '.xml'
+                fileName = os.path.join(componentPath, parent + '.xml')
                 infile_child = open(fileName, "r")
                 contents_child = infile_child.read()
                 infile_child.close()

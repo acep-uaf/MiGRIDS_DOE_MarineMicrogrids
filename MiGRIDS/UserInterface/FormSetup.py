@@ -8,24 +8,22 @@ In the case of a windspeed file a windspeed netcdf file will be generated and po
 on each wtg components descriptor file.'''
 import os
 from PyQt5 import QtCore, QtWidgets, QtGui
-#from MiGRIDS.UserInterface.ModelSetupInformation import ModelSetupInformation
-
 from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.UserInterface.TableHandler import TableHandler
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.ResultsSetup import  ResultsSetup
 from MiGRIDS.UserInterface.FormModelRuns import SetsTableBlock
 from MiGRIDS.UserInterface.Pages import Pages
-
 from MiGRIDS.UserInterface.FileBlock import FileBlock
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-
 from MiGRIDS.UserInterface.switchProject import switchProject
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.replaceDefaultDatabase import replaceDefaultDatabase
+from MiGRIDS.UserInterface.Resources.SetupWizardDictionary import *
 
+BASESET ='Set0'
 class FormSetup(QtWidgets.QWidget):
-    global model
-    #model = ModelSetupInformation()
+
     def __init__(self, parent):
         super().__init__(parent)
         self.initUI()
@@ -39,31 +37,10 @@ class FormSetup(QtWidgets.QWidget):
         # the top block is buttons to load setup xml and data files
         self.createButtonBlock()
         windowLayout.addWidget(self.ButtonBlock)
-        #each tab is for an individual input file.
-        self.tabs = Pages(self, 'Input 1',FileBlock)
-        self.tabs.setDisabled(True)
-
-        # button to create a new file tab
-        newTabButton = QtWidgets.QPushButton()
-        newTabButton.setText(' + Input')
-        newTabButton.setFixedWidth(100)
-        newTabButton.clicked.connect(self.newTab)
-        windowLayout.addWidget(newTabButton)
-        windowLayout.addWidget(self.tabs,3)
+        self.makeTabs(windowLayout)
 
         #list of dictionaries containing information for wizard
         #this is the information that is not input file specific.
-        dlist = [
-            {'title': 'Dates to model', 'prompt': 'Enter the timespan you would like to include in the model.', 'sqltable': None,
-              'sqlfield': None, 'reftable': None, 'name': 'runTimesteps', 'folder': False, 'dates':True},
-            {'title': 'System Components','prompt':'Indicate the number of each type of component to include.','sqltable': None,
-             'sqlfield': None, 'reftable': None, 'name': 'componentNames'
-            },
-            {'title': 'Timestep', 'prompt': 'Enter desired timestep', 'sqltable': None, 'sqlfield': None,
-              'reftable': 'ref_time_units', 'name': 'timeStep', 'folder': False},
-            {'title': 'Project', 'prompt': 'Enter the name of your project', 'sqltable': None,
-              'sqlfield': None, 'reftable': None, 'name': 'project', 'folder': False}
-        ]
 
         self.WizardTree = self.buildWizardTree(dlist)
         self.createBottomButtonBlock()
@@ -76,6 +53,18 @@ class FormSetup(QtWidgets.QWidget):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         #show the form
         self.showMaximized()
+
+    def makeTabs(self, windowLayout):
+        # each tab is for an individual input file.
+        self.tabs = Pages(self, 1, FileBlock)
+        self.tabs.setDisabled(True)
+        # button to create a new file tab
+        newTabButton = QtWidgets.QPushButton()
+        newTabButton.setText(' + Input')
+        newTabButton.setFixedWidth(100)
+        newTabButton.clicked.connect(self.newTab)
+        windowLayout.addWidget(newTabButton)
+        windowLayout.addWidget(self.tabs, 3)
 
     def createButtonBlock(self):
         '''
@@ -155,28 +144,46 @@ class FormSetup(QtWidgets.QWidget):
         return os.path.exists(self.setupFolder)
     def functionForCreateButton(self):
         '''
-        Launches input wizard and creates setup.xml file based on information collected by the wizard
+        Launches the setup process for creating a new project
         :return: None
         '''
         #if a project is already started save it before starting a new one
         try:
             if (self.project != '') & (self.project is not None):
-                switchProject(self)
+                if self.validateProjectSwitch() != True:
+                    return
+
         except AttributeError as e:
             print("Project not set yet")
-        #calls the setup wizard to fill the database from wizard information
+        self.createNewProject()
+
+    def createNewProject(self):
+        # calls the setup wizard to fill the database from wizard information
         self.fillSetup()
         self.projectDatabase = False
-        #display collected data
-
-
         # if setup is valid enable tabs
         if self.hasSetup():
-            #enable the model and optimize pages too
-            pages = self.window().findChild(QtWidgets.QTabWidget,'pages')
+            # enable the model and optimize pages too
+            pages = self.window().findChild(QtWidgets.QTabWidget, 'pages')
             pages.enableTabs()
             self.tabs.setEnabled(True)
+            #FileBlock mapper needs to be set to a new records so information can be saved
             self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.project)
+
+    def validateProjectSwitch(self):
+        '''
+        launches a dialog to make sure the user wants to switch projects
+        :return: Boolean, True if user selects yes to dialog.
+        '''
+        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Project has already been set.",
+                                    "Do you want to switch to a new project?.")
+        msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        newProject = msg.exec()
+        if newProject == QtWidgets.QMessageBox.Yes:
+            switchProject(self)
+            return True
+        else:
+            return False
 
     def hasSetup(self):
         return True
@@ -184,9 +191,13 @@ class FormSetup(QtWidgets.QWidget):
     def loadSetup(self, setupFile):
         handler = UIToHandler()
         #setup is a dictionary read from the setupFile
-        setup = handler.inputHandlerToUI(setupFile,'Set0')
+        setup = handler.inputHandlerToUI(setupFile,BASESET)
         self.assignProjectPath(setup['project'])
         self.displayModelData(setup)
+    def showSetup(self):
+            #rebuild the wizard tree with values pre-set
+            self.WizardTree = self.buildWizardTree(dlist)
+            self.WizardTree.exec()
 
     def fillSetup(self):
         '''
@@ -195,29 +206,54 @@ class FormSetup(QtWidgets.QWidget):
         '''
         s = self.WizardTree
         s.exec_()
-        handler = UIToHandler()
+        #handler = UIToHandler()
 
-        #If the project already exists wait to see if it should be overwritten
-        #assign project has already been called at this point so the directory is created
+        # #If the project already exists wait to see if it should be overwritten
+        # #assign project has already been called at this point so the directory is created
+        # if self.setupExists():
+        #     msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Project Aready Exists",
+        #                                 "Do you want to overwrite existing setup files?.")
+        #     msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        #     overwrite = msg.exec()
+        #     if overwrite != QtWidgets.QMessageBox.Yes:
+        #         self.fillSetup() # call up the wizard again so a new project name can be assigned
+        # handler.makeSetup('Set0') #this line won't get reached until an original project name is generated or overwrite is chose
+    def procedeToSetup(self):
+        handler = UIToHandler()
+        # If the project already exists wait to see if it should be overwritten
+        # assign project has already been called at this point so the directory is created
         if self.setupExists():
             msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Project Aready Exists",
                                         "Do you want to overwrite existing setup files?.")
             msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
             overwrite = msg.exec()
             if overwrite != QtWidgets.QMessageBox.Yes:
-                self.fillSetup() # call up the wizard again so a new project name can be assigned
-        handler.makeSetup('Set0') #this line won't get reached until an original project name is generated or overwrite is chose
+                #self.fillSetup()  # call up the wizard again so a new project name can be assigned
+                self.WizardTree.restart()
+                return False
+            else:
+                return True # this line won't get reached until an original project name is generated or overwrite is chose
+        else:
+            return True
+
 
     def setupExists(self):
         '''
 
         :return: Boolean True if a setup file is found in the specified setup folder
         '''
+        try:
+            setupfolder = self.setupFolder
+        except AttributeError as a:
+            handler = UIToHandler()
+            setupfolder = handler.findSetupFolder(self.project)
+            print(setupfolder)
+        finally:
+            if os.path.exists(os.path.join(setupfolder, self.project + 'Setup.xml')):
+                return True
+            else:
+                return False
 
-        if os.path.exists(os.path.join(self.setupFolder, self.project + 'Setup.xml')):
-            return True
-        else:
-            return False
 
     #searches for and loads existing project data - database, setupxml,descriptors, DataClass pickle, Component pickle netcdf,previously run model results, previous optimization results
     def functionForLoadButton(self):
@@ -298,7 +334,7 @@ class FormSetup(QtWidgets.QWidget):
         :return: List of Strings of names of netCDF files
         '''
         try:
-            lof = [f for f in os.listdir(getFilePath(self.setupFolder,'Processed')) if f[-2:] =='nc']
+            lof = [f for f in os.listdir(getFilePath('Processed',setupFolder=self.setupFolder,)) if f[-2:] =='nc']
             return lof
         except FileNotFoundError as e:
             print('No netcdf model files found.')
@@ -328,22 +364,24 @@ class FormSetup(QtWidgets.QWidget):
         :param dlist: a list of dictionaries, list item becomes a page in the wizard tree
         :return: a QWizard
         '''
-        wiztree = QtWidgets.QWizard()
+        wiztree = QtWidgets.QWizard(self)
         wiztree.setWizardStyle(QtWidgets.QWizard.ModernStyle)
         wiztree.setWindowTitle("Setup")
-        wiztree.addPage(WizardPage(dlist[3]))  #project name
-        wiztree.addPage(TextWithDropDown(dlist[2])) #timesteps
-        wiztree.addPage(ComponentSelect(dlist[1]))      #components
-        wiztree.addPage(TwoDatesDialog(dlist[0]))  #runtimesteps
+        wiztree.addPage(WizardPage(dlist[3],self))  #project name
+        wiztree.addPage(TextWithDropDown(dlist[2],self)) #timesteps
+        wiztree.addPage(ComponentSelect(dlist[1],self))  #components
+        wiztree.addPage(TwoDatesDialog(dlist[0],self))  #runtimesteps
         btn = wiztree.button(QtWidgets.QWizard.FinishButton)
+        btn.clicked.disconnect()
+        #disconnect(btn,SIGNAL(clicked()),self, SLOT(accept()))
         btn.clicked.connect(self.saveTreeInput)
         return wiztree
 
     def assignProjectPath(self, name):
             self.project = name
             self.setupFolder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', self.project, 'InputData','Setup'])
-            self.componentFolder = getFilePath(self.setupFolder ,'Components')
-            projectFolder = getFilePath(self.setupFolder, 'Project')
+            self.componentFolder = getFilePath('Components', setupFolder=self.setupFolder)
+            projectFolder = getFilePath('Project', setupFolder=self.setupFolder)
             self.projectFolder = projectFolder
 
             #if there isn't a setup folder then its a new project
@@ -362,15 +400,25 @@ class FormSetup(QtWidgets.QWidget):
         '''
 
         dbhandler = ProjectSQLiteHandler()
-        project_id = dbhandler.insertRecord("project",['project_name','project_path'],[self.WizardTree.field('project'),self.assignProjectPath(self.WizardTree.field('project'))])
-        set_id = dbhandler.insertRecord("setup",['project_id','set_name','timestepvalue','timestepunit','date_start','date_end'],[project_id,'Set0',self.WizardTree.field('timeInterval'),self.WizardTree.field('timeUnit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
-        lot = dbhandler.getComponentTypes()
-        for t in lot:
-            cnt = self.WizardTree.field(t[0]+'count')
-            for i in range(0,cnt):
-                comp_id = dbhandler.insertRecord('component',['componentnamevalue','componenttype'],[t[0] + str(i),t[0]])
-                dbhandler.insertRecord('set_components',['component_id','set_id','tag'],[comp_id,set_id,None])
+        handler = UIToHandler()
+        projectPath = self.assignProjectPath(self.WizardTree.field('project'))
+        if self.procedeToSetup():
+            project_id = dbhandler.insertRecord("project",['project_name','project_path'],[self.WizardTree.field('project'),projectPath])
+            set_id = dbhandler.insertRecord("setup",['project_id','set_name','timestepvalue','timestepunit','date_start','date_end'],[project_id,BASESET,self.WizardTree.field('timestepvalue'),self.WizardTree.field('timestepunit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
+            lot = dbhandler.getComponentTypes()
+            for t in lot:
+                cnt = self.WizardTree.field(t[0]+'count')
+                for i in range(0,cnt):
+                    comp_id = dbhandler.insertRecord('component',['componentnamevalue','componenttype'],[t[0] + str(i),t[0]])
+                    dbhandler.insertRecord('set_components',['component_id','set_id','tag'],[comp_id,set_id,None])
+                    #the delegate for componentname in the component table should also be updated
+                    if comp_id != -1:
+                        loFileBlock = self.findChildren(FileBlock)
+                        for f in loFileBlock:
+                           f.updateComponentNameList()
 
+            handler.makeSetup(BASESET)
+            self.WizardTree.close()
         return
 
     # def sendSetupInputToModel(self): Not necessary if submitting to database
@@ -429,11 +477,11 @@ class FormSetup(QtWidgets.QWidget):
         # import datafiles
         handler = UIToHandler()
         cleaned_data, components = handler.loadFixData(
-            os.path.join(model.setupFolder, model.project + 'Setup.xml'))
+            os.path.join(self.setupFolder, self.project + 'Setup.xml'))
         self.updateModelPage(cleaned_data)
         # pickled data to be used later if needed
-        handler.storeData(cleaned_data, os.path.join(model.setupFolder, model.project + 'Setup.xml'))
-        handler.storeComponents(components,os.path.join(model.setupFolder, model.project + 'Setup.xml'))
+        handler.storeData(cleaned_data, os.path.join(self.setupFolder, self.project + 'Setup.xml'))
+        handler.storeComponents(components,os.path.join(self.setupFolder, self.project + 'Setup.xml'))
         self.dataLoaded.setText('data loaded')
         self.progress.setRange(0, 1)
         # generate netcdf files
@@ -448,7 +496,7 @@ class FormSetup(QtWidgets.QWidget):
             for c in components:
                 d[c.column_name] = c.toDictionary()
             handler.createNetCDF(cleaned_data.fixed, d,
-                                 os.path.join(model.setupFolder, model.project + 'Setup.xml'))
+                                 os.path.join(self.setupFolder, self.project + 'Setup.xml'))
 
         return
 
@@ -510,7 +558,7 @@ class FormSetup(QtWidgets.QWidget):
             #self.sendSetupInputToModel()
             # on close save the xml files
             handler = UIToHandler()
-            handler.makeSetup('Set0') #The setup form always contains information for set0
+            handler.makeSetup(BASESET) #The setup form always contains information for set0
             self.dbHandler.closeDatabase
         #close the fileblocks
         for i in range(self.tabs.count()):
@@ -585,40 +633,52 @@ class FormSetup(QtWidgets.QWidget):
     '''
 #classes used for displaying wizard inputs
 class WizardPage(QtWidgets.QWizardPage):
-    def __init__(self, inputdict,**kwargs):
-        super().__init__()
+    def __init__(self, inputdict,parent,**kwargs):
+        super().__init__(parent)
         self.first = kwargs.get('first')
         self.last = kwargs.get('last')
         self.initUI(inputdict)
+        self.dbhandler = ProjectSQLiteHandler()
 
     # initialize the form
     def initUI(self, inputdict):
         self.d = inputdict
-        self.setTitle(inputdict['title'])
+        self.setTitle(self.d['title'])
         self.input = self.setInput()
-
-        self.input.setObjectName(inputdict['name'])
+        self.input.setObjectName(self.d['name'])
         self.label = QtWidgets.QLabel()
-        self.label.setText(inputdict['prompt'])
+        self.label.setText(self.d['prompt'])
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.label)
         layout.addWidget(self.input)
         self.setLayout(layout)
-        n = inputdict['name']
-        self.registerField(inputdict['name'],self.input)
+
 
         return
 
     def setInput(self):
         wid = QtWidgets.QLineEdit()
+        try:
+            value = self.parent().__getattribute__(self.d['name'])
+
+        except AttributeError as a:
+            print(a)
+            value = ''
+        finally:
+            if ( value == ''):
+                self.registerField(self.d['name'] + "*", wid) #defualt input is required
+            else:
+                self.registerField(self.d['name'], wid)
+            wid.setText(value)
+            self.setField(self.d['name'],value)
         return wid
 
     def getInput(self):
         return self.input.text()
 
 class ComponentSelect(WizardPage):
-    def __init__(self,d):
-        super().__init__(d)
+    def __init__(self,d,parent):
+        super().__init__(d,parent)
         self.d = d
 
     def setInput(self):
@@ -626,14 +686,14 @@ class ComponentSelect(WizardPage):
         layout = QtWidgets.QGridLayout()
 
         handler = ProjectSQLiteHandler()
-        lot = handler.getComponentTypes() #all possible component types
+        lot = handler.getCurrentComponentTypeCount() #all possible component types, tuples with three values type code, description, count
 
         for i,t in enumerate(lot):
             label = QtWidgets.QLabel()
             label.setText(t[1])
             comp = QtWidgets.QSpinBox()
             comp.setObjectName(t[0] + 'count')
-
+            comp.setValue(t[2])
             layout.addWidget(label,i,0,1,1)
             layout.addWidget(comp,i,1,1,1)
             self.registerField(comp.objectName(), comp)
@@ -643,11 +703,12 @@ class ComponentSelect(WizardPage):
 
 
 class TwoDatesDialog(WizardPage):
-    def __init__(self,d):
-        super().__init__(d)
+    def __init__(self,d,parent):
+        super().__init__(d,parent)
         self.d = d
 
     def setInput(self):
+        handler = ProjectSQLiteHandler()
         grp = QtWidgets.QGroupBox()
         box = QtWidgets.QHBoxLayout()
         self.startDate = QtWidgets.QDateEdit()
@@ -661,17 +722,27 @@ class TwoDatesDialog(WizardPage):
         box.addWidget(self.startDate)
         box.addWidget(self.endDate)
         grp.setLayout(box)
-        name = self.d['name']
         self.registerField('sdate', self.startDate,"text")
         self.registerField('edate',self.endDate,"text")
+        try:
+            #if the setup info has already been set dates will be in the database table set
+            print(handler.getFieldValue('setup', 'date_start', 'set_name', BASESET))
+            self.startDate.setDate(QtCore.QDate.fromString(handler.getFieldValue('setup', 'date_start', 'set_name', BASESET),"yyyy-MM-dd"))
+            self.endDate.setDate(QtCore.QDate.fromString(handler.getFieldValue('setup', 'date_end', 'set_name', BASESET),"yyyy-MM-dd"))
+        except AttributeError as a:
+            print(a)
+        except TypeError as a:
+            print(a)
+        except Exception as e:
+            print(e)
         return grp
 
     def getInput(self):
         return " - ".join([self.startDate.text(),self.endDate.text()])
 
 class DropDown(WizardPage):
-    def __init__(self,d):
-        super().__init__(d)
+    def __init__(self,d,parent):
+        super().__init__(d,parent)
 
     def setInput(self):
         self.input = QtWidgets.QComboBox()
@@ -690,28 +761,34 @@ class DropDown(WizardPage):
 
 
 class TextWithDropDown(WizardPage):
-    def __init__(self, d):
-        super().__init__(d)
+    def __init__(self, d,parent):
+        super().__init__(d,parent)
         self.d = d
 
     def setInput(self):
         grp = QtWidgets.QGroupBox()
         box = QtWidgets.QHBoxLayout()
         self.combo = QtWidgets.QComboBox()
-
+        handler = ProjectSQLiteHandler()
         self.combo.addItems(self.getItems())
-        self.text = QtWidgets.QLineEdit()
-        self.text.setValidator(QtGui.QIntValidator())
-        box.addWidget(self.text)
+        self.textInput = QtWidgets.QLineEdit()
+        self.textInput.setValidator(QtGui.QIntValidator())
+        box.addWidget(self.textInput)
         box.addWidget(self.combo)
         grp.setLayout(box)
         #self.registerField(self.d['name'],self.combo,"currentText",self.combo.currentIndexChanged)
-        self.registerField('timeInterval',self.text)
-        self.registerField('timeUnit',self.combo,"currentText")
+        self.registerField('timestepvalue', self.textInput)
+        self.registerField('timestepunit',self.combo,"currentText")
+        try:
+            #if the setup info has already been set dates will be in the database table set
+            self.textInput.setText(handler.getFieldValue('setup', 'timestepvalue', 'set_name', BASESET))
+            self.combo.setCurrentText(handler.getFieldValue('setup', 'timestepunit', 'set_name', BASESET))
+        except AttributeError as a:
+            print(a)
         return grp
 
     def getInput(self):
-        input = self.text.text()
+        input = self.textInput.text()
         item = self.breakItems(self.input.itemText(self.input.currentIndex()))
         strInput = ' '.join([input,item])
         return strInput

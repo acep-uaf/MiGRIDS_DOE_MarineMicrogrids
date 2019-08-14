@@ -35,13 +35,14 @@ class SetTableView(QtWidgets.QTableView):
         self.setItemDelegateForColumn(3, ComboDelegate(self, attributes,'componentAttribute'))
 
 class SetTableModel(QtSql.QSqlTableModel):
-    def __init__(self, parent):
+    def __init__(self, parent,position):
 
         QtSql.QSqlTableModel.__init__(self, parent)
         handler = ProjectSQLiteHandler()
         self.header = ['ID','Set', 'Component', 'Tag', 'Value']
         self.setTable('set_components')
-
+        self.tabPosition = position
+        self.tabName = "Set " + str(self.tabPosition)
         self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         #the set table gets filtered to only show records for that set
         self.setFilter('set_id = ' + str(handler.getId('setup','set_name',parent.set)))

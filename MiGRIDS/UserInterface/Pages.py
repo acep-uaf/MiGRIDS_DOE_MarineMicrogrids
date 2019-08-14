@@ -1,17 +1,18 @@
 from PyQt5 import QtWidgets
-from MiGRIDS.UserInterface.FileBlock import FileBlock
 
 #each page contains information for a single file
 #calls the specific page type during initiation
 
 class Pages(QtWidgets.QTabWidget):
     #QtWidget,String, Class ->
-    def __init__(self, parent,name,pageclass):
+    def __init__(self, parent,position,pageclass):
         super().__init__(parent)
-        self.name = name
+        self.position = position
         self.init(pageclass)
 
     def init(self,pageclass):
-        widg = pageclass(self, self.name)
-        self.addTab(widg, self.name)
+        widg = pageclass(self, self.position)
+        self.name = "Input " + str(self.position)
+        self.addTab(widg, widg.tabName)
+
 

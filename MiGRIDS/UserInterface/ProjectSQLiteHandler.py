@@ -72,11 +72,6 @@ class ProjectSQLiteHandler:
     '''def getDataTypeCodes(self):
         return self.cursor.execute("Select code from ref_file_type").fetchall()'''
 
-    '''def updateDefaultSetup(self,values):
-        self.cursor.prepare(
-            #"UPDATE setup set date_start = ?, date_end = ?, component_names = ? where set_name = 'default'",
-            [values['date_start'],values['date_end'],values['component_names']])
-        self.connection.commit()'''
 
     #String, ListOfTuples -> None
     def addRefValues(self, tablename, values):
@@ -379,6 +374,24 @@ class ProjectSQLiteHandler:
         else:
             return -1
 
+    def getFieldValue(self, table, wantedField, keyField, keyValue):
+        ''' get the id of the first record with a keyField equal to the specified keyValue
+        :param table: String name of the table to query
+        :param wantedField: String name of the field to extract a value from
+        :param keyField: String name of the table column to match
+        :param keyValue: String value to find in the table
+        :return: String, None if a matching record is not found'''
+        try:
+            i = self.cursor.execute("SELECT " + wantedField + " from " + table + " WHERE " + keyField + " = ?",[keyValue]).fetchone()
+        except Exception as e:
+            print(e)
+            i = None
+        finally:
+            if i is not None:
+                return str(i[0])
+            else:
+                return None
+
     def updateRecord(self,table, keyField,keyValue,fields,values):
         '''
         Update the fields for a specific record in a table. The record is identified by its keyField with the specified keyValue
@@ -594,7 +607,9 @@ class ProjectSQLiteHandler:
         loT = self.cursor.execute("select code,description from ref_component_type").fetchall()
 
         return loT
-
+    def getCurrentComponentTypeCount(self):
+        loT = self.cursor.execute("select code,description, count(componenttype) from ref_component_type LEFT JOIN component on ref_component_type.code = component.componenttype group by code").fetchall()
+        return loT
     def getPossibleDateTimes(self):
         myTuple = self.cursor.execute("select d.description, t.description from ref_date_format as d, ref_time_format as t"
                                       " UNION "
@@ -722,6 +737,7 @@ class ProjectSQLiteHandler:
         conn = lite.connect('project_manager')
         conn.row_factory = lite.Row
         cursor = conn.cursor()
+
         row = cursor.execute("SELECT * FROM " + table + " WHERE _id = ?",[id]).fetchone()
         rowDict = dict(zip([c[0] for c in cursor.description], row))
         cursor.close()

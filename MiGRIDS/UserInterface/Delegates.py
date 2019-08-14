@@ -21,17 +21,12 @@ class ComboDelegate(QtWidgets.QItemDelegate):
         combo.activated.connect(self.currentIndexChanged)
         return combo
 
-    '''def makeList(self,box, values):
-
-        self.values = values
-        for i in range(box.count()):
-            box.removeItem(i)
-        box.addItems(self.values)'''
 
     def setEditorData(self, editor, index):
         editor.blockSignals(True)
 
         #set the combo to the selected index
+        d = index.model().data(index)
         if isinstance(index.model().data(index),str):
             editor.setCurrentText(index.model().data(index))
         else:
@@ -40,6 +35,8 @@ class ComboDelegate(QtWidgets.QItemDelegate):
 
     #write model data
     def setModelData(self,editor, model, index):
+         irow = index.row()
+         crow = editor.currentIndex()
          model.setData(index, editor.itemText(editor.currentIndex()))
 
     @QtCore.pyqtSlot()

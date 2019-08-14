@@ -392,3 +392,12 @@ class UIToHandler():
         loT = dbhandler.getComponentTypes()
         dbhandler.closeDatabase()
         return loT
+
+    def findSetupFolder(self,projectName):
+        '''
+        finds the theoretical path to a setup folder given a project name
+        :param projectName: String name of a project
+        :return: String path to setup folder
+        '''
+        folder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', projectName, 'InputData','Setup'])
+        return folder

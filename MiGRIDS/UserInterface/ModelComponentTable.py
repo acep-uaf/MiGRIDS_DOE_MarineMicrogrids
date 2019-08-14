@@ -63,13 +63,12 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         #database gets updated when fields are changed
         self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
 
-
         #select the data to display filtered to the input directory selected
         dirm = parent.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiledirvalue.name).text()
         handler = ProjectSQLiteHandler()
 
         self.setFilter('inputfile_id = ' + str(handler.getId('input_files','inputfiledirvalue',dirm)))
-        #self.setQuery(runQuery)
+
         self.select()
 
 

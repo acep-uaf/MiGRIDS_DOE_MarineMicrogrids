@@ -1,7 +1,13 @@
 import os
 
 #gets the file path for a specific folder within the application data ouput structure
-def getFilePath(setupFolder, designator,**kwargs):
+def getFilePath(designator,**kwargs):
+    #must provide either a setupFolder or project folder and designator
+    if kwargs.get("projectFolder") != None:
+        setupFolder = os.path.join(kwargs.get("projectFolder"),*['InputData','Setup'])
+    else:
+        setupFolder = kwargs.get('setupFolder')
+
     if designator == 'Processed':
         return os.path.join(setupFolder,*['..','TimeSeriesData','ProcessedData'])
     elif designator == 'Components':

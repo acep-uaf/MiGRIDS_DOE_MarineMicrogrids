@@ -52,7 +52,6 @@ class MainForm(QtWidgets.QMainWindow):
             ('Setup', [
                 ('Setup File',[]),
                 ('Input Files',[]),
-                ('Environment',[]),
                 ('Components',[])
             ]),
             ('Model Runs', [
@@ -65,9 +64,8 @@ class MainForm(QtWidgets.QMainWindow):
 
             ])
         ]
-        self.focusObjects = {'Setup File':FormSetup.functionForCreateButton,
+        self.focusObjects = {'Setup File':FormSetup.showSetup,
                              'Input Files':'fileInput',
-                             'Environment':'environment',
                              'Components':'components',
 
                              'Sets':'modelSets',
@@ -95,8 +93,13 @@ class MainForm(QtWidgets.QMainWindow):
             if children:
                 self.addItems(item,children)
         return
-    #change focus to the selected item
+    #change focus to the selected item in the navigation tree
     def switchFocus(self, position):
+        '''
+        switches the focus from the current widget to one associated with a position in the navication tree
+        :param position: integer position in the navigation tree
+        :return:
+        '''
         #what item is selected
         indexes = self.treeBlock.selectedIndexes()
         level = 0
@@ -113,21 +116,23 @@ class MainForm(QtWidgets.QMainWindow):
         self.pageBlock.setCurrentIndex(index.row())
         # change the focus depending on the selection
         if level == 1:
-           name = list(self.treeBlock.model().itemData(position).values())[0]
-           focusObject = self.focusObjects[name]
+            name = list(self.treeBlock.model().itemData(position).values())[0]
+            focusObject = self.focusObjects[name]
 
-           if type(focusObject) is str:
-               childs = self.pageBlock.currentWidget().findChildren(QtWidgets.QWidget)
-               focusWidget = self.pageBlock.currentWidget().findChild(QtWidgets.QWidget,focusObject)
-               focusWidget.setFocus(True)
-           else:
+            if type(focusObject) is str:
+                childs = self.pageBlock.currentWidget().findChildren(QtWidgets.QWidget)
+                focusWidget = self.pageBlock.currentWidget().findChild(QtWidgets.QWidget,focusObject)
+                focusWidget.setFocus(True)
+            else:
 
-               #launch the method
-               subforms = self.pageBlock.currentWidget().children()
-               for s in subforms:
+                #launch the method
+                tabs = self.pageBlock.currentWidget().findChild(QtWidgets.QTabWidget)
 
-                   if focusObject.__name__ in dir(s):
-                       focusObject(s)
+                for t in range(0,tabs.count()):
+                    s = tabs.widget(t)
+
+                    if focusObject.__name__ in dir(s):
+                        focusObject(s)
 
         return
 
