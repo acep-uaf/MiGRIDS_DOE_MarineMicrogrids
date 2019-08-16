@@ -18,6 +18,7 @@ from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 
 
+
 class UIToHandler():
     #generates an setup xml file based on information in a ModelSetupInformation object
     #ModelSetupInformation -> None
@@ -121,7 +122,7 @@ class UIToHandler():
 
     #use the input handler to load raw timeseries data, fix data and return fixed data
     #String, String, String -> DataClass
-    def loadFixData(self, setupFile):
+    def createCleanedData(self, setupFile):
 
         from MiGRIDS.InputHandler.getUnits import getUnits
         from MiGRIDS.InputHandler.fixBadData import fixBadData
@@ -192,9 +193,9 @@ class UIToHandler():
                 #inputDictionary['runTimeSteps'] = [newdates.startDate.text(),newdates.endDate.text()]
                 inputDictionary['runTimeSteps'] = [pd.to_datetime(newdates.startDate.text()), pd.to_datetime(newdates.endDate.text())]
                 #TODO write to the setup file so can be archived
-
+        #TODO signal end of import beginning data fixing
         # now fix the bad data
-        df_fixed = fixBadData(df,os.path.dirname(setupFile),listOfComponents,inputDictionary['inputInterval'],inputDictionary['runTimeSteps'])
+        df_fixed = fixBadData(df,os.path.dirname(setupFile),listOfComponents,inputDictionary['runTimeSteps'])
 
         # fix the intervals
         print('fixing data timestamp intervals to %s' %inputDictionary['outputInterval'])
@@ -243,8 +244,15 @@ class UIToHandler():
     #generate netcdf files for model running
     #dataframe, dictionary -> None
     def createNetCDF(self, lodf,componentDict,setupFolder):
+        '''
+        Create netcdf file from a list of dataframes return a list of netcdf files created
+        :param lodf: List of DataFrames with time indices and column names that match the componentDict
+        :param componentDict: a dictionary of component attributes, including column names
+        :param setupFolder: The folder path containing the projects setup.xml file
+        :return: List of Strings naming the netcdf files created.
+        '''
         from MiGRIDS.InputHandler.dataframe2netcdf import dataframe2netcdf
-        outputDirectory = getFilePath(setupFolder, 'Processed')
+        outputDirectory = getFilePath('Processed',setupFolder=setupFolder)
         netCDFList = []
         #if there isn't an output directory make one
         if not os.path.exists(outputDirectory):
@@ -290,9 +298,8 @@ class UIToHandler():
         :param setupFile: the file path to a setup xml
         :return: a DataClass object which consists of raw and fixed data
         '''
-
-        outputDirectory = os.path.join(os.path.dirname(setupFile), *['..','TimeSeriesData','Processed'])
-        outfile = os.path.join(outputDirectory, 'processed_input_file.pkl')
+        outputDirectory = os.path.join(os.path.dirname(setupFile), *['..','TimeSeriesData'])
+        outfile = os.path.join(outputDirectory, 'fixed_data.pkl')
 
         if not os.path.exists(outfile):
             return None

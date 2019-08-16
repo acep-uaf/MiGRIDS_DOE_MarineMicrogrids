@@ -87,7 +87,9 @@ def mergeInputs(inputDictionary):
 def singleLocation(dict, position):
     '''returns a dictionary that is a subset of the input dictionary with all the keys but only values at a specified position'''
     singleValueDict={}
+
     for key, val in dict.items():
+
         try:
             singleValueDict[key]=val[position]
         except IndexError:

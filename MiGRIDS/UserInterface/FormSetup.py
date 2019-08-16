@@ -117,8 +117,8 @@ class FormSetup(QtWidgets.QWidget):
         dataLoaded.setObjectName('dataloaded')
         dataLoaded.setText('No data loaded')
         dataLoaded.setFixedWidth(200)
-        self.dataLoaded = dataLoaded
-        hlayout.addWidget(self.dataLoaded)
+        self.dataLoadedOutput = dataLoaded
+        hlayout.addWidget(self.dataLoadedOutput)
         # generate netcd button
         netCDFButton = self.createSubmitButton()
         hlayout.addWidget(netCDFButton)
@@ -206,28 +206,15 @@ class FormSetup(QtWidgets.QWidget):
         '''
         s = self.WizardTree
         s.exec_()
-        #handler = UIToHandler()
 
-        # #If the project already exists wait to see if it should be overwritten
-        # #assign project has already been called at this point so the directory is created
-        # if self.setupExists():
-        #     msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Project Aready Exists",
-        #                                 "Do you want to overwrite existing setup files?.")
-        #     msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
-        #     overwrite = msg.exec()
-        #     if overwrite != QtWidgets.QMessageBox.Yes:
-        #         self.fillSetup() # call up the wizard again so a new project name can be assigned
-        # handler.makeSetup('Set0') #this line won't get reached until an original project name is generated or overwrite is chose
     def procedeToSetup(self):
         handler = UIToHandler()
         # If the project already exists wait to see if it should be overwritten
         # assign project has already been called at this point so the directory is created
         if self.setupExists():
-            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Project Aready Exists",
-                                        "Do you want to overwrite existing setup files?.")
-            msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
-            overwrite = msg.exec()
-            if overwrite != QtWidgets.QMessageBox.Yes:
+            overwrite = self.checkOverride("Project Aready Exists",
+                                    "Do you want to overwrite existing setup files?.")
+            if overwrite:
                 #self.fillSetup()  # call up the wizard again so a new project name can be assigned
                 self.WizardTree.restart()
                 return False
@@ -236,6 +223,16 @@ class FormSetup(QtWidgets.QWidget):
         else:
             return True
 
+    def checkOverride(self,title,msg):
+        '''message dialog ot check if files should be overwritten
+           :return Boolean True if yes button was triggered     '''
+        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, title,msg)
+        msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        overwrite = msg.exec()
+        if overwrite != QtWidgets.QMessageBox.Yes:
+            return False
+        else:
+            return True
 
     def setupExists(self):
         '''
@@ -253,7 +250,6 @@ class FormSetup(QtWidgets.QWidget):
                 return True
             else:
                 return False
-
 
     #searches for and loads existing project data - database, setupxml,descriptors, DataClass pickle, Component pickle netcdf,previously run model results, previous optimization results
     def functionForLoadButton(self):
@@ -296,15 +292,15 @@ class FormSetup(QtWidgets.QWidget):
 
         if self.data is not None:
             self.updateModelPage(self.data)
-            self.dataLoaded.setText('data loaded')
+            self.dataLoadedOutput.setText('data loaded')
             #refresh the plot
             resultDisplay = self.parent().findChild(ResultsSetup)
             resultDisplay.defaultPlot()
 
         #look for an existing component pickle or create one from information in setup xml
         self.components = handler.loadComponents(os.path.join(self.setupFolder, self.project + 'Setup.xml'))
-        #if self.components is None:
-            # self.getComponentsFromSetup()
+        if self.components is None:
+            self.makeComponentList()
 
         #list netcdf files previously generated
         self.netCDFsLoaded.setText('Processed Files: ' + ', '.join(self.listNetCDFs()))
@@ -314,10 +310,7 @@ class FormSetup(QtWidgets.QWidget):
         #make the data blocks editable if there are no sets already created
         #if sets have been created then input data is not editable from the interface
         if setsRun:
-            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Analysis in Progress",
-                                        "Analysis results were detected. You cannot edit input data after analysis has begun.")
-            msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
-            msg.exec()
+            self.showAlert("Analysis in Progress","Analysis results were detected. You cannot edit input data after analysis has begun.")
         else:
             self.tabs.setEnabled(True)
             print('Loaded %s:' % self.project)
@@ -326,6 +319,15 @@ class FormSetup(QtWidgets.QWidget):
         self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.project)
 
         return
+    def makeComponentList(self):
+        loc = self.dbHandler.makeComponents()
+        return loc
+    def showAlert(self,title,msg):
+        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,title ,msg
+                                    )
+        msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        msg.exec()
+
     #looks in the processed folder and lists nc files found
     #->ListOfStrings
     def listNetCDFs(self):
@@ -339,7 +341,6 @@ class FormSetup(QtWidgets.QWidget):
         except FileNotFoundError as e:
             print('No netcdf model files found.')
             return
-
 
     def displayModelData(self,setupInfo):
         """creates a tab for each input directory specified the SetupModelInformation model inputFileDir attribute.
@@ -405,6 +406,12 @@ class FormSetup(QtWidgets.QWidget):
         if self.procedeToSetup():
             project_id = dbhandler.insertRecord("project",['project_name','project_path'],[self.WizardTree.field('project'),projectPath])
             set_id = dbhandler.insertRecord("setup",['project_id','set_name','timestepvalue','timestepunit','date_start','date_end'],[project_id,BASESET,self.WizardTree.field('timestepvalue'),self.WizardTree.field('timestepunit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
+            if set_id == -1: #record was not inserted, try updating
+                dbhandler.updateRecord("setup","set_name",BASESET,['project_id','timestepvalue','timestepunit','date_start','date_end'],
+                                       [project_id,  self.WizardTree.field('timestepvalue'),
+                                        self.WizardTree.field('timestepunit'), self.WizardTree.field('sdate'),
+                                        self.WizardTree.field('edate')])
+                set_id = dbhandler.getId('setup','set_name',BASESET)
             lot = dbhandler.getComponentTypes()
             for t in lot:
                 cnt = self.WizardTree.field(t[0]+'count')
@@ -421,34 +428,6 @@ class FormSetup(QtWidgets.QWidget):
             self.WizardTree.close()
         return
 
-    # def sendSetupInputToModel(self): Not necessary if submitting to database
-    #     '''
-    #     Reads data from gui and sends to the ModelSetupInformation data model
-    #     reads through all the file tabs to collect input from all tabs
-    #     :return: None
-    #     '''
-    #
-    #     #extract data from every tab
-    #     tabWidget = self.findChild(QtWidgets.QTabWidget)
-    #     for t in range(tabWidget.count()):
-    #         page = tabWidget.widget(t)
-    #         # cycle through the input children in the topblock
-    #         for child in page.FileBlock.findChildren((QtWidgets.QLineEdit, QtWidgets.QComboBox)):
-    #
-    #             if type(child) is QtWidgets.QLineEdit:
-    #                 value = child.text()
-    #             elif type(child) is ClickableLineEdit:
-    #                 value = child.text()
-    #             elif type(child) is QtWidgets.QComboBox:
-    #                 value = child.itemText(child.currentIndex())
-    #             #append to appropriate list
-    #             attr = child.objectName()
-    #             model.assign(attr,value,position=int(page.input)-1)
-    #
-    #         model.setComponents(page.saveTables())
-    #
-    #         return
-
     #TODO this should be done on a seperate thread
     def createInputFiles(self):
         '''
@@ -458,32 +437,26 @@ class FormSetup(QtWidgets.QWidget):
         self.progress.setRange(0, 0)
         #self.sendSetupInputToModel()
         # check all the required fields are filled
-        dbhandler = ProjectSQLiteHandler()
-        if not dbhandler.dataComplete():
-            #if required fields are not filled in return to setup page.
-            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Missing Required Fields",
-                                        "Please fill in all required fields before generating input files.")
-            msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
-            msg.exec()
-            dbhandler.closeDatabase()
-            return
-
-        dbhandler.closeDatabase()
 
         # start with the setupxml
         handler = UIToHandler()
-        handler.makeSetup()
+        handler.makeSetup(BASESET)
+        if not self.setupValid():
+            #if required fields are not filled in return to setup page.
+            self.showAlert("Missing Required Fields",
+                                        "Please fill in all required fields before generating input files.")
 
-        # import datafiles
-        handler = UIToHandler()
-        cleaned_data, components = handler.loadFixData(
-            os.path.join(self.setupFolder, self.project + 'Setup.xml'))
+            return
+        if not self.dataValid():
+            cleaned_data, components = self.makeData()
+        else:
+            cleaned_data = self.findDataObject()
+            components = self.findComponents()
+
         self.updateModelPage(cleaned_data)
-        # pickled data to be used later if needed
-        handler.storeData(cleaned_data, os.path.join(self.setupFolder, self.project + 'Setup.xml'))
-        handler.storeComponents(components,os.path.join(self.setupFolder, self.project + 'Setup.xml'))
-        self.dataLoaded.setText('data loaded')
+        self.dataLoadedOutput.setText('data loaded')
         self.progress.setRange(0, 1)
+
         # generate netcdf files
         msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Time Series loaded",
                                     "Do you want to generate netcdf files?.")
@@ -500,6 +473,13 @@ class FormSetup(QtWidgets.QWidget):
 
         return
 
+    def makeData(self):
+        # import datafiles
+        handler = UIToHandler()
+        cleaned_data, components = handler.createCleanedData(
+            os.path.join(self.setupFolder, self.project + 'Setup.xml'))
+        return cleaned_data, components
+
     def updateModelPage(self, data):
         '''
         updates the default component list, time range and time step values in the setup table in the project database
@@ -511,7 +491,8 @@ class FormSetup(QtWidgets.QWidget):
         import pandas as pd
         #each dataframe needs a datetime index
         for df in data.fixed:
-            assert(type(df.index[0])==pd.datetime)
+            print(type(df.index[0]))
+            assert((type(df.index[0])==pd.Timestamp) | (type(df.index[0])==pd.datetime))
 
         def getDefaults(listDf,defaultStart=pd.to_datetime("1/1/1900").date(), defaultEnd = pd.datetime.today().date()):
             '''
@@ -538,9 +519,9 @@ class FormSetup(QtWidgets.QWidget):
         #default start is the first date there is record for
         values = {}
         values['date_start'], values['date_end'] = getDefaults(data.fixed)
-        values['component_names'] = ','.join(self.model.componentNames.value)
+        values['component_names'] = self.dbHandler.getComponentNames(BASESET)
 
-        self.dbHandler.updateDefaultSetup(values)
+        #self.dbHandler.updateDefaultSetup(values)
 
         # Deliver appropriate info to the ModelForm
         modelForm = self.window().findChild(SetsTableBlock)
@@ -585,43 +566,109 @@ class FormSetup(QtWidgets.QWidget):
     def onClick(self, buttonFunction):
         buttonFunction()
 
-
     def createSubmitButton(self):
+        '''
+        Create a button to initiate the creation of netcdf files for model input
+        :return:
+        '''
         button = QtWidgets.QPushButton()
         button.setText("Generate netCDF inputs")
-        button.clicked.connect(self.generateNetcdf)
+        button.clicked.connect(self.generateModelInput)
         return button
 
+    def setupValid(self):
+        #TODO implement function to check if setup contains all the required input
+        return True
 
-    #uses the current data object to generate input netcdfs
-    def generateNetcdf(self):
+    def generateModelInput(self):
+        '''Checks if setup of file is valid, looks for existing model netcdf files, and dataclass objects
+        if no netcdf files are found attempts to create them from dataclass object
+        if no dataclass object is found attempts to create a dataclass object then create netcdfs
+        :return boolean True if there is a netcdf file for each component'''
+        if self.setupValid():
+            if self.netcdfValid():
+                #don't need to do anything because model inputs already generated
+                if self.checkOverride("NetCDF Inputs Already Exist", "Do you want to re-write these files?") == False:
+                    return True
+            if self.dataValid():
+                #make netcdf from dataclass object
+                data = self.findDataObject()
+                self.generateNetcdf(data)
+                return self.netcdfValid()
+            else:
+                data = self.makeData()
+                self.generateNetcdf(data)
+                return self.netcdfValid()
+        else:
+            self.fixSetup()
+            self.generateModelInput()
+
+    def dataValid(self):
+        if self.findDataObject() != None:
+            return True
+        else:
+            return False
+    def fixSetup(self):
+        '''warns the user the setup file is not valid and re-opens the setup wizard so inputs can be corrected.'''
+        self.showAlert("Setup file invalid","Please correct your setup input")
+        self.showSetup()
+
+    def netcdfValid(self):
+        '''
+        Checks to make sure there is a valid netcdf file for each component.
+        :return: boolean True if all components have a valid netcdf file
+        '''
+        #TODO implement validity and file count check
+        netList = self.listNetCDFs()
+        if len(netList)>1:
+            return True
+        else:
+            return False
+    def findDataObject(self):
+        '''looks for and returns dataclas object if found in InputData Folder
+        :return DataClass object'''
 
         handler = UIToHandler()
-        #df gets read in from TimeSeries processed data folder
-        #component dictionary comes from setupXML's
-        MainWindow = self.window()
-        setupForm = MainWindow.findChild(QtWidgets.QWidget,'setupDialog')
-        #TODO fix to pull from database
+        # df gets read in from TimeSeries processed data folder
+        # component dictionary comes from setupXML's
         if 'setupFolder' in self.__dict__.keys():
             setupFile = os.path.join(self.setupFolder, self.project + 'Setup.xml')
-            componentModel = setupForm.findChild(QtWidgets.QWidget,'components').model()
-            #From the setup file read the location of the input pickle
-            #by replacing the current pickle with the loaded one the user can manually edit the input and
+            # From the setup file read the location of the input pickle
+            # by replacing the current pickle with the loaded one the user can manually edit the input and
             #  then return to working with the interface
-            data = handler.loadInputData(setupFile)
-            if data:
-                df = data.fixed
-                componentDict = {}
-                if 'components' not in self.__dict__.keys():
-                    #generate components
-                    setupForm.makeComponentList(componentModel)
-                for c in self.components:
-                    componentDict[c.column_name] = c.toDictionary()
-                #filesCreated is a list of netcdf files that were generated
-                filesCreated = handler.createNetCDF(df, componentDict,self.setupFolder)
-                self.netCDFsLoaded.setText(', '.join(filesCreated))
-            else:
-                print("no data found")
+            return handler.loadInputData(setupFile)
+        print('no data object found')
+        return None
+    def findComponents(self):
+        '''Creates a list of components based on database input
+        :return List of Components object'''
+        return self.dbHandler.makeComponents()
+
+
+    def generateNetcdf(self, data):
+        '''uses a dataclass object to generate model input netcdf files
+        netcdf files are written to the processed data folder'''
+        #MainWindow = self.window()
+       # setupForm = MainWindow.findChild(QtWidgets.QWidget, 'setupDialog')
+        #componentModel = setupForm.findChild(QtWidgets.QWidget, 'components').model()
+        handler = UIToHandler()
+        if data:
+            df = data.fixed
+        componentDict = {}
+        if 'components' not in self.__dict__.keys():
+            #generate components
+            self.components = self.makeComponentList()
+        elif self.components == None:
+            self.components = self.makeComponentList()
+        for c in self.components:
+            componentDict[c.column_name] = c.toDictionary()
+
+        #filesCreated is a list of netcdf files that were generated
+        filesCreated = handler.createNetCDF(df, componentDict,self.setupFolder)
+        self.netCDFsLoaded.setText(', '.join(filesCreated))
+
+
+
 
     #generate a list of Component objects based on attributes specified ModelSetupInformation
     '''def getComponentsFromSetup(self):

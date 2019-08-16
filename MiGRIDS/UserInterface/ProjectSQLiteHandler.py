@@ -1,10 +1,8 @@
 import pandas as pd
 import os
 import sqlite3 as lite
-
+from MiGRIDS.InputHandler.Component import Component
 from MiGRIDS.Controller.makeXMLFriendly import xmlToString
-from MiGRIDS.InputHandler.componentSupport import inferComponentType
-
 
 class ProjectSQLiteHandler:
 
@@ -78,7 +76,15 @@ class ProjectSQLiteHandler:
 
         self.cursor.executemany("INSERT INTO " + tablename + "(sort_order,code, description) VALUES (?,?,?)" ,values)
         self.connection.commit()
-
+    def makeComponents(self):
+        '''Uses the information in the project_manager database to make a list of Component Objects
+        :return List of component objects'''
+        loi = self.cursor.execute("SELECT componentnamevalue,component.componenttype,componentattributevalue,componentattributeunit from component_files join component on component_files.component_id = component._id group by componentnamevalue, component.componenttype, componentattributevalue")
+        loc = []
+        for t in loi:
+            c = Component(component_name=t[0],type=t[1],attribute=t[2],units=t[3],column_name=t[0]+t[2],scale=1,offset=0)
+            loc.append(c)
+        return loc
     #makes the default database associated with every new project.
     def makeDatabase(self):
         print('Making default database')
@@ -311,12 +317,12 @@ class ProjectSQLiteHandler:
             #We use a left join for input files to components so the input file directories will still get listed even if no components have been added
 
             values = self.cursor.execute(
-            "select group_concat(COALESCE(inputfiledirvalue,'None'),' '), group_concat(COALESCE(inputfiletypevalue,'None'),' '),group_concat(componentnamevalue,' '),"
-            "group_concat(headernamevalue, ' '),group_concat(componentattributevalue, ' '), group_concat(componentattributeunit, ' '),group_concat(COALESCE(datechannelvalue,'None'), ' '),group_concat(COALESCE(timechannelvalue,'None'),' '),"
-            "group_concat(COALESCE(datechannelformat,'None'), ' '),group_concat(COALESCE(timechannelformat,'None'), ' '), "
-            "group_concat(COALESCE(timezonevalue,'None'), ' '), group_concat(COALESCE(usedstvalue,'None'), ' '), group_concat(COALESCE(inpututcoffsetvalue,'None'), ' '), group_concat(COALESCE(flexibleyearvalue,'None'), ' ') "
+            "select group_concat(COALESCE(REPLACE(inputfiledirvalue,' ','_'),'None'),' '), group_concat(COALESCE(REPLACE(inputfiletypevalue,' ','_'),'None'),' '),group_concat(componentnamevalue,' '),"
+            "group_concat(REPLACE(headernamevalue,' ','_'), ' '),group_concat(REPLACE(componentattributevalue,' ',' '), ' '), group_concat(REPLACE(componentattributeunit,' ',' '), ' '),group_concat(COALESCE(REPLACE(datechannelvalue,' ','_'),'None'), ' '),group_concat(COALESCE(REPLACE(timechannelvalue,' ','_'),'None'),' '),"
+            "group_concat(COALESCE(REPLACE(datechannelformat,' ','_'),'None'), ' '),group_concat(COALESCE(REPLACE(timechannelformat,' ','_'),'None'), ' '), "
+            "group_concat(COALESCE(REPLACE(timezonevalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(usedstvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(inpututcoffsetvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(flexibleyearvalue,' ','_'),'None'), ' ') "
             "from input_files Left JOIN "
-            "(select component._id as component_id, inputfile_id, COALESCE(componentnamevalue,'None') as componentnamevalue, COALESCE(headernamevalue,'None') as headernamevalue, COALESCE(componentattributevalue,'None') as componentattributevalue, COALESCE(componentattributeunit,'None') as componentattributeunit from component_files "
+            "(select component._id as component_id, inputfile_id, COALESCE(REPLACE(componentnamevalue,' ','_'),'None') as componentnamevalue, COALESCE(REPLACE(headernamevalue,' ',' '),'None') as headernamevalue, COALESCE(REPLACE(componentattributevalue,' ','_'),'None') as componentattributevalue, COALESCE(componentattributeunit,'None') as componentattributeunit from component_files "
             "JOIN component on component_files.component_id = component._id "
             "Join set_components on component._id = set_components.component_id "
             "Join setup on set_components.set_id = setup._id  where set_name = '" + setName + "' ORDER BY component_id) as components"
@@ -402,7 +408,7 @@ class ProjectSQLiteHandler:
         :param values: List of values to replace in respective fields
         :return: Boolean True if successfully updated
         '''
-        updateFields = ', '.join([a + " = '" + b + "'" for a,b in zip(fields,values)])
+        updateFields = ', '.join([str(a) + " = '" + str(b) + "'" for a,b in zip(fields,values)])
 
         keyFields = ', '.join([a + " = '" + b + "'" for a,b in zip(keyField,keyValue)])
         try:
@@ -592,16 +598,7 @@ class ProjectSQLiteHandler:
         if path is not None:
            return path[0]
         return
-    def dataComplete(self):
-        required={'components':['original_field_name','component_type','component_name','units','attribute'],
-'environment':['original_field_name','component_name','units','attribute'],
-'project':['project_path']}
-        for k in required.keys():
-            condition = ' OR '.join(['{0} IS NULL'.format(x) for x in required[k]])
-            m = self.cursor.execute("select * from " + k + " where " + condition).fetchall()
-            if len(self.cursor.execute("select * from " + k + " where " + condition).fetchall()) > 1 :
-                return False
-        return True
+
     '''gets a list of possible component types from the ref_component_type table'''
     def getComponentTypes(self):
         loT = self.cursor.execute("select code,description from ref_component_type").fetchall()

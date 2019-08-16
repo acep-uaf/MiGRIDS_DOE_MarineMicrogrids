@@ -1,4 +1,4 @@
-from MiGRIDS.InputHandler.readCsv import readCsv
+
 
 def readAllTimeSeries(inputDict):
     '''
@@ -6,6 +6,7 @@ def readAllTimeSeries(inputDict):
     :param inputDict:
     :return: pandas.DataFrame with data from all input files.
     '''
+    from MiGRIDS.InputHandler.readCsv import readCsv
     df = None
     for i in range(len(inputDict['fileNames'])): 
         print(inputDict['fileNames'][i])# for each data file

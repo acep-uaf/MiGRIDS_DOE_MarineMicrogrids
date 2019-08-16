@@ -23,19 +23,27 @@ def processInputDataFrame(inputDict):
         elif len(f.split(':')) > 1:
             sep = ':'
         f = list(map(doubleToSingle, f.split(sep)))
-        return sep.join(map('%{0}'.format, f))
+        value = sep.join(map('%{0}'.format, f))
+        return value
 
     try:
         #find Date column
         #convert the date to datetime
         df = inputDict['df']
-        if inputDict['dateColumnFormat'] == 'infer':
+        if inputDict['dateColumnFormat']: # == 'infer':
             df['DATE'] = df[inputDict['dateColumnName']].apply(pd.to_datetime,infer_datetime_format=True, errors='coerce')
             # remove rows that did not work
             df = df.drop(df.index[pd.isnull(df['DATE'])])
         else:
-            df['DATE'] = df[inputDict['dateColumnName']].apply(lambda d: pd.to_datetime(d,format=convertDateTimeFormat(inputDict['dateColumnFormat']),errors='coerce') )
-    
+            if (inputDict['dateColumnName'] == inputDict['timeColumnName']) | (inputDict['timeColumnName'] == None):
+                df['DATE'] = df[inputDict['dateColumnName']].apply(lambda d: pd.to_datetime(d,format=convertDateTimeFormat(inputDict['dateColumnFormat'] +' ' + inputDict['timeColumnFormat']),errors='coerce') )
+            else:
+                df['DATE'] = df[inputDict['dateColumnName']].apply(lambda d: pd.to_datetime(d,
+                                                                                            format=convertDateTimeFormat(
+                                                                                                inputDict[
+                                                                                                    'dateColumnFormat']),
+                                                                                            errors='coerce'))
+
         # add time to date, if there is a time column. if not, timeColumnFormat should be ''
         if (inputDict['timeColumnName'] in df.columns) & (inputDict['timeColumnName'] != inputDict['dateColumnName']):
             df['DATE'] = df['DATE'] + df[inputDict['timeColumnName']].apply(pd.to_timedelta, errors='coerce')
@@ -54,7 +62,7 @@ def processInputDataFrame(inputDict):
             df = df.rename(columns={col:inputDict['useNames'][idx]})
     
         # remove other columns
-        if isinstance(inputDict['useNames'], (list, tuple, np.ndarray)):  # check if multple collumns
+        if isinstance(inputDict['useNames'], (list, tuple, np.ndarray)):  # check if multple columns
             #if date was inferred we have a DATE column otherwise we don't
             if inputDict['dateColumnFormat'] == 'infer':
                 df = df[['DATE'] + inputDict['useNames']]  # combine date and time with columns to keep

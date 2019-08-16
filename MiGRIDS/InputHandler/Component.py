@@ -28,9 +28,7 @@ class Component:
         if self.type is None:
             inferComponentType(self.column_name)
     
-
-
-    # set the datatype for a column in a dataframe that contains data for a specific component
+   # set the datatype for a column in a dataframe that contains data for a specific component
     def setDatatype(self, df):
 
         # if the datatype is an integer it becomes a float with 0 decimal places

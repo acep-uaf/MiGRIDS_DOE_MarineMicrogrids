@@ -32,11 +32,11 @@ def fillProjectDataFromDb():
             #read key values
             if len(tags)>1:
                 attr = tags[len(tags)-1] #the last value after '.' is the attr
-                value = stringToXML(generalSetupInfo[k])
+                value = generalSetupInfo[k]
                 writeXmlTag(projectSetup, tags[len(tags) -2], attr, value, setupFolder)
             else:
                 attr = k # the last value after '.' is the attr
-                value = stringToXML(generalSetupInfo[k])
+                value = generalSetupInfo[k]
                 writeXmlTag(projectSetup, k, attr, value, setupFolder)
 
         #look for component descriptor files for all componentName
