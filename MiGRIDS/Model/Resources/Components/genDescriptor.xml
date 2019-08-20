@@ -21,10 +21,9 @@
     <!-- GEN specific parameters -->
     <!-- 'fuelCurve' describes the fuel consumption of the diesel generator as per its power output, described by tuples -->
     <!--  'pPu' and 'massFlow' tags. -->
-    <!-- Power should be presented as P.U. of the nameplate real power capacity. Fuel consumption is kg/s -->
-    <!-- Default is to have a data point at 0 and 1 P.U. power output. DEFAULT VALUES REQUIRE CHANGING for this to -->
-    <!-- be sensible. -->
-        <pPu unit="pu" value="0 1"/>
+        <pPu unit="pu" value="0 1"><!-- Power should be presented as P.U. of the nameplate real power capacity. Fuel consumption is kg/s -->
+        <!-- Default is to have a data point at 0 and 1 P.U. power output. DEFAULT VALUES REQUIRE CHANGING for this to -->
+        <!-- be sensible. --></pPu>
         <massFlow unit="kg/s" value="0 0"/>
     </fuelCurve>
 

@@ -8,46 +8,46 @@
 
 <!-- Root tag is 'component' -->
 <component name = 'component name'>
-    <!-- Declaration of inheritance. Parent of this generic EES descriptor should be the interface itself.  -->
+
     <childOf>esDescriptor</childOf>
-
+<!-- Declaration of inheritance. Parent of this generic EES descriptor should be the interface itself.  -->
    <!-- NOTICE: NON-MODIFIED PARENT TAGS ARE NOT SHOWN, THEY SHOULD BE INHERITED FROM THE PARENT -->
-    <!-- `isDCBus' describes if the particular storage system is packaged with a DC bus. Generally, this will be TRUE, -->
-    <!-- but some kinetic energy storage systems may also have a fixed or variable AC bus. -->
-    <isDCBus value="TRUE"/>
 
-    <!-- 'buildingBlockVNom' describes the nominal voltage of a smallest practical building block of the unit. This is -->
+    <isDCBus value="TRUE">
+ <!-- `isDCBus' describes if the particular storage system is packaged with a DC bus. Generally, this will be TRUE, -->
+        <!-- but some kinetic energy storage systems may also have a fixed or variable AC bus. --></isDCBus>
+
+    <buildingBlockVNom value="500" unit="V"><!-- 'buildingBlockVNom' describes the nominal voltage of a smallest practical building block of the unit. This is -->
     <!-- used instead of cell voltage as single cells will rarely make sense. Default value is 500 V. If this is AC or -->
-    <!-- DC has to be ascertained from 'isDCBus' -->
-    <buildingBlockVNom value="500" unit="V"/>
-    <!-- 'buildingBlockVMax' describes the maximum voltage that the unit can be operated at. Default is 500. Units are V. -->
-    <buildingBlockVMax value="500" unit="V"/>
-    <!-- `buildingBlockVMinOp' is the minimum voltage at which the unit is considered operational, i.e. able to deliver -->
-    <!-- any power at all. Default is 500. Units are V. -->
-    <buildingBlockVMinOp value="500" unit="V"/>
-    <!-- `buildingBlockVMin' is the lowest voltage to which the unit can be discharged without destruction. This is -->
+        <!-- DC has to be ascertained from 'isDCBus' --></buildingBlockVNom>
+    <buildingBlockVMax value="500" unit="V"><!-- 'buildingBlockVMax' describes the maximum voltage that the unit can be operated at. Default is 500. Units are V. -->
+    </buildingBlockVMax>
+
+    <buildingBlockVMinOp value="500" unit="V"><!-- `buildingBlockVMinOp' is the minimum voltage at which the unit is considered operational, i.e. able to deliver -->
+        <!-- any power at all. Default is 500. Units are V. --></buildingBlockVMinOp>
+    <buildingBlockVMin value="500" unit="V">    <!-- `buildingBlockVMin' is the lowest voltage to which the unit can be discharged without destruction. This is -->
     <!-- relevant in the specification of potentially necessary precharge circuits in the inverter package. -->
-    <buildingBlockVMin value="500" unit="V"/>
-    <!-- 'buildingBlockIMax' describes the maximum current available from the unit at nominal voltage. Default is 0. Units are A. -->
-    <buildingBlockIMax value="0" unit="A"/>
-    <!-- 'isSerializeable' describes if the building blocks can be configured in series. Default is TRUE-->
-    <isSerializable value="TRUE"/>
-    <!-- `seriesUnitsMax' describes how many units could be put in series at the most. Default is 5. -->
-    <seriesUnitsMax value="5" />
-    <!-- `seriesUnitsAct' is the actual number of units in series for this particular configuration. Default is 1, i.e., -->
-    <!-- no series configuration. -->
-    <seriesUnitsAct value="1"/>
-    <!-- `isParallelizable' desribes is building block may be configured in parallel. -->
-    <isParallelizable value="TRUE"/>
-    <!-- 'parallelUnitsMax' describes the maximum number of units that may be parallelized. Default is 5. -->
-    <parallelUnitsMax value="5"/>
-    <!-- `parallelUnitsAct' describes the actual number of units in parallel. Defaults is 1. -->
-    <parallelUnitsAct value="1"/>
+    </buildingBlockVMin>
+    <buildingBlockIMax value="0" unit="A">    <!-- 'buildingBlockIMax' describes the maximum current available from the unit at nominal voltage. Default is 0. Units are A. -->
+    </buildingBlockIMax>
+    <isSerializable value="TRUE"> <!-- 'isSerializeable' describes if the building blocks can be configured in series. Default is TRUE-->
+    </isSerializable>
+    <seriesUnitsMax value="5" ><!-- `seriesUnitsMax' describes how many units could be put in series at the most. Default is 5. -->
+    </seriesUnitsMax>
+
+    <seriesUnitsAct value="1"><!-- `seriesUnitsAct' is the actual number of units in series for this particular configuration. Default is 1, i.e., -->
+        <!-- no series configuration. --></seriesUnitsAct>
+
+    <isParallelizable value="TRUE"><!-- `isParallelizable' desribes is building block may be configured in parallel. --></isParallelizable>
+     <parallelUnitsMax value="5"><!-- 'parallelUnitsMax' describes the maximum number of units that may be parallelized. Default is 5. -->
+     </parallelUnitsMax>
+     <parallelUnitsAct value="1"> <!-- `parallelUnitsAct' describes the actual number of units in parallel. Defaults is 1. -->
+     </parallelUnitsAct>
 
     <!-- Dispatch Control parameters -->
-    <!-- 'eesSrcTime' is the minimum amount of time that the ess must be able to discharge for at the current level of
-      SRC that it is supplying. Units are in seconds. Default is 120 s.  -->
-    <eesSrcTime value="120" unit="s"/>
+
+    <eesSrcTime value="120" unit="s"><!-- 'eesSrcTime' is the minimum amount of time that the ess must be able to discharge for at the current level of
+      SRC that it is supplying. Units are in seconds. Default is 120 s.  --></eesSrcTime>
     <eesUnderSrcLimit value="500" unit="kWs">
     <!-- 'eesUnderSrcLimit' describes the maximum energy measured under the required SRC that is allowed before raising a flag.
     Units are in kWs. It is measured over the past period of time indicated by
@@ -58,19 +58,19 @@
     <!-- 'eesUnderSrcTime' is the amount of time that eesUnderSrcLimit is measured over. -->
     <!-- Default value is 300. Units are s. -->
     </eesUnderSrcTime>
-    <!-- 'eesDispatchTime' is the minimum amount of time that the ESS must be able to supply the load for in order to
+     <eesDispatchTime value="18000" unit="s"><!-- 'eesDispatchTime' is the minimum amount of time that the ESS must be able to supply the load for in order to
     be considered as an active discharge option in the diesel schedule. Units are in seconds. Default is 18000 s (5 hours).   -->
-    <eesDispatchTime value="18000" unit="s"/>
-    <!-- 'prevEesTime' is how far back that is used to assess what percentage of the current ESS charge came from
+     </eesDispatchTime>
+        <prevEesTime value="86400" unit="s"><!-- 'prevEesTime' is how far back that is used to assess what percentage of the current ESS charge came from
     the diesel generator. This is used in the dispatch schedule to determine the cost of discharging the ESS to supply
      the load for peak shaving or load leveling purposes. Units are seconds. Default is 86400 s (24 hr). -->
-    <prevEesTime value="86400" unit="s"/>
-    <!-- 'eesCost' is the cost of discharging the ESS that is above the fuel cost that went into charging it. It is
+        </prevEesTime>
+
+    <eesCost value="0" unit="kg/kWh"><!-- 'eesCost' is the cost of discharging the ESS that is above the fuel cost that went into charging it. It is
     stated as a fuel consumption per kWh, kg/kWh. It is added to the effective fuel consumption of discharging the
      ESS resulting from chargning it with the diesel generators. The cost is used to account for non-fuel costs of
      discharging the ESS including maintenance and lifetime costs. Units are kg/kWh. Default is 0. This should be updated
-      to avoid overuse of the ESS. -->
-    <eesCost value="0" unit="kg/kWh"/>
+      to avoid overuse of the ESS. --></eesCost>
 
 </component>
 <!-- EOF -->

@@ -12,8 +12,8 @@ children. -->
     <!-- Declaration of inheritance. Parent of this generic diesel generator descriptor should be the interface itself.  -->
     <childOf>componentDescriptorInterface</childOf>
 
-    <!-- 'type' is 'sink-source'. -->
-    <type value="sink-source"/>
+
+    <type value="sink-source"><!-- 'type' is 'sink-source'. --></type>
 
     <!-- NOTICE: NON-MODIFIED PARENT TAGS ARE NOT SHOWN, THEY SHOULD BE INHERITED FROM THE PARENT -->
 

@@ -12,48 +12,45 @@
     <!-- component descriptions should state the immediate parent here. All have to be traceable to this interface. -->
     <childOf>esDescriptor</childOf>
 
-    <!-- Thermal energy storage is a sink -->
-    <type value="sink"/>
+
+    <type value="sink"><!-- Thermal energy storage is a sink --></type>
 
    <!-- NOTICE: NON-MODIFIED PARENT TAGS ARE NOT SHOWN, THEY SHOULD BE INHERITED FROM THE PARENT -->
 
     <!-- Thermal load specific parameters -->
-    <!-- 'thermalCapacity' is the thermal capacity of the thermal storage. Units are J/K. Default is 0.  -->
-    <thermalCapacity value="0" unit="J/K"/>
+     <thermalCapacity value="0" unit="J/K"><!-- 'thermalCapacity' is the thermal capacity of the thermal storage. Units are J/K. Default is 0.  -->
+     </thermalCapacity>
 
-    <!-- 'thermalConductanceInsulation' is the thermal conductance of the thermal storage insulation. Thermal convection
+
+    <thermalConductanceInsulation value="0" unit="W/K"> <!-- 'thermalConductanceInsulation' is the thermal conductance of the thermal storage insulation. Thermal convection
     and radiation will be assumed to be 10% of the calculated conductance loss and will be accounted for by adding 10%
     to the calculated thermal losses (http://www.process-heating.com/articles/87988-calculating-heat-loss)
-    Units are W/K. Default is 0.  -->
-    <thermalConductanceInsulation value="0" unit="W/K"/>
+    Units are W/K. Default is 0.  --></thermalConductanceInsulation>
 
-    <!-- 'thermalConductanceExchanger' is thermal conductance of the heat exchanger used to transfer heat from the
+
+    <thermalConductanceExchanger value="0" unit="W/K"> <!-- 'thermalConductanceExchanger' is thermal conductance of the heat exchanger used to transfer heat from the
       heat transfer medium and the thermal storage medium. This is only used when the thermal storage is heated with
       heat recovered from another process. 'conversionEfficiency' is used when directly heated with electricity or an
        oil burner.
-       Units are W/K, the Default is 0-->
-    <thermalConductanceExchanger value="0" unit="W/K"/>
+       Units are W/K, the Default is 0--></thermalConductanceExchanger>
 
-    <!-- 'conversionEfficiency' is the efficiency of converting electrical to thermal energy. There are no units. It is
-      expressed as a decimal between 0 and 1. Defualt is 1. -->
-    <conversionEfficiency value="1" unit="NONE"/>
 
-    <!-- 'amdbientTemperature' is the ambient temperature around the thermal storage. If 'useAmbientTemperatureProfile'
+    <conversionEfficiency value="1" unit="NONE"><!-- 'conversionEfficiency' is the efficiency of converting electrical to thermal energy. There are no units. It is
+      expressed as a decimal between 0 and 1. Defualt is 1. --></conversionEfficiency>
+
+
+    <ambientTemperature value="298" unit="K"> <!-- 'ambientTemperature' is the ambient temperature around the thermal storage. If 'useAmbientTemperatureProfile'
        is a set to FALSE, then the temperature listed here will be used as the ambient temperature to calculate heat
-       loss. If it is set to TRUE, this value is not used. Default value is 298 K (25 C). Units are Kelvin.  -->
-    <ambientTemperature value="298" unit="K"/>
+       loss. If it is set to TRUE, this value is not used. Default value is 298 K (25 C). Units are Kelvin.  --></ambientTemperature>
 
-    <!-- 'useAmbientTemperatureProfile' is a bool value that indicates whether or not to use a temperature profile for
-      ambient temeperatures. If set to TRUE, a temperature profile saved at ..... will be used. Default if FALSE. -->
-    <useAmbientTemperatureProfile value="FALSE" unit="NONE"/>
+    <useAmbientTemperatureProfile value="FALSE" unit="NONE"><!-- 'useAmbientTemperatureProfile' is a bool value that indicates whether or not to use a temperature profile for
+      ambient temeperatures. If set to TRUE, a temperature profile saved at ..... will be used. Default if FALSE. --></useAmbientTemperatureProfile>
 
-    <!-- 'setPointResponseRampRate' is the response rate of the renewable energy setpoint for deviations in the power
-     input into the TES from the setpoint power. Units are kW/(kW*s) and the default is 0.1. -->
-    <setPointResponseRampRate value="0.1" unit="kW/(kW*s)"/>
+    <setPointResponseRampRate value="0.1" unit="kW/(kW*s)"><!-- 'setPointResponseRampRate' is the response rate of the renewable energy setpoint for deviations in the power
+     input into the TES from the setpoint power. Units are kW/(kW*s) and the default is 0.1. --></setPointResponseRampRate>
 
-    <!-- 'setPoint' is the desired power input when there is adequate renewable energy online. Units are pu. Defualt is
-     0.5-->
-    <setPoint value="0.5" unit="pu"/>
+    <setPoint value="0.5" unit="pu"><!-- 'setPoint' is the desired power input when there is adequate renewable energy online. Units are pu. Defualt is
+     0.5--></setPoint>
 
 </component>
 <!-- EOF -->

@@ -14,30 +14,30 @@
     <!-- NOTICE: NON-MODIFIED PARENT TAGS ARE NOT SHOWN, THEY SHOULD BE INHERITED FROM THE PARENT -->
 
     <!-- Controlled Load specific items -->
-    <!-- `isRemoteCtrlAvailable` describes if the unit is available for remote control -->
-    <isRemoteCtrlAvailable value="TRUE"/>
-    <!-- `remoteCtrlPowerBand` describes the real and reactive power band available for control.  Bands are given for-->
-    <!-- real and reactive power. -->
-    <!-- Note that the `discreteLoadLevels` tag of the parent has to be considered here if `isDiscrete` is TRUE.  -->
-    <!-- And the real and reactive bands have to be switched together if 'pqIdpnt' of `discreteLoadLevels` is FALSE -->
+
+    <isRemoteCtrlAvailable value="TRUE">
+     <!-- real and reactive power. -->
+        <!-- `isRemoteCtrlAvailable` describes if the unit is available for remote control --></isRemoteCtrlAvailable>
+
     <remoteCtrlPowerBand>
+        <!-- `remoteCtrlPowerBand` describes the real and reactive power band available for control.  Bands are given for-->
+        <!-- Note that the `discreteLoadLevels` tag of the parent has to be considered here if `isDiscrete` is TRUE.  -->
+        <!-- And the real and reactive bands have to be switched together if 'pqIdpnt' of `discreteLoadLevels` is FALSE -->
         <PMin value="0" unit="kW"/>
         <PMax value="0" unit="kW"/>
         <QMin value="0" unit="kvar"/>
         <QMax value="0" unit="kvar"/>
     </remoteCtrlPowerBand>
-    <!-- `canUFLS` describes if the unit can independently under-frequency load shed. If TRUE, unit is capable to UFLS -->
-    <canUFLS value="FALSE"/>
-    <!-- `tripUFLSFSetPnt` is the UFLS trip point in Hz. -->
-    <tripUFLSFSetPnt value="55" unit="Hz"/>
-    <!-- `reconnectTimePostUFLS` describes the minimum time before the unit will try to reconnect after a UFLS event. -->
-    <reconnectTimePostUFLS value="600" unit="s"/>
-    <!-- `canUVLS` describes if the unit can independently under-voltage load shed. If TRUE, unit is capable to UVLS -->
-    <canUVLS value="FALSE"/>
-    <!-- `tripUVLSVSetPnt` is the UVLS trip point (phase to neutral) in V. -->
-    <tripUVLSVSetPnt value="260" unit="V"/>
-    <!-- `reconnectTimePostUVLS` describes the minimum time before the unit will try to reconnect after a UVLS event. -->
-     <reconnectTimePostUVLS value="600" unit="s"/>
+       <canUFLS value="FALSE"><!-- `canUFLS` describes if the unit can independently under-frequency load shed. If TRUE, unit is capable to UFLS -->
+       </canUFLS>
+     <tripUFLSFSetPnt value="55" unit="Hz"><!-- `tripUFLSFSetPnt` is the UFLS trip point in Hz. --></tripUFLSFSetPnt>
+     <reconnectTimePostUFLS value="600" unit="s"><!-- `reconnectTimePostUFLS` describes the minimum time before the unit will try to reconnect after a UFLS event. -->
+     </reconnectTimePostUFLS>
+     <canUVLS value="FALSE"><!-- `canUVLS` describes if the unit can independently under-voltage load shed. If TRUE, unit is capable to UVLS -->
+     </canUVLS>
+     <tripUVLSVSetPnt value="260" unit="V"><!-- `tripUVLSVSetPnt` is the UVLS trip point (phase to neutral) in V. --></tripUVLSVSetPnt>
+     <reconnectTimePostUVLS value="600" unit="s"> <!-- `reconnectTimePostUVLS` describes the minimum time before the unit will try to reconnect after a UVLS event. -->
+     </reconnectTimePostUVLS>
 
 </component>
 <!-- EOF -->

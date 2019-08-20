@@ -11,40 +11,41 @@
     <!-- Declaration of inheritance. Parent of this generic wind turbine descriptor should be the interface itself.  -->
     <childOf>componentDescriptorInterface</childOf>
 
-    <!-- 'type' is 'source'. Note that this does not preclude wind turbines to consume some power. -->
-    <type value="source"/>
+
+    <type value="source"><!-- 'type' is 'source'. Note that this does not preclude wind turbines to consume some power. --></type>
 
     <!-- NOTICE: NON-MODIFIED PARENT TAGS ARE NOT SHOWN, THEY SHOULD BE INHERITED FROM THE PARENT -->
 
     <!-- WTG specific parameters -->
-    <!-- 'powerCurve' describes the power curve of the wind turbine as a set of tuples of 'ws' and 'p' tags. -->
+
+    <powerCurveDataPoints>
+        <!-- 'powerCurve' describes the power curve of the wind turbine as a set of tuples of 'ws' and 'p' tags. -->
     <!-- Wind speed has units of m/s. power should be presented as P.U. of the nameplate real power capacity. -->
     <!-- Default is to have a data point at 0 m/s and at nameplate power. DEFAULT VALUES REQUIRE CHANGING for this to -->
     <!-- be sensible. -->
-    <powerCurveDataPoints>
         <ws value="0 0" unit="m/s"/>
         <pPu value="0 0" unit="pu"/>
     </powerCurveDataPoints>
-    <!-- 'cutInWindSpeed' describes the minimum wind speed at which the turbine will begin producing power from a -->
+      <cutInWindSpeed value="0" unit="m/s"><!-- 'cutInWindSpeed' describes the minimum wind speed at which the turbine will begin producing power from a -->
     <!-- previous complete stop. The default value is 0, which NEVER makes sense. Units are m/s. -->
-    <cutInWindSpeed value="0" unit="m/s"/>
-    <!-- 'cutOutWindSpeedMax' describes the maximum wind speed at which a turbine still produces power. Default value -->
+      </cutInWindSpeed>
+      <cutOutWindSpeedMax value="0" unit="m/s"><!-- 'cutOutWindSpeedMax' describes the maximum wind speed at which a turbine still produces power. Default value -->
     <!-- is 0, which NEVER makes sense. Units are m/s. -->
-    <cutOutWindSpeedMax value="0" unit="m/s"/>
-    <!-- 'cutOutWindSpeedMin' describes the minimum wind speed at which a turbine stops producing power due to lack of -->
+      </cutOutWindSpeedMax>
+        <cutOutWindSpeedMin value="0" unit="m/s"><!-- 'cutOutWindSpeedMin' describes the minimum wind speed at which a turbine stops producing power due to lack of -->
     <!-- wind power. Default value is 0, which NEVER makes sense. Units are m/s. -->
-    <cutOutWindSpeedMin value="0" unit="m/s"/>
-    <!-- 'checkWindTime' is the amount of time that windSpillLimit is measured over. Units are s. Default is 300.  -->
-    <checkWindTime value="300" unit="s"/>
-    <!-- 'spilledWindLimit' is the amount of spilled wind power that is the limit before a flag is set to initiate
+        </cutOutWindSpeedMin>
+     <checkWindTime value="300" unit="s"> <!-- 'checkWindTime' is the amount of time that windSpillLimit is measured over. Units are s. Default is 300.  -->
+     </checkWindTime>
+     <spilledWindLimit value="60" unit="PU*s">   <!-- 'spilledWindLimit' is the amount of spilled wind power that is the limit before a flag is set to initiate
       scheduling new diesel and energy storage units. Units are in PU of nameplate capacity times seconds. It is measured
       over the period of time indicated by checkWindTime. Default is 60 PU*s. -->
-    <spilledWindLimit value="60" unit="PU*s"/>
-    <!-- 'recalculateWtgPAvail' specifies whether to recalculate the available windpower from the base case. Default is False. -->
-    <recalculateWtgPAvail value="False" />
-    <!-- 'minSrcCover' indicates the minimum precentage of wind power that needs to be covered by SRC. Units are in
+     </spilledWindLimit>
+    <recalculateWtgPAvail value="False" >    <!-- 'recalculateWtgPAvail' specifies whether to recalculate the available windpower from the base case. Default is False. -->
+    </recalculateWtgPAvail>
+     <minSrcCover value="0.75" unit ="PU" ><!-- 'minSrcCover' indicates the minimum precentage of wind power that needs to be covered by SRC. Units are in
      PU of instantaneous grid import. Defualt value is 0.75. -->
-    <minSrcCover value="0.75" unit ="PU" />
+     </minSrcCover>
 
 </component>
 <!-- EOF -->
