@@ -27,7 +27,6 @@
     <!-- is TRUE, the real and reactive power steps are independent from each other. Otherwise tuples of p and q always -->
     <!-- have to be switched together -->
         <p value="0" unit="kW"/><q value="0" unit="kvar"/>
-        <p value="0" unit="kW"/><q value="0" unit="kvar"/>
     </discreteLoadLevels>
 
     <switchTime value="1000" unit="ms"><!-- `switchTime` describes the typical time from receiving a control signal at the load to a change in load level -->
