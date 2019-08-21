@@ -49,9 +49,11 @@ class UIToHandler():
 
     #pass a component name, component folder and soup object to be written to a component descriptor
     #string, string, soup -> None
-    def writeComponentSoup(self, component, fileDir, soup):
+    def writeComponentSoup(self, component, soup):
         from MiGRIDS.InputHandler.createComponentDescriptor import createComponentDescriptor
+        dbHandler=ProjectSQLiteHandler()
         #soup is an optional argument, without it a template xml will be created.
+        fileDir = getFilePath('Components',projectFolder=dbHandler.getProjectPath())
         createComponentDescriptor(component, fileDir, soup)
         return
 

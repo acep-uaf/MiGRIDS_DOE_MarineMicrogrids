@@ -1,17 +1,15 @@
 from PyQt5 import QtCore, QtWidgets, QtSql
-from MiGRIDS.InputHandler.Component import Component
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 
-import os
 #class for combo boxes that are not derived from database relationships
+from MiGRIDS.UserInterface.getFilePaths import getFilePath
+from MiGRIDS.UserInterface.displayComponentXML import displayComponentXML
+
+
 class ComboDelegate(QtWidgets.QItemDelegate):
-
-
     def __init__(self,parent,values, name=None):
         QtWidgets.QItemDelegate.__init__(self,parent)
         self.values = values
         self.name = name
-
 
     def createEditor(self,parent, option, index):
         combo = QtWidgets.QComboBox(parent)
@@ -26,7 +24,6 @@ class ComboDelegate(QtWidgets.QItemDelegate):
         editor.blockSignals(True)
 
         #set the combo to the selected index
-        d = index.model().data(index)
         if isinstance(index.model().data(index),str):
             editor.setCurrentText(index.model().data(index))
         else:
@@ -52,9 +49,9 @@ class ComboDelegate(QtWidgets.QItemDelegate):
                     lm = cb.values
                     #populate the combo box with the possible attributes that can be changed
 
-                    # project folder is from FormSetup model
-                    projectFolder = tv.window().findChild(QtWidgets.QWidget, "setupDialog").model.projectFolder
-                    componentFolder = os.path.join(projectFolder, 'InputData', 'Components')
+                    # project folder is from
+                    projectFolder = tv.window().findChild(QtWidgets.QWidget, "setupDialog").getprojectFolder()
+                    componentFolder = getFilePath('components',projectFolder = projectFolder)
                     #the current selected component, and the folder with component xmls are passed used to generate tag list
                     lm.setStringList(getComponentAttributesAsList(self.sender().currentText(),componentFolder))
 
@@ -140,76 +137,27 @@ class ClickableLineEdit(QtWidgets.QLineEdit):
         else:
             super().mousePressEvent(event)
 
-
 class ComponentFormOpenerDelegate(QtWidgets.QItemDelegate):
 
     def __init__(self,parent,text):
         QtWidgets.QItemDelegate.__init__(self,parent)
         self.text = text
-
-
     def paint(self, painter, option, index):
 
         if not self.parent().indexWidget(index):
-
             self.parent().setIndexWidget(
                 index, QtWidgets.QPushButton(self.text,self.parent(), clicked=lambda:self.cellButtonClicked(index))
             )
-
-
     @QtCore.pyqtSlot()
     def cellButtonClicked(self, index):
-        from MiGRIDS.UserInterface.formFromXML import formFromXML
-        from MiGRIDS.Controller.UIToInputHandler import UIToHandler
         from MiGRIDS.UserInterface.ModelComponentTable import  ComponentTableModel
         from MiGRIDS.UserInterface.ModelComponentTable import  ComponentFields
-
-        import os
-
-        handler = UIToHandler()
 
         model = self.parent().model()
         #if its a component table bring up the component editing form
         if type(model) is ComponentTableModel:
-            #if its from the component table do this:
-            #there needs to be a component descriptor file written before this form can open
-            #column 0 is id, 3 is name, 2 is type
 
-            #make a component object from these model data
-            component =Component(component_name=model.data(model.index(index.row(), ComponentFields.NAME.value)),
-                                 original_field_name=model.data(model.index(index.row(), ComponentFields.ORIGINALFIELD.value)),
-                                 units=model.data(model.index(index.row(), ComponentFields.UNITS.value)),
-                                 offset=model.data(model.index(index.row(), ComponentFields.OFFSET.value)),
-                                 type=model.data(model.index(index.row(), ComponentFields.TYPE.value)),
-                                 attribute=model.data(model.index(index.row(), ComponentFields.ATTRIBUTE.value)),
-                                 scale=model.data(model.index(index.row(), ComponentFields.SCALE.value)),
-
-                                 )
-             #the project filepath is stored in the model data for the setup portion
-
-            setupform = self.parent().window().findChild(QtWidgets.QWidget,"setupDialog" )
-            setupInfo = setupform.model
-            setupInfo.setupFolder
-            componentDir = os.path.join(setupInfo.setupFolder, '../Components')
-
-            if component.type !="":
-                #tell the input handler to create or read a component descriptor and combine it with attributes in component
-                componentSoup = handler.makeComponentDescriptor(component.component_name, componentDir)
-                #data from the form gets saved to a soup, then written to xml
-                #modify the soup to reflect data in the data model
-                component.component_directory = componentDir
-                f = formFromXML(component, componentSoup)
-            else:
-                msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Missing Component Type",
-                                            "You need to select a component type before editing attributes.")
-                msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
-                msg.exec()
-
-        else:
-            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Missing Component Name",
-                                            "You need to select a component before editing attributes.")
-            msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
-            msg.exec()
+            displayComponentXML(model.data(model.index(index.row(), ComponentFields.component_id.value)))
 
 class RefTableModel(QtCore.QAbstractTableModel):
     def __init__(self, dataIn, parent=None, *args, **kwargs):

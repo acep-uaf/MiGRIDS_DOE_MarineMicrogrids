@@ -84,14 +84,13 @@ def setupGrid(inputDictionary):
     for i in range(len(rowNames)):
         # for every row name create a label
         grid.lbl = QtWidgets.QLabel()
-
         grid.lbl.setObjectName('lbl' + str(rowNames[i]))
         grid.addWidget(grid.lbl, i + 1, 1, 1, 1)
 
         #if the rowname is a string show it otherwise don't
 
-        if type(rowNames[i]) != int:
-            if not rowNames[i][len(rowNames[i])-1:].isdigit():
+        if type(rowNames[i]) != int: #if row names are provided add them to the layout
+            if not rowNames[i][len(rowNames[i])-1:].isdigit(): #only rownames without row indicator at the end of their name get printed in the layout
                 label = rowNames[i].split('.')[len(rowNames[i].split('.')) - 1]
                 #make camelCase space delimited
                 label = re.sub("([a-z])([A-Z])","\g<1> \g<2>",label)
@@ -100,8 +99,11 @@ def setupGrid(inputDictionary):
 
         # get the row of widgets
         r = inputDictionary[rowNames[i]]
-        # if there is no data in the row align right
+        # if there is no data in the row align left
         if len(r.keys()) <= 1:
+            grid.lbl.setAlignment(QtCore.Qt.AlignLeft)
+            grid.lbl.setFont(l1font)
+        elif "." not in str(rowNames[i]):
             grid.lbl.setAlignment(QtCore.Qt.AlignLeft)
             grid.lbl.setFont(l1font)
         else:
@@ -136,16 +138,10 @@ def setupGrid(inputDictionary):
                 grid.wid.setObjectName(r[h]['name'])
                 #if it has items they get added
                 if 'items' in r[h].keys():
-                    print(type(r[h]['items']))
+
                     if type(r[h]['items']) == QtSql.QSqlTableModel:
                         m = r[h]['items']
-                        print(m.columnCount())
-                        print(m.record().count())
-                        print(m.record().fieldName(0))
-                        print(m.record().fieldName(1))
-                        print(m.record().fieldName(2))
-                        print(m.record().fieldName(3))
-                        print(m.fieldIndex("code"))
+
                         grid.wid.setModel(r[h]['items']);
                         grid.wid.setModelColumn(r[h]['items'].fieldIndex("code"));
                     else:

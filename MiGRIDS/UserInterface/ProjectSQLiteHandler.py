@@ -126,7 +126,7 @@ class ProjectSQLiteHandler:
         self.addRefValues('ref_true_false',[(0,'T','True'),(1,'F','False')])
         self.addRefValues('ref_speed_units', [(0, 'm/s','meters per second'),(1,'ft/s','feet per second'),
                                               (2,'km/hr','kilometers per hour'),(3,'mi/hr','miles per hour')])
-        self.addRefValues('ref_time_units',[(0,'S','Seconds'),(1,'m','Minutes')])
+        self.addRefValues('ref_time_units',[(0,'S','Seconds'),(1,'m','Minutes'),(2,'ms','Milliseconds')])
         self.addRefValues('ref_date_format',[(0,'MM/DD/YY','(0[0-9]|1[0-2])/[0-3][0-9]/[0-9]{2}'),(1,'MM/DD/YYYY','(0[0-9]|1[0-2])/[0-3][0-9]/[0-9]{4}'),
                                                  (2,'YYYY/MM/DD','[0-9]{4}/(0[0-9]|1[0-2])/[0-9]{2}'),(3,'DD/MM/YYYY','[0-9]{2}/(0[0-9]|1[0-2])/[0-9]{4}'),
                                              (4, 'MM-DD-YY', '(0[0-9]|1[0-2])-[0-3][0-9]-[0-9]{2}'), (5, 'MM-DD-YYYY', '(0[0-9]|1[0-2])-[0-3][0-9]-[0-9]{4}'),

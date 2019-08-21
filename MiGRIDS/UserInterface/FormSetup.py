@@ -668,7 +668,8 @@ class FormSetup(QtWidgets.QWidget):
         self.netCDFsLoaded.setText(', '.join(filesCreated))
 
 
-
+    def getProjectFolder(self):
+        return self.dbHandler.getProjectPath()
 
     #generate a list of Component objects based on attributes specified ModelSetupInformation
     '''def getComponentsFromSetup(self):

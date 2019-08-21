@@ -3,6 +3,7 @@ Created by: T. Morgan
 ComponentTableView is a default table view tied to the component table in project_manager database
 '''
 from MiGRIDS.UserInterface.Delegates import *
+from MiGRIDS.UserInterface.Delegates import ComboDelegate
 import MiGRIDS.UserInterface.ModelFileInfoTable as F
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 from enum import Enum
@@ -29,6 +30,7 @@ class ComponentTableView(QtWidgets.QTableView):
 
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
         self.resizeColumnsToContents()
+
         handler = ProjectSQLiteHandler()
 
         comps= handler.getAsRefTable('component', '_id', 'componentnamevalue')
@@ -45,12 +47,13 @@ class ComponentTableView(QtWidgets.QTableView):
 #data model to fill component table
 class ComponentTableModel(QtSql.QSqlRelationalTableModel):
     def __init__(self, parent):
-
+        super(ComponentTableModel, self).__init__(parent)
         QtSql.QSqlTableModel.__init__(self, parent)
         #values to use as headers for component table
         self.header = ['ID','Directory','Field', 'Type', 'Component Name', 'Unit', 'Attribute','Scale',
-                    'Offset','Customize']
+                    'Offset','Customize','dummyfield','andanother']
         self.setTable('component_files')
+
         #leftjoin so null values ok
         self.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
         #set the dropdowns
@@ -71,6 +74,9 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
 
         self.select()
 
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        """override the columnCount method to add an extra column"""
+        return super(ComponentTableModel, self).columnCount() + 1
 
     def headerData(self, section: int, orientation, role):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:

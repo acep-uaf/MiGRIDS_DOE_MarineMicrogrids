@@ -1,13 +1,13 @@
 #creates a dynamic form based on the information in xml files
 from PyQt5 import QtWidgets, QtCore, QtGui
+from MiGRIDS.Controller.UIToInputHandler import UIToHandler
 
-class formFromXML(QtWidgets.QDialog):
+class componentFormFromXML(QtWidgets.QDialog):
     def __init__(self, component, componentSoup, write=True):
         super().__init__()
-        self.componentType = component.type
-        self.componentName = component.component_name
+
         self.soup = componentSoup
-        self.fileDir = component.component_directory
+        self.componentDictionary = component
         self.write = write
         self.changes={}
         self.initUI()
@@ -16,7 +16,7 @@ class formFromXML(QtWidgets.QDialog):
     def initUI(self):
         #container widget
         widget = QtWidgets.QWidget()
-        self.setWindowTitle(self.componentName)
+        self.setWindowTitle(self.componentDictionary['componentnamevalue'])
         self.setObjectName("Component Dialog")
         #layout of container widget
         windowLayout = QtWidgets.QVBoxLayout()
@@ -49,7 +49,7 @@ class formFromXML(QtWidgets.QDialog):
         g1 = {'headers': [1,2,3,4,5],
               'rowNames': [],
               'columnWidths': [2, 1, 1, 1, 1]}
-
+        masterDict={}
         #this uses a generic units table
         dbHandler = ProjectSQLiteHandler('project_manager')
         units = dbHandler.cursor.execute("select code from ref_units").fetchall()
@@ -62,34 +62,43 @@ class formFromXML(QtWidgets.QDialog):
             if tag.name not in ['component','childOf','type']:
                 row = 0
                 hint = "".join(tag.findAll(text=True))
-
                 #the tag name is the main label
                 if tag.parent.name not in ['component', 'childOf', 'type']:
+                    #tags with parents become subtags
                     parent = tag.parent.name
                     pt = '.'.join([parent, tag.name])
+
                 else:
+                    #if there isn't a parent then the tag is the parent
                     pt = tag.name
-                g1['rowNames'].append(pt)
-                g1['rowNames'].append(pt + 'input' + str(row))
+                inputRow = pt #the label won't be vizible because it ends in a number
+
+                g1['rowNames'].append(inputRow)
+
                 #every tag gets a grid for data input
                 #there are 4 columns - 2 for labels, 2 for values
                 #the default is 2 rows - 1 for tag name, 1 for data input
                 #more rows are added if more than 2 input attributes exist
 
                 #create the overall label
-                g1[pt] = {1:{'widget':'lbl','name':tag.name}}
+                g1[inputRow] = {1:{'widget':'lbl','name':tag.name}}
                 column = 1
-                g1[pt + 'input' + str(row)] ={}
-                for a in tag.attrs:
-                    name = '.'.join([pt,str(a)])
-                    inputValue = tag[a]
-                    #columns aways starts populating at 2
 
+                for a in tag.attrs:
+                    name = '.'.join([pt,str(a)]) #the name of the attribute becomes joined with the tag
+                    inputValue = tag[a]
+                    kids = tag.findAll()
+                    myParent = tag.parent.name
+                    b = myParent in masterDict.keys()
+
+                    #columns aways starts populating at 2
                     if column <=4:
                        column+=1
-                    else:
-                       column = 2
-                       row+=1
+                    else: #check for children here. If subtags, advnce row, otherwise leave at 0
+                        column = 2 #entry fields start in column 2
+                        # here is where we determine if the input will be displayed in the same row as the main tag label
+
+
 
                     widget = 'txt'
                     items = None
@@ -101,14 +110,19 @@ class formFromXML(QtWidgets.QDialog):
                     if inputValue in ['TRUE','FALSE']:
                         widget = 'chk'
 
-                #first column is the label
-                    g1[pt + 'input' + str(row)][column] = {'widget':'lbl','name':'lbl' + a, 'default':a, 'hint':hint}
+
+                    #first column is the label
+                    if (widget == 'chk') & (a =='value'):
+                        g1[inputRow][column] = {'widget': 'lbl', 'name': 'lbl' + a, 'default': 'yes?',
+                                                               'hint': hint}
+                    else:
+                        g1[inputRow][column] = {'widget':'lbl','name':'lbl' + a, 'default':a, 'hint':hint}
                     column+=1
 
                     if items is None:
-                        g1[pt + 'input' + str(row)][column] = {'widget': widget, 'name':name, 'default':inputValue, 'hint':hint}
+                        g1[inputRow][column] = {'widget': widget, 'name':name, 'default':inputValue, 'hint':hint}
                     else:
-                        g1[pt + 'input' + str(row)][column] = {'widget': widget, 'name':name, 'default': inputValue, 'items':items, 'hint':hint}
+                        g1[inputRow][column] = {'widget': widget, 'name':name, 'default': inputValue, 'items':items, 'hint':hint}
 
         #make the grid layout from the dictionary
         grid = setupGrid(g1)
@@ -117,11 +131,12 @@ class formFromXML(QtWidgets.QDialog):
 
         return vlayout
 
-    #updates the soup to reflect changes in the form
-    #None->None
-    def update(self):
 
-        #for every tag in the soup fillSetInfo its value from the form
+    def update(self):
+        '''
+        For every tag in the soup find its current value in the form and update the value in the soup
+        :return: None
+        '''
         for tag in self.soup.find_all():
             if tag.parent.name not in ['component', 'childOf', 'type']:
                 parent = tag.parent.name
@@ -142,7 +157,6 @@ class formFromXML(QtWidgets.QDialog):
                         tag.attrs[a]= widget.currentText()
 
                 elif type(widget) == QtWidgets.QCheckBox:
-
                     if (widget.isChecked()) & (tag.attrs[a] != 'TRUE'):
                         self.changes['.'.join([pt, str(a)])]= 'TRUE'
                         tag.attrs[a] = 'TRUE'
@@ -150,18 +164,16 @@ class formFromXML(QtWidgets.QDialog):
                         self.changes['.'.join([pt, str(a)])]= 'TRUE'
                         tag.attrs[a]= 'FALSE'
 
-    #when the form is closed the soup gets updated and writtent to an xml file
-    #Event -> None
-    def closeEvent(self,evnt):
-        from MiGRIDS.Controller.UIToInputHandler import UIToHandler
 
+    def closeEvent(self,evnt):
+        '''When the form is closed the information gets written to the xml file'''
         print('closing descriptor file')
-        #fillSetInfo soup
+        #update the soup to reflect changes
         self.update()
-        #Tell the controller to tell the InputHandler to write the xml
+        #write the xml
         if self.write:
             handler = UIToHandler()
-            handler.writeComponentSoup(self.componentName, self.fileDir, self.soup)
+            handler.writeComponentSoup(self.componentDictionary['componentnamevalue'], self.soup)
         else:
-            #return a list of changes
+            #If write is false then a list of changes gets printed to the console
             print(self.changes)
