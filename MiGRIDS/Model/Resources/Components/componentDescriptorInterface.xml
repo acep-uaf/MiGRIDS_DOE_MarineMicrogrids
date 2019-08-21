@@ -61,13 +61,13 @@
     <!-- 'isDelta' defines if the unit is Delta of Wye connected. Default is TRUE. -->
     </isDelta>
 
-    <acConnectionType value="0" unit="NONE">
+    <acConnectionType value="0">
     <!-- 'acConnectionType' value defines how the unit is connected to the grid, i.e., on which phases, if the neutral -->
     <!-- is present, is the neutral grounded, etc. See the documentation for available values. Default value is 0. -->
     <!-- Units attribute ALWAYS is NONE, it is here for consistency only. -->
     </acConnectionType>
 
-    <dcConnectionType value="0" unit="NONE">
+    <dcConnectionType value="0">
     <!-- `dcConnectionType` describes the type of DC connection used, if any. Default is 0, which means no DC connection. -->
     <!-- Units are NONE, as this is just a key (see Wiki for more info). -->
     </dcConnectionType>
