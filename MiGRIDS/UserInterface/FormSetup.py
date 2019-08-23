@@ -53,7 +53,6 @@ class FormSetup(QtWidgets.QWidget):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         #show the form
         self.showMaximized()
-
     def makeTabs(self, windowLayout):
         # each tab is for an individual input file.
         self.tabs = Pages(self, 1, FileBlock)
@@ -65,7 +64,6 @@ class FormSetup(QtWidgets.QWidget):
         newTabButton.clicked.connect(self.newTab)
         windowLayout.addWidget(newTabButton)
         windowLayout.addWidget(self.tabs, 3)
-
     def createButtonBlock(self):
         '''
         create the layout containing buttons to load or create a new project
@@ -76,7 +74,6 @@ class FormSetup(QtWidgets.QWidget):
         #layout object name
         hlayout.setObjectName('buttonLayout')
         #add the button to load a setup xml
-
         hlayout.addWidget(makeButtonBlock(self, self.functionForLoadButton,
                                  'Load Existing Project', None, 'Load a previously created project files.','loadProject'))
 
@@ -95,7 +92,6 @@ class FormSetup(QtWidgets.QWidget):
         hlayout.addWidget(projectTitlewdg)
         hlayout.addStretch(1)
         return hlayout
-
     def createBottomButtonBlock(self):
         '''
         Creates the bottom buttons associated with the setup form
@@ -131,7 +127,6 @@ class FormSetup(QtWidgets.QWidget):
         self.BottomButtons.setLayout(hlayout)
 
         return hlayout
-
     @QtCore.pyqtSlot()
     def onClick(self,buttonFunction):
         '''
@@ -156,7 +151,6 @@ class FormSetup(QtWidgets.QWidget):
         except AttributeError as e:
             print("Project not set yet")
         self.createNewProject()
-
     def createNewProject(self):
         # calls the setup wizard to fill the database from wizard information
         self.fillSetup()
@@ -169,7 +163,6 @@ class FormSetup(QtWidgets.QWidget):
             self.tabs.setEnabled(True)
             #FileBlock mapper needs to be set to a new records so information can be saved
             self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.project)
-
     def validateProjectSwitch(self):
         '''
         launches a dialog to make sure the user wants to switch projects
@@ -184,10 +177,8 @@ class FormSetup(QtWidgets.QWidget):
             return True
         else:
             return False
-
     def hasSetup(self):
         return True
-
     def loadSetup(self, setupFile):
         handler = UIToHandler()
         #setup is a dictionary read from the setupFile
@@ -198,7 +189,6 @@ class FormSetup(QtWidgets.QWidget):
             #rebuild the wizard tree with values pre-set
             self.WizardTree = self.buildWizardTree(dlist)
             self.WizardTree.exec()
-
     def fillSetup(self):
         '''
         calls the setup wizard to fill setup information into the project_manager database and subsequently to setup.xml
@@ -206,7 +196,6 @@ class FormSetup(QtWidgets.QWidget):
         '''
         s = self.WizardTree
         s.exec_()
-
     def procedeToSetup(self):
         handler = UIToHandler()
         # If the project already exists wait to see if it should be overwritten
@@ -222,7 +211,6 @@ class FormSetup(QtWidgets.QWidget):
                 return True # this line won't get reached until an original project name is generated or overwrite is chose
         else:
             return True
-
     def checkOverride(self,title,msg):
         '''message dialog ot check if files should be overwritten
            :return Boolean True if yes button was triggered     '''
@@ -233,7 +221,6 @@ class FormSetup(QtWidgets.QWidget):
             return False
         else:
             return True
-
     def setupExists(self):
         '''
 
@@ -250,7 +237,6 @@ class FormSetup(QtWidgets.QWidget):
                 return True
             else:
                 return False
-
     #searches for and loads existing project data - database, setupxml,descriptors, DataClass pickle, Component pickle netcdf,previously run model results, previous optimization results
     def functionForLoadButton(self):
         '''The load function reads the designated setup xml, looks for descriptor xmls,
@@ -317,7 +303,6 @@ class FormSetup(QtWidgets.QWidget):
 
         #set the project name on the GUI form
         self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.project)
-
         return
     def makeComponentList(self):
         loc = self.dbHandler.makeComponents()
@@ -327,9 +312,6 @@ class FormSetup(QtWidgets.QWidget):
                                     )
         msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
         msg.exec()
-
-    #looks in the processed folder and lists nc files found
-    #->ListOfStrings
     def listNetCDFs(self):
         '''
         produces a list of netcdf files located in the Processed folder of a project TimeSeries folder
@@ -341,14 +323,13 @@ class FormSetup(QtWidgets.QWidget):
         except FileNotFoundError as e:
             print('No netcdf model files found.')
             return
-
     def displayModelData(self,setupInfo):
         """creates a tab for each input directory specified the SetupModelInformation model inputFileDir attribute.
         Each tab contains a FileBlock object to interact with the data input
         Each FileBlock is filled with data specific to the input directory"""
         self.tabs.removeTab(0)
         #the number of directories listed in inputFileDir indicates how many tabs are required
-        folders = setupInfo['inputFileDir.value'].split(' ')
+
         tab_count = len(setupInfo['inputFileDir.value'].split(' '))
         #if directories have been entered then replace the first tab and create a tab for each directory
         if tab_count > 0:
@@ -358,7 +339,6 @@ class FormSetup(QtWidgets.QWidget):
         else:
             self.newTab(1)
         return
-
     def buildWizardTree(self, dlist):
         '''
         Builds a QWizard based on a list of inputs
@@ -377,7 +357,6 @@ class FormSetup(QtWidgets.QWidget):
         #disconnect(btn,SIGNAL(clicked()),self, SLOT(accept()))
         btn.clicked.connect(self.saveTreeInput)
         return wiztree
-
     def assignProjectPath(self, name):
             self.project = name
             self.setupFolder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', self.project, 'InputData','Setup'])
@@ -393,7 +372,6 @@ class FormSetup(QtWidgets.QWidget):
                 #make the component
                 os.makedirs(self.componentFolder)
             return projectFolder
-
     def saveTreeInput(self):
         '''
         save the input in the wizard tree attribute to the database
@@ -427,7 +405,6 @@ class FormSetup(QtWidgets.QWidget):
             handler.makeSetup(BASESET)
             self.WizardTree.close()
         return
-
     #TODO this should be done on a seperate thread
     def createInputFiles(self):
         '''
@@ -452,8 +429,8 @@ class FormSetup(QtWidgets.QWidget):
         else:
             cleaned_data = self.findDataObject()
             components = self.findComponents()
-
-        self.updateModelPage(cleaned_data)
+        self.inputData = cleaned_data
+        self.updateModelPage(self.inputData)
         self.dataLoadedOutput.setText('data loaded')
         self.progress.setRange(0, 1)
 
@@ -468,18 +445,15 @@ class FormSetup(QtWidgets.QWidget):
             d = {}
             for c in components:
                 d[c.column_name] = c.toDictionary()
-            handler.createNetCDF(cleaned_data.fixed, d,
+            self.ncs = handler.createNetCDF(cleaned_data.fixed, d,
                                  os.path.join(self.setupFolder, self.project + 'Setup.xml'))
-
         return
-
     def makeData(self):
         # import datafiles
         handler = UIToHandler()
         cleaned_data, components = handler.createCleanedData(
             os.path.join(self.setupFolder, self.project + 'Setup.xml'))
         return cleaned_data, components
-
     def updateModelPage(self, data):
         '''
         updates the default component list, time range and time step values in the setup table in the project database
@@ -531,7 +505,6 @@ class FormSetup(QtWidgets.QWidget):
         #deliver the data to the ResultsSetup form so it can be plotted
         resultsForm = self.window().findChild(ResultsSetup)
         resultsForm.setPlotData(data)
-
     # close event is triggered when the form is closed
     def closeEvent(self, event):
         #save xmls
@@ -551,8 +524,6 @@ class FormSetup(QtWidgets.QWidget):
         self.progress.setObjectName('uploadBar')
         self.progress.setGeometry(100,100,100,50)
         return self.progress
-
-    # add a new file input tab
     def newTab(self,i=0):
         # get the set count
         tab_count = self.tabs.count() +1
@@ -561,11 +532,9 @@ class FormSetup(QtWidgets.QWidget):
         #if its not the default empty tab fill data into form slots
         '''if i>0:
             widg.fillData(self.model,i)'''
-
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):
         buttonFunction()
-
     def createSubmitButton(self):
         '''
         Create a button to initiate the creation of netcdf files for model input
@@ -575,11 +544,9 @@ class FormSetup(QtWidgets.QWidget):
         button.setText("Generate netCDF inputs")
         button.clicked.connect(self.generateModelInput)
         return button
-
     def setupValid(self):
         #TODO implement function to check if setup contains all the required input
         return True
-
     def generateModelInput(self):
         '''Checks if setup of file is valid, looks for existing model netcdf files, and dataclass objects
         if no netcdf files are found attempts to create them from dataclass object
@@ -602,7 +569,6 @@ class FormSetup(QtWidgets.QWidget):
         else:
             self.fixSetup()
             self.generateModelInput()
-
     def dataValid(self):
         if self.findDataObject() != None:
             return True
@@ -612,7 +578,6 @@ class FormSetup(QtWidgets.QWidget):
         '''warns the user the setup file is not valid and re-opens the setup wizard so inputs can be corrected.'''
         self.showAlert("Setup file invalid","Please correct your setup input")
         self.showSetup()
-
     def netcdfValid(self):
         '''
         Checks to make sure there is a valid netcdf file for each component.
@@ -643,8 +608,6 @@ class FormSetup(QtWidgets.QWidget):
         '''Creates a list of components based on database input
         :return List of Components object'''
         return self.dbHandler.makeComponents()
-
-
     def generateNetcdf(self, data):
         '''uses a dataclass object to generate model input netcdf files
         netcdf files are written to the processed data folder'''
@@ -664,21 +627,20 @@ class FormSetup(QtWidgets.QWidget):
             componentDict[c.column_name] = c.toDictionary()
 
         #filesCreated is a list of netcdf files that were generated
-        filesCreated = handler.createNetCDF(df, componentDict,self.setupFolder)
-        self.netCDFsLoaded.setText(', '.join(filesCreated))
-
-
+        self.ncs = handler.createNetCDF(df, componentDict,self.setupFolder)
+        self.netCDFsLoaded.setText(', '.join(self.ncs))
     def getProjectFolder(self):
         return self.dbHandler.getProjectPath()
+    def revalidate(self):
+        # df gets read in from TimeSeries processed data folder
+        # component dictionary comes from setupXML's
+        if 'setupFolder' in self.__dict__.keys():
+            setupFile = os.path.join(self.setupFolder, self.project + 'Setup.xml')
 
-    #generate a list of Component objects based on attributes specified ModelSetupInformation
-    '''def getComponentsFromSetup(self):
-        for i,c in enumerate(self.componentName.value):
-            self.makeNewComponent(c,self.model.headerName.value[i],
-                                        self.model.componentAttribute.unit[i],
-                                        self.model.componentAttribute.value[i],
-                                        None)
-    '''
+        self.loadSetup(setupFile)
+        return True
+
+
 #classes used for displaying wizard inputs
 class WizardPage(QtWidgets.QWizardPage):
     def __init__(self, inputdict,parent,**kwargs):

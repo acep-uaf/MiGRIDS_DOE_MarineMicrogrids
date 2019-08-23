@@ -290,6 +290,28 @@ class ProjectSQLiteHandler:
     def clearTable(self,table):
         self.cursor.execute("Delete From " + table)
         self.connection.commit()
+    def getDateRange(self,setName):
+        '''
+
+        :param setName: String name of the set to get date range for
+        :return: start datetime object and end datetime object
+        '''
+        import datetime
+        start = self.cursor.execute("select date_start from setup where set_name = ?", [setName]).fetchone()
+        end = self.cursor.execute("select date_end from setup where set_name = ?", [setName]).fetchone()
+
+        # format the tuples from database output to datetime objects
+        if (start == None) | (start == (None,)):  # no date data in the database yet
+            end = datetime.datetime.today()
+            start = (datetime.datetime.today() - datetime.timedelta(days=365))
+        elif type(start) == str:
+            start = datetime.datetime.strptime(start, '%Y-%m-%d')
+            end = datetime.datetime.strptime(end, '%Y-%m-%d')
+        else:
+            start = datetime.datetime.strptime(start[0], '%Y-%m-%d')
+            end = datetime.datetime.strptime(end[0], '%Y-%m-%d')
+        return start,end
+
 
     def getSetInfo(self,setName='Set0'):
         '''
@@ -578,20 +600,6 @@ class ProjectSQLiteHandler:
 
         return
 
-
-
-#    def getComponentsTable(self, filter):
-#       '''
-#
-#        :param filter: String name of inputfile
-#        :return: pandas.dataframe of component attributes editable in the component table
-#        '''
-#        sql = """select component_name, component_type, original_field_name, units,attribute from component join component_files one component._id = component_files.component_id where inputfile = ?"""
-#        df = pd.read_sql_query(sql,self.connection,params=[filter])
-#        '''sql = """select component_name, 'env', original_field_name, units,attribute from environment where inputfiledir = ?"""
-#        df.append(pd.read_sql_query(sql,self.connection,params=[filter]))'''
-#        return df
-
     def getInputPath(self, pathNum):
         '''returns the file folder for the given input file number (corrasponds to fileblock in setup page)'''
         path = self.cursor.execute("select inputfiledirvalue from input_files where _id = " + pathNum).fetchone()
@@ -615,7 +623,6 @@ class ProjectSQLiteHandler:
                                       " SELECT d.description, '' from ref_date_format as d").fetchall()
         myList = ["^" + (t[0] + " " + t[1]).strip() + "$" for t in myTuple]
         return myList
-
     def getCode(self, table, description):
         code = self.cursor.execute("select code from " + table + " WHERE description = ?",[description]).fetchone()
         if code != None:
@@ -636,7 +643,6 @@ class ProjectSQLiteHandler:
             fields = ['_id', 'code','description']
         stringFields = str.join(",",fields)
         return self.cursor.execute("SELECT " + stringFields + " FROM " + table).fetchall()
-
     def getComponentByType(self,mytype):
         '''
 
@@ -647,7 +653,6 @@ class ProjectSQLiteHandler:
         return codes
     def getAllRecords(self,table):
         return self.cursor.execute("select * from " + table).fetchall()
-
     def parseInputHandlerAttributes(self, setupDict, setID):
         '''
         Parses the portion of a setup dictionary (dictionary produced from setup.xml) into various project_manager tables
@@ -686,8 +691,6 @@ class ProjectSQLiteHandler:
             self.insertRecord('set_components', ['set_id', 'component_id', 'tag'], [setID, i,'None'])
 
         return fileAttributes + componentAttributes + componentFiles
-
-
     def makePath(self,stringlistpath):
         '''
 

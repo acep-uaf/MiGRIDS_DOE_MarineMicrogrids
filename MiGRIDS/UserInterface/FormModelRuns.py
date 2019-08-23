@@ -12,7 +12,7 @@ import os
 
 #main form containing setup and run information for a project
 class FormModelRun(QtWidgets.QWidget):
-
+    handler = ProjectSQLiteHandler()
     def __init__(self, parent):
         super().__init__(parent)
         self.initUI()
@@ -97,8 +97,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         self.set = set #set is an integer
         self.setName = "Set" + str(self.set) #set name is a string with a prefix
         self.tabName = "Set " + str(self.set)
-        #get default date ranges
-        self.getDefaultDates()
+
         #main layouts
         tableGroup = QtWidgets.QVBoxLayout()
         #setup info for a set
@@ -129,35 +128,43 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         else:
             self.fillSetInfo()
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
     #fill form with existing data
     def fillData(self,set):
        return
-    #sets the start and end date for a set.
+
+    #sets the start and end date range based on available dataset.
     #if no values are provided the values are drawn from the database
     #tuple(s) -> None
-    def getDefaultDates(self, **kwargs):
+    def getDefaultDates(self):
         #TODO this should come from a preview
-        #tuples
-        start = kwargs.get('start')
-        end = kwargs.get('end')
 
         handler = ProjectSQLiteHandler()
-        if start == None:
-            start = handler.cursor.execute("select date_start from setup where set_name = 'Set0'").fetchone()
-        if end == None:
-            end = handler.cursor.execute("select date_end from setup where set_name = 'Set0'").fetchone()
-        handler.closeDatabase()
-
-        #format the tuples from database output to datetime objects
-        if start == None:
-            end = datetime.datetime.today().strftime('%Y-%m-%d')
-            start = (datetime.datetime.today() - datetime.timedelta(days=365)).strftime('%Y-%m-%d')
+        start = handler.cursor.execute("select date_start from setup where set_name = 'Set0'").fetchone()
+        end = handler.cursor.execute("select date_end from setup where set_name = 'Set0'").fetchone()
+       #format the tuples from database output to datetime objects
+        if (start == None) | (start == (None,)): #no date data in the database yet
+            #end = datetime.datetime.today().strftime('%Y-%m-%d')
+            end = datetime.datetime.today()
+            start = datetime.datetime.today() - datetime.timedelta(days=365)
         elif type(start)== str:
             start = datetime.datetime.strptime(start, '%Y-%m-%d')
             end = datetime.datetime.strptime(end, '%Y-%m-%d')
         else:
             start = datetime.datetime.strptime(start[0], '%Y-%m-%d')
             end = datetime.datetime.strptime(end[0], '%Y-%m-%d')
+
+        return start, end
+
+
+    def getSetDates(self,setName):
+        '''
+
+        :param setName:
+        :return:
+        '''
+        handler = ProjectSQLiteHandler()
+        start, end = handler.getDateRange(setName)
         self.startDate = start
         self.endDate = end
         return
@@ -165,9 +172,12 @@ class SetsTableBlock(QtWidgets.QGroupBox):
     def onClick(self, buttonFunction):
         buttonFunction()
 
-
-    #->QtWidgets.QGroupBox
     def makeSetInfo(self, **kwargs):
+        '''
+        Creates the input form for fields needed to create and run a model set
+        :param kwargs: String set can be passed as a keyword argument which refers to the setname in the project_manager database tble setup
+        :return: QtWidgets.QGroupbox input fields for a model set
+        '''
         set = kwargs.get("set")
 
         infoBox = QtWidgets.QGroupBox()
@@ -184,10 +194,9 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         timestepWidget = QtWidgets.QLineEdit('1')
         timestepWidget.setObjectName(('timestep'))
         timestepWidget.setValidator(QtGui.QIntValidator())
+
         infoRow.addWidget(timestepWidget)
-
         infoRow.addWidget(QtWidgets.QLabel('Seconds'),1)
-
         infoRow.addWidget(QtWidgets.QLabel('Components'))
         infoRow.addWidget(self.componentSelector(),2)
         infoBox.setLayout(infoRow)
@@ -217,24 +226,19 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         # dictionary of set info
         setInfo = databaseHandler.getSetInfo(self.setName)
         if setInfo != None:
-            if type(setInfo['componentnamesvalue']) == str:
-                self.componentDefault = setInfo['componentnamesvalue'].split(',')
+            if type(setInfo['componentNames.value']) == str:
+                self.componentDefault = setInfo['componentNames.value'].split(',')
             else:
-                self.componentDefault = setInfo['componentnamesvalue']
-            start = datetime.datetime.strptime(setInfo['min_date'],'%Y-%m-%d')
-            end = datetime.datetime.strptime(setInfo['max_date'],'%Y-%m-%d')
-
-
-            #dates are strings here but they need to be datetimes
-            self.startDate = setInfo.get('date_start')
-            self.endDate = setInfo.get('date_end')
-            self.getDefaultDates(start=self.startDate, end=self.endDate)
+                self.componentDefault = setInfo['componentNames.value']
+            start,end = self.getDefaultDates() #this gets the range of possible dates based on original input
+            self.getSetDates(self.setName)#this sets the attributes startdate, enddate which can be used in range
             #fillSetInfo the widget values
 
-            self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'startDate'))
-            self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'endDate'),False)
+
             self.findChild(QtWidgets.QDateEdit, 'startDate').setDateRange(start, end)
             self.findChild(QtWidgets.QDateEdit, 'endDate').setDateRange(start, end)
+            self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'startDate'))
+            self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'endDate'),False)
             self.findChild(QtWidgets.QLineEdit,'componentNames').setText(','.join(self.componentDefault))
             self.updateComponentDelegate(self.componentDefault)
 
@@ -286,11 +290,8 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         # default is entire dataset
         if start:
            widg.setDate(QtCore.QDate(self.startDate.year,self.startDate.month,self.startDate.day))
-
         else:
             widg.setDate(QtCore.QDate(self.endDate.year, self.endDate.month, self.endDate.day))
-
-
         widg.setDisplayFormat('yyyy-MM-dd')
         widg.setCalendarPopup(True)
         return widg
@@ -300,11 +301,6 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         handler = TableHandler(self)
         buttonBox = QtWidgets.QGroupBox()
         buttonRow = QtWidgets.QHBoxLayout()
-
-
-        # buttonRow.addWidget(self.makeBlockButton(self.functionForLoadDescriptor,
-        #                                          None, 'SP_DialogOpenButton',
-        #                                          'Load a previously created model.'))
 
         buttonRow.addWidget(makeButtonBlock(self, lambda: handler.functionForNewRecord(table),
                                             '+', None,
@@ -348,3 +344,5 @@ class SetsTableBlock(QtWidgets.QGroupBox):
                                         "You need to select component attributes to alter before running sets.")
             msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
             msg.exec()
+    def revalidate(self):
+        return True

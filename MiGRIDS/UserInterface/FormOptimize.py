@@ -37,6 +37,7 @@ class FormOptimize(QtWidgets.QWidget):
         scrollArea.setWidget(widget)
         vlayout.addWidget(scrollArea)
         self.setLayout(vlayout)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.showMaximized()
         return
 
@@ -124,3 +125,5 @@ def update(grid):
                     tag.attrs[a] = 'FALSE'
 
     return soup, changes
+    def revalidate(self):
+        return True

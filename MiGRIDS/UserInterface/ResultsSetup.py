@@ -35,7 +35,7 @@ class ResultsSetup(QtWidgets.QWidget):
         self.layout.addWidget(self.ycombo,3,6,1,1)
 
         self.setLayout(self.layout)
-
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
     #List, Boolean -> QComboBox
     def createCombo(self,list,x):
@@ -77,7 +77,7 @@ class ResultsSetup(QtWidgets.QWidget):
 
     #->plotWidget
     def createPlotArea(self,data):
-        from UserInterface.PlotResult import PlotResult
+        from MiGRIDS.UserInterface.PlotResult import PlotResult
         plotWidget = PlotResult(self, data)
         return plotWidget
 
@@ -128,3 +128,5 @@ class ResultsSetup(QtWidgets.QWidget):
             return df0
         self.data = {'raw':data.raw,'fixed':mergedDF(data.fixed)}
 
+    def revalidate(self):
+        return True

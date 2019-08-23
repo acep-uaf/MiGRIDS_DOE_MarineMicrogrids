@@ -27,6 +27,7 @@ class ResultsOptimize(QtWidgets.QWidget):
         self.layout.addWidget(self.ycombo, 3, 6, 1, 1)
 
         self.setLayout(self.layout)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.showMaximized()
         return
 
@@ -87,3 +88,6 @@ class ResultsOptimize(QtWidgets.QWidget):
             self.displayData = None
         self.plotWidget.makePlot(self.displayData)
         return
+
+    def revalidate(self):
+        return True

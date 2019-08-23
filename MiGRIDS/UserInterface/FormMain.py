@@ -7,6 +7,7 @@ from MiGRIDS.UserInterface.FormSetup import FormSetup
 from MiGRIDS.UserInterface.switchProject import saveProject
 
 class MainForm(QtWidgets.QMainWindow):
+    resized = QtCore.pyqtSignal()
 
     def __init__(self,**kwargs):
         super().__init__()
@@ -20,6 +21,17 @@ class MainForm(QtWidgets.QMainWindow):
 
         docker = QtWidgets.QDockWidget()
 
+        app = QtCore.QCoreApplication.instance()
+        # find the biggest screen to show the window on
+        size = app.desktop().screenGeometry()
+
+        for c in range(0, app.desktop().screenCount()):
+            if app.desktop().availableGeometry(app.desktop().screen(c)).width() > size.width():
+                self.screen = app.desktop().screenGeometry(app.desktop().screen(c))
+                self.move(self.screen.x(),self.screen.y())
+                self.resize((app.desktop().screen(c)).width(),(app.desktop().screen(c)).height())
+
+
         self.treeBlock = self.createNavTree()
         docker.setWidget(self.treeBlock)
         self.pageBlock = self.createPageBlock()
@@ -32,12 +44,32 @@ class MainForm(QtWidgets.QMainWindow):
         docker2.setWidget(self.console)
         self.addDockWidget(QtCore.Qt.DockWidgetArea(8),docker2,QtCore.Qt.Horizontal)
         self.console.showMessage("This is where messages will appear")
+        self.central_widget = QtWidgets.QStackedWidget()
+        self.setCentralWidget(self.central_widget)
+        self.central_widget.addWidget(self.pageBlock)
 
-        self.setCentralWidget(self.pageBlock)
+
         # Main title
         self.setWindowTitle('MiGRIDS')
-        # show the form
+        #self.resized.connect(self.screenMoved)
+
+            # show the form
         self.showMaximized()
+
+    def resizeEvent(self, event):
+        self.resized.emit()
+        return super(MainForm, self).resizeEvent(event)
+
+    def screenMoved(self):
+        app = QtCore.QCoreApplication.instance()
+        if self.screen.width() != self.window().geometry().width():
+
+            self.screen = self.window().geometry()
+            #self.pageBlock.makeSize(self.screen)
+            print("screen moved")
+            print(self.screen.width())
+            #re-creating everything looses attributes
+            self.pageBlock = self.relayPageBlocks()
 
     # add a console block to display messages
     def addConsole(self):
@@ -152,15 +184,26 @@ class MainForm(QtWidgets.QMainWindow):
 
     #page block contains all the forms
     def createPageBlock(self):
-        pageBlock = PageBlock(lastProjectPath = self.lastProjectPath)
+        pageBlock = PageBlock(lastProjectPath = self.lastProjectPath,screen=self.screen)
+
         return pageBlock
 
+
+    def relayPageBlocks(self):
+        from MiGRIDS.UserInterface.FormContainer import FormContainer
+        tabs = self.pageBlock.findChildren(FormContainer)
+        for t in tabs:
+            t.changeLayout(self.screen)
+
+        return
 
 class PageBlock(QtWidgets.QTabWidget):
     def __init__(self,**kwargs):
         super().__init__()
         self.setObjectName('pages')
         self.lastProjectPath = kwargs.get('lastProjectPath')
+        self.screen = kwargs.get("screen")
+
         self.initUI()
 
 
@@ -173,12 +216,23 @@ class PageBlock(QtWidgets.QTabWidget):
         from MiGRIDS.UserInterface.ResultsOptimize import ResultsOptimize
         from MiGRIDS.UserInterface.FormContainer import FormContainer
 
-        self.addTab(FormContainer(self,[FormSetup(self), ResultsSetup(self)],'Setup'), 'Setup')
-        self.addTab(FormContainer(self, [FormModelRun(self), ResultsModel(self)],'Model'), 'Model')
-        self.addTab(FormContainer(self, [FormOptimize(self), ResultsOptimize(self)],'Optimize'), 'Optimize')
+        self.addTab(FormContainer(self,[FormSetup(self), ResultsSetup(self)],'Setup',screen=self.screen), 'Setup')
+        self.addTab(FormContainer(self, [FormModelRun(self), ResultsModel(self)],'Model',screen=self.screen), 'Model')
+        self.addTab(FormContainer(self, [FormOptimize(self), ResultsOptimize(self)],'Optimize',screen=self.screen), 'Optimize')
 
         self.findChild(FormContainer,'Model').hide()
         self.findChild(FormContainer, 'Optimize').hide()
+
+    def makeSize(self,myGeom):
+        '''
+
+        :param myGeom: A geometry to be used as the screen dimensions
+        :return:
+        '''
+        for i in range(0,self.count()):
+            #get the container and re-arrange the objects to fit the screen dimensions
+
+            self.widget(i).changeLayout(myGeom)
 
     #Creates model and optimize tabs
     #this is called after a project name is set
@@ -186,8 +240,8 @@ class PageBlock(QtWidgets.QTabWidget):
         from MiGRIDS.UserInterface.FormModelRuns import FormModelRun
         from MiGRIDS.UserInterface.FormOptimize import FormOptimize
 
-        c1 = self.findChild(FormModelRun)
-        c1.show()
+        self.findChild(FormModelRun).show()
+
         self.findChild(FormOptimize).show()
 
         return
