@@ -329,6 +329,7 @@ class ProjectSQLiteHandler:
             setDict['timestep.unit']=values[2]
             setDict['date_start'] = values[3]
             setDict['date_end'] = values[4]
+            setDict['runTimeSteps.value'] = str(values[3]) + " " + str(values[4])
             #as long as there was basic set up info look for component setup info
             #componentNames is a list of distinct components, order does not matter
             setDict['componentNames.value'] =  self.cursor.execute("SELECT group_concat(componentnamevalue,' ') from component join set_components on component._id = set_components.component_id "
@@ -591,8 +592,16 @@ class ProjectSQLiteHandler:
         #update project table
         pid = self.insertRecord('project',['project_name','project_path'],[setupDict['project'],setupDict['projectPath']])
         #update fields that are in the setup table
-        setId = self.insertRecord('setup',['timestepunit','timestepvalue','runtimestepsvalue','set_name','project_id'],
-                          [setupDict['timeStep.unit'],setupDict['timeStep.value'],setupDict['runTimeSteps.value'],setName,pid])
+        try:
+            startdate = setupDict['runTimeSteps.value'].split(" ")[0]
+            enddate = setupDict['runTimeSteps.value'].split(" ")[1]
+        except IndexError as i:
+            print("runtimesteps not start stop indices")
+            startdate = None
+            enddate = None
+
+        setId = self.insertRecord('setup',['timestepunit','timestepvalue','runtimestepsvalue','date_start','date_end','set_name','project_id'],
+                          [setupDict['timeStep.unit'],setupDict['timeStep.value'],setupDict['runTimeSteps.value'],startdate,enddate,setName,pid])
 
         #update input handler infomation
         #this information is in the form of space delimited ordered lists that require parsing and are used by the input handler

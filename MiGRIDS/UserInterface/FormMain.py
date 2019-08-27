@@ -1,6 +1,8 @@
 #MainForm is the parent for for all sections of the User Interface
 #it consists of a navigation tree and pages
 from PyQt5 import QtWidgets, QtCore, QtGui,QtSql
+
+from MiGRIDS.UserInterface import FormContainer
 from MiGRIDS.UserInterface.ConsoleDisplay import ConsoleDisplay
 
 from MiGRIDS.UserInterface.FormSetup import FormSetup
@@ -44,9 +46,9 @@ class MainForm(QtWidgets.QMainWindow):
         docker2.setWidget(self.console)
         self.addDockWidget(QtCore.Qt.DockWidgetArea(8),docker2,QtCore.Qt.Horizontal)
         self.console.showMessage("This is where messages will appear")
-        self.central_widget = QtWidgets.QStackedWidget()
-        self.setCentralWidget(self.central_widget)
-        self.central_widget.addWidget(self.pageBlock)
+
+        self.setCentralWidget(self.pageBlock)
+
 
 
         # Main title
@@ -157,16 +159,36 @@ class MainForm(QtWidgets.QMainWindow):
                 focusWidget.setFocus(True)
             else:
 
-                #launch the method
-                tabs = self.pageBlock.currentWidget().findChild(QtWidgets.QTabWidget)
+                #find and launch the method
+                tabs = self.pageBlock.findChildren(QtWidgets.QWidget)
+                tabs = [w  for w in tabs if not isinstance(w,(QtWidgets.QLineEdit,QtWidgets.QTextEdit,QtWidgets.QComboBox,QtWidgets.QGroupBox,QtWidgets.QLayout)) ]
+                self.findFunction(focusObject,tabs,0)
 
-                for t in range(0,tabs.count()):
-                    s = tabs.widget(t)
-
-                    if focusObject.__name__ in dir(s):
-                        focusObject(s)
 
         return
+
+    def findFunction(self, focusObject, listOftabBar,i):
+        if len(listOftabBar) <=0:
+            return
+        elif self.hasFunction(listOftabBar[0],focusObject): #no more tab bars to check
+            return
+        else:
+            listOftabBar.remove(listOftabBar[0])
+            return self.findFunction(focusObject,listOftabBar, i + 1)
+
+
+    def hasFunction(self, widg,focusObject):
+        '''
+
+        :param widg: a QWidget
+        :param focusObject: The name of a function or attribute to call
+        :return: boolean True if the function was found and called, otherwise false
+        '''
+        if focusObject.__name__ in dir(widg):
+            focusObject(widg)
+            return True
+        return False
+
 
     def closeEvent(self,event):
         import os
@@ -190,7 +212,6 @@ class MainForm(QtWidgets.QMainWindow):
 
 
     def relayPageBlocks(self):
-        from MiGRIDS.UserInterface.FormContainer import FormContainer
         tabs = self.pageBlock.findChildren(FormContainer)
         for t in tabs:
             t.changeLayout(self.screen)

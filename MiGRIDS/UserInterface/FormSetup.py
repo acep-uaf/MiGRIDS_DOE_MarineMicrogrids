@@ -203,7 +203,7 @@ class FormSetup(QtWidgets.QWidget):
         if self.setupExists():
             overwrite = self.checkOverride("Project Aready Exists",
                                     "Do you want to overwrite existing setup files?.")
-            if overwrite:
+            if not overwrite:
                 #self.fillSetup()  # call up the wizard again so a new project name can be assigned
                 self.WizardTree.restart()
                 return False
@@ -385,10 +385,11 @@ class FormSetup(QtWidgets.QWidget):
             project_id = dbhandler.insertRecord("project",['project_name','project_path'],[self.WizardTree.field('project'),projectPath])
             set_id = dbhandler.insertRecord("setup",['project_id','set_name','timestepvalue','timestepunit','date_start','date_end'],[project_id,BASESET,self.WizardTree.field('timestepvalue'),self.WizardTree.field('timestepunit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
             if set_id == -1: #record was not inserted, try updating
-                dbhandler.updateRecord("setup","set_name",BASESET,['project_id','timestepvalue','timestepunit','date_start','date_end'],
+                dbhandler.updateRecord("setup","set_name",BASESET,['project_id','timestepvalue','timestepunit','date_start','date_end','runtimestepvalue'],
                                        [project_id,  self.WizardTree.field('timestepvalue'),
                                         self.WizardTree.field('timestepunit'), self.WizardTree.field('sdate'),
-                                        self.WizardTree.field('edate')])
+                                        self.WizardTree.field('edate'), str.join(" ",[self.WizardTree.field('sdate'),
+                                        self.WizardTree.field('edate')])])
                 set_id = dbhandler.getId('setup','set_name',BASESET)
             lot = dbhandler.getComponentTypes()
             for t in lot:
