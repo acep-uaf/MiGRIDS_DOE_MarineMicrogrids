@@ -7,6 +7,9 @@ import datetime
 # checkDataGaps looks for gaps in the timestamp index that is greater than the median sampling interval
 # new records will have NA for values
 # series -> series
+from MiGRIDS.InputHandler.badDictAdd import badDictAdd
+
+
 def checkDataGaps(s):
     '''checkDataGaps looks for gaps in the timestamp index that is greater than the median sampling interval
      new records will have NA for values.
@@ -249,6 +252,7 @@ def doReplaceData(groups, df_to_fix, cuts, s):
             df_to_fix = dropIndices(df_to_fix, indicesOfInterest)
             #new values get appended onto the datframe
             df_to_fix = expandDataFrame(indicesOfInterest,df_to_fix)
+
             
         return doReplaceData(groups[groups['size'] > cuts[0]],df_to_fix,cuts[1:],s)
 
@@ -293,6 +297,7 @@ def expandDataFrame(idf, s):
         return s
     else:
         s = s.append(listsToDataframe(idf.iloc[0],s))
+        add
         s = s.sort_index()
         
         return expandDataFrame(idf.iloc[1:],s)

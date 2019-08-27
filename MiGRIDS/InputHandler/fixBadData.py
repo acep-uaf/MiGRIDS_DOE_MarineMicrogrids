@@ -16,7 +16,7 @@ import os
 import re
 import pandas as pd
 
-
+from MiGRIDS.InputHandler import EnvironmentAttributeTypes
 from MiGRIDS.InputHandler.DataClass import DataClass
 from MiGRIDS.InputHandler.isInline import isInline
 from MiGRIDS.InputHandler.badDictAdd import badDictAdd
@@ -37,10 +37,15 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
    '''returns cleaned dataframe'''
    
    # local functions - not used outside fixBadData
-
-   # string, dataframe, xml, dictionary -> dataframe, dictionary
-   # returns a dictionary of bad values for a given variable and change out of bounds values to Nan in the dataframe
    def checkMinMaxPower(component, dataFrameList, descriptorxml, baddata):
+       '''
+
+       :param component: String name of the component tha is being checked
+       :param dataFrameList: List of DataFrames, each containing data for the given component
+       :param descriptorxml: String path to the descriptor xml file for the specified component
+       :param baddata: Dictionary oraganized with reason for replacement as keys and indices (datetimes) of replaced values
+       :return: Dictionary of baddata
+       '''
        '''change out of bounds values to be within limits'''
        for i, df in enumerate(dataFrameList):
            
@@ -67,13 +72,18 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
 
        return dataFrameList, baddata
 
-   # XML, String -> float
-   # returns the 'value' at a specific node within an xml file.
-   def getValue(xml, node, convetToFloat = True):
+   def getValue(xml, node, convertToFloat = True):
+       '''
+       Retrieves a specified value from a specified XML file
+       :param xml: XML object
+       :param node: String node to find
+       :param convertToFloat: Boolean whether or not the value should be a float
+       :return: The value retrieved from the xml file
+       '''
        '''returns the value at a specified noede within an xml file'''
        if xml.find(node) is not None:
             value = xml.find(node).attrib.get('value')
-            if convetToFloat is True:
+            if convertToFloat is True:
                 value = float(value)
        else:
            value = 0
@@ -81,12 +91,9 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
    
 
    # create DataClass object to store raw, fixed, and summery outputs
-   # use the largest sample interval for the data class- this isn't used anylonger
-   #sampleIntervalTimeDelta = [pd.to_timedelta(s) for s in sampleInterval]
-   #dataLimits = findDataDateLimits(setupDir)
+
    data = DataClass(df, runTimeSteps)
 
-  
   # create a list of power columns
    
    powerColumns = []
@@ -95,9 +102,7 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
  
    # replace out of bounds component values before we use these data to replace missing data
    for c in ListOfComponents:
-       print(c.column_name)
        componentName = componentNameFromColumn(c.column_name)
-       
        attribute = attributeFromColumn(c.column_name)
        descriptorxmlpath = os.path.join(setupDir, '..', 'Components', ''.join([componentName, DESCXML]))
        #if it has a p attribute it is either a powercomponent or a load and has a min/max value
@@ -105,7 +110,7 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
            try:
                descriptorxml = ET.parse(descriptorxmlpath)
                checkMinMaxPower(c.column_name, data.fixed, descriptorxml, data.baddata)
-               #if source is true in the xml the column name gets added to the powerColums list
+               #Power components have a P attribute, but does not include load components
                if componentName[0:4] != 'load':
                    powerColumns.append(c.column_name)
                else:
@@ -113,10 +118,9 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
            except FileNotFoundError:
                print('Descriptor xml for %s not found' % c.column_name)
                
-       elif attribute in ['WS','HS','IR']:
+       elif attribute in [e.value for e in EnvironmentAttributeTypes]:
            eColumns.append(c.column_name)       
-      
-   
+
    # store the power column list in the DataClass
    data.powerComponents = powerColumns
    data.eColumns = eColumns
@@ -136,6 +140,7 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
    groupings = data.df[columns].apply(lambda c: isInline(c), axis=0) 
 
    data.setYearBreakdown()
+
    #replace offline data for total power sources
    if TOTALP in columns:
         
@@ -191,17 +196,16 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
     # fill diesel columns with a value if the system needs diesel to operate
    componentIterator = iter(ListOfComponents)
    if dieselNeeded(componentIterator,setupDir):
-
        data.fixGen(powerColumns)
        data.totalPower()
       # scale data based on units and offset in the component xml file
    data.scaleData(ListOfComponents)      
    data.splitDataFrame()
-   #data.removeAnomolies(5)
+
    data.totalPower()
    data.truncateAllDates()
-
    data.preserve(setupDir)
+   data.logBadData(setupDir)
    return data
 
 

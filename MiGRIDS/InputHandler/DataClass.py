@@ -205,8 +205,9 @@ class DataClass:
             cuts = list(set(cuts.tolist()))
             cuts.sort()
             print("%s groups of missing or inline data discovered for component named %s" %(len(groups), column) )  
-        df_to_fix = doReplaceData(groups, df_to_fix.loc[pd.notnull(df_to_fix[column])], cuts,df.loc[pd.notnull(df[column])])       
-        
+        df_to_fix = doReplaceData(groups, df_to_fix.loc[pd.notnull(df_to_fix[column])], cuts,df.loc[pd.notnull(df[column])])
+        badDictAdd(column, self.badDataDict, '2.Offline',
+                   df_to_fix[column][pd.isnull(df_to_fix[column])].index.tolist())
         return df_to_fix.loc[pd.notnull(df_to_fix[column]),columnsToReplace]    
      
     
@@ -251,3 +252,12 @@ class DataClass:
             if (c[:3].lower() == 'gen') & (c[-1].lower() == 'p'):
                 genColumns.append(c)
         return genColumns
+
+    def logBadData(self,folder):
+        #write the baddata log
+        f = open(os.path.join(folder,"BadDataLog.txt"), "w")
+        f.write(str(dict))
+        f.close()
+
+        return
+
