@@ -27,8 +27,7 @@ class FormContainer(QtWidgets.QWidget):
                 l = self.tabifyLayout(layout)
 
                 self.setLayout(l)
-        layoutkids = self.layout().count()
-        print(layoutkids)
+
         return
 
     def isTabbed(self):

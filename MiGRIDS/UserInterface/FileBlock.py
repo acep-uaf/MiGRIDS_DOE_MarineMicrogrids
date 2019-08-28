@@ -88,8 +88,9 @@ class FileBlock(QtWidgets.QGroupBox):
         # filter the component and environemnt input tables to the current input directory
         print("Input folder %s is %s" %(self.tabPosition,selectedFolder))
         self.saveInput()
+        print(self.dbhandler.getAllRecords("input_files"))
         self.filterTables()
-        comblist = self.FileBlock.findChildren(QtWidgets.QComboBox)
+
         try:
             self.createPreview(selectedFolder,
                                self.FileBlock.findChild(QtWidgets.QComboBox,
@@ -114,6 +115,7 @@ class FileBlock(QtWidgets.QGroupBox):
                 #before we set the text value we need to make the input fields part of a new record that the mapper can write to
                 self.makeNewInputFileRecord()
             self.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).setText(selectedFolder)
+            self.fileBlockModel.setData(self.fileBlockModel.index(self.mapper.currentIndex(),F.InputFileFields.inputfiledirvalue.value),selectedFolder)
             self.folderChanged(selectedFolder)
             #folder changed gets called once the text changes
             return selectedFolder
@@ -121,6 +123,7 @@ class FileBlock(QtWidgets.QGroupBox):
     def makeNewInputFileRecord(self):
         self.fileBlockModel.insertRow(self.fileBlockModel.rowCount())
         self.mapper.toLast()
+        return
 
     def createPreview(self,folder,fileType):
         '''
@@ -223,7 +226,6 @@ class FileBlock(QtWidgets.QGroupBox):
 
         fileBlockModel.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         self.fileBlockModel = fileBlockModel
-        #self.fileBlockModel.insertRows(self.fileBlockModel.rowCount(), 1)
 
         reffiletype = QtSql.QSqlTableModel()
         reffiletype.setTable("ref_file_type")
@@ -513,10 +515,11 @@ class FileBlock(QtWidgets.QGroupBox):
 
         #update model info from fileblock
         row = self.mapper.currentIndex()
-        self.fileBlockModel.submitAll()
-        self.mapper.submit()
+        j = self.mapper.submit() #boolean true if values submitted
 
-        self.mapper.setCurrentIndex(row)
+        f = self.fileBlockModel.data(self.fileBlockModel.index(row, F.InputFileFields.inputfiledirvalue.value))
+        self.mapper.setCurrentIndex(row) #this is where data becomes availabe in the model but still not in database
+        m = self.fileBlockModel.submitAll()
         self.setValid(self.validate())
         return
 

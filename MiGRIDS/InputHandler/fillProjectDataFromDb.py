@@ -43,7 +43,7 @@ def fillProjectDataFromDb():
         componentDir = os.path.join(setupFolder, *['..','Components'])
 
         #component is a string
-        if (generalSetupInfo['componentNames.value'] is not None):
+        if (generalSetupInfo['componentNames.value'] is not None) &(generalSetupInfo['componentNames.value'] != 'None'):
             #use as list not string
             if (len(generalSetupInfo['componentNames.value'].split()) >0):
                 for component in generalSetupInfo['componentNames.value'].split(): # for each component

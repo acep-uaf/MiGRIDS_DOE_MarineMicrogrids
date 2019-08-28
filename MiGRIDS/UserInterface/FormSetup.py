@@ -178,7 +178,15 @@ class FormSetup(QtWidgets.QWidget):
         else:
             return False
     def hasSetup(self):
-        return True
+        try:
+            handler = UIToHandler()
+            setupfolder = handler.findSetupFolder(self.project)
+            if os.path.exists(os.path.join(setupfolder, self.project + 'Setup.xml')):
+                return True
+        except AttributeError as e:
+            return False
+        return False
+
     def loadSetup(self, setupFile):
         handler = UIToHandler()
         #setup is a dictionary read from the setupFile
@@ -196,7 +204,11 @@ class FormSetup(QtWidgets.QWidget):
         '''
         s = self.WizardTree
         s.exec_()
+
     def procedeToSetup(self):
+        '''Evaluates whether or not the setup input should be generated. If a setup file already exists then the user needs to
+        indicate they are willing to overwrite that file
+        :return Boolean True if the input should be written to a file. False if the input needs to be altered.'''
         handler = UIToHandler()
         # If the project already exists wait to see if it should be overwritten
         # assign project has already been called at this point so the directory is created
@@ -231,7 +243,6 @@ class FormSetup(QtWidgets.QWidget):
         except AttributeError as a:
             handler = UIToHandler()
             setupfolder = handler.findSetupFolder(self.project)
-            print(setupfolder)
         finally:
             if os.path.exists(os.path.join(setupfolder, self.project + 'Setup.xml')):
                 return True
@@ -266,9 +277,10 @@ class FormSetup(QtWidgets.QWidget):
         else:
             self.projectDatabase = False
             print('An existing project database was not found for %s.' % self.project)
-
         # record the current project
-        self.dbHandler.insertRecord('project', ['project_path'], [setupFile[0]])
+        print(self.dbHandler.getAllRecords('project'))
+        i = self.dbHandler.updateRecord('project', ['project_name'],[self.project],['project_path'], [setupFile[0]])
+        print(self.dbHandler.getAllRecords('project'))
 
 
         # look for an existing data pickle
