@@ -53,6 +53,8 @@ class FileBlock(QtWidgets.QGroupBox):
         self.setLayout(windowLayout)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.validated = False
+        dbhandler = ProjectSQLiteHandler()
+
 
     def flash(self,msg=None):
         print("flash: " + str(msg))
@@ -88,7 +90,7 @@ class FileBlock(QtWidgets.QGroupBox):
         # filter the component and environemnt input tables to the current input directory
         print("Input folder %s is %s" %(self.tabPosition,selectedFolder))
         self.saveInput()
-        print(self.dbhandler.getAllRecords("input_files"))
+
         self.filterTables()
 
         try:
@@ -165,7 +167,7 @@ class FileBlock(QtWidgets.QGroupBox):
             wid = self.FileBlock.findChild(QtWidgets.QComboBox, name)
             self.reconnect(wid.currentIndexChanged, None,self.saveInput) #disconnect the signal so validate isn't called here
             wid.addItems(["", "index"] + list(preview.header))
-            print(preview.__dict__.get(name))
+
             wid.setCurrentText(preview.__dict__.get(name))
             self.reconnect(wid.currentIndexChanged, self.saveInput, None)
 
@@ -280,7 +282,7 @@ class FileBlock(QtWidgets.QGroupBox):
 
         for i in range(0,fileBlockModel.columnCount(parent)):
             if gb.findChild(QtWidgets.QWidget,fileBlockModel.record().fieldName(i)) != None:
-                print(fileBlockModel.record().fieldName(i))
+
                 wid = gb.findChild(QtWidgets.QWidget, fileBlockModel.record().fieldName(i))
                 self.mapper.addMapping(wid,i)
                 if isinstance(wid,QtWidgets.QComboBox):
@@ -574,10 +576,7 @@ class FileBlock(QtWidgets.QGroupBox):
                     self.fileBlockModel.data(
                             self.fileBlockModel.index(0, F.InputFileFields.datechannelformat.value)) == '')):
                 self.validated = False
-                print(self.fileBlockModel.data(
-                    self.fileBlockModel.index(0, F.InputFileFields.datechannelvalue.value)))
-                print(self.fileBlockModel.data(
-                            self.fileBlockModel.index(0, F.InputFileFields.datechannelformat.value)))
+
                 return False
             if  (self.fileBlockModel.data(self.fileBlockModel.index(0,F.InputFileFields.timechannelvalue.value)) != '') & (self.fileBlockModel.data(self.fileBlockModel.index(0,F.InputFileFields.timechannelformat.value)) == ''):
                 self.validated = False

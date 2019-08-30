@@ -46,12 +46,12 @@ class TableHandler():
         for c in cbs:
             if c.name == cmbName:
                 lm = c.values
-                print(type(lm))
+
                 if isinstance(lm,MiGRIDS.UserInterface.Delegates.RefTableModel):
                     lm.updateModel(loi)
                 else:
                     lm.setStringList(loi)
-                print(c.values)
+
 
 
     #removes selected records from the table and its underlying sql table

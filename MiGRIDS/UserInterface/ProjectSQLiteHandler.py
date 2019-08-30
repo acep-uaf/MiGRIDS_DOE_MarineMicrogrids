@@ -339,6 +339,7 @@ class ProjectSQLiteHandler:
             #be listed more than once in componentChannels
             #We use a left join for input files to components so the input file directories will still get listed even if no components have been added
             tempV = self.cursor.execute("SELECT * from component_files").fetchall()
+            tempc = self.cursor.execute("select * from component").fetchall()
             values = self.cursor.execute(
             "select group_concat(COALESCE(REPLACE(inputfiledirvalue,' ','_'),'None'),' '), group_concat(COALESCE(REPLACE(inputfiletypevalue,' ','_'),'None'),' '),group_concat(componentnamevalue,' '),"
             "group_concat(REPLACE(headernamevalue,' ','_'), ' '),group_concat(REPLACE(componentattributevalue,' ',' '), ' '), group_concat(REPLACE(componentattributeunit,' ',' '), ' '),group_concat(COALESCE(REPLACE(datechannelvalue,' ','_'),'None'), ' '),group_concat(COALESCE(REPLACE(timechannelvalue,' ','_'),'None'),' '),"
@@ -346,7 +347,7 @@ class ProjectSQLiteHandler:
             "group_concat(COALESCE(REPLACE(timezonevalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(usedstvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(inpututcoffsetvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(flexibleyearvalue,' ','_'),'None'), ' ') "
             "from input_files Left JOIN "
             "(select component._id as component_id, inputfile_id, COALESCE(REPLACE(componentnamevalue,' ','_'),'None') as componentnamevalue, COALESCE(REPLACE(headernamevalue,' ',' '),'None') as headernamevalue, COALESCE(REPLACE(componentattributevalue,' ','_'),'None') as componentattributevalue, COALESCE(componentattributeunit,'None') as componentattributeunit from component_files "
-            "JOIN component on component_files.component_id = component._id "
+            "LEFT JOIN component on component._id = component_files.component_id "
             "Join set_components on component._id = set_components.component_id "
             "Join setup on set_components.set_id = setup._id  where set_name = '" + setName + "' ORDER BY component_id) as components"
             " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
@@ -516,6 +517,7 @@ class ProjectSQLiteHandler:
         for v in values: #need to loop so we get ids for every value
             try:
                 self.cursor.execute('INSERT INTO ' + tablename + ' (' + keys + ') VALUES (' + question_marks + ')',v ) #if insertion fails the last id gets re-appended to the list
+                self.connection.commit()
             except Exception as e:
                 print(e)
 
@@ -547,6 +549,7 @@ class ProjectSQLiteHandler:
             self.updateComponent(componentDict)
         else:
             self.cursor.execute('INSERT INTO component (component_name) VALUES (?)', [componentDict['component_name']])
+            self.connection.commit()
             self.updateComponent(componentDict)
             return True
         return False
@@ -672,8 +675,8 @@ class ProjectSQLiteHandler:
 
         def hasComponentData(componentDict):
             for k in componentDict.keys():
-                if k in ['headerName.value', 'componentAttribute.unit',
-                               'componentAttribute.value']:
+                if k in ['headernamevalue', 'componentattributeunit',
+                               'componentattributevalue']:
                     if len(componentDict[k]) > 0:
                         return True
             return False
@@ -697,15 +700,18 @@ class ProjectSQLiteHandler:
         components['componenttype'] = [self.inferComponentType(k) for k in components['componentnamevalue']]
 
         # insert the pieces
-        if files['inputfiledirvalue']!=[""]:
+        if (files['inputfiledirvalue']!=[""]) & (files['inputfiledirvalue'] != ['None']):
             idlist = self.insertDictionaryRow('input_files', files)
             filecomponents['inputfile_id'] = idlist
+            idlist = self.extractComponentNamesOnly(setID, components, setupDict) #this needs to be called outside of if as well
 
-            idlist = self.extractComponentNamesOnly(setID, components,setupDict)
             if hasComponentData(filecomponents):
                 filecomponents['component_id'] = idlist
                 filecomponents['componenttype'] = components['componenttype']
-                self.addComponentsToFileInputTable(components, filecomponents, setID,components)
+                self.addComponentsToFileInputTable(filecomponents)
+        else:
+            #if there are no input files specified components from the componentsnamesvalue attribute will be used to populate component table
+            idlist = self.extractComponentNamesOnly(setID, components, setupDict)
 
             return fileAttributes + componentAttributes + componentFiles
     def addComponentsToFileInputTable(self, filecomponents):
@@ -716,6 +722,7 @@ class ProjectSQLiteHandler:
         '''
 
         ids = self.insertDictionaryRow('component_files', filecomponents)
+        print(self.getAllRecords('component_files'))
         return ids
     def extractComponentNamesOnly(self, setID, components,setupDict):
         '''
@@ -726,7 +733,7 @@ class ProjectSQLiteHandler:
         '''
         # it is possible that he components have been created but not associaed with files yet.
         # in this case the components should be pulled from the componentnames.value attribute
-        if (components['componentnamevalue'] == None) | (components['componentnamevalue'] == ""):
+        if (components['componentnamevalue'] == ['None']) | (components['componentnamevalue'] == [""]):
             components = self.swapComponentNamesOnly(setupDict)
 
         idlist = self.insertDictionaryRow('component',
@@ -740,7 +747,7 @@ class ProjectSQLiteHandler:
                       setupDict.items() if key == 'componentNames.value'}
         components['componentnamevalue'] = components['componentnamesvalue']
         del components['componentnamesvalue']
-        components['componenttype'] = [self.inferComponentType(k) for k in components['componentnamesvalue']]
+        components['componenttype'] = [self.inferComponentType(k) for k in components['componentnamevalue']]
         return components
 
     def makePath(self,stringlistpath):
@@ -775,9 +782,10 @@ class ProjectSQLiteHandler:
         '''
         try:
             self.cursor.execute("INSERT INTO set_components (set_id, component_id, tag) SELECT " + setid + ", _id, 'None' FROM component WHERE componentnamevalue IN " + loc)
+            self.connection.commit()
         except Exception as e:
             print(e)
-        self.connection.commit()
+
     def getRecordDictionary(self,table, id):
         '''
         returns a selected record from the specified table with as a dictionary with fields as keys

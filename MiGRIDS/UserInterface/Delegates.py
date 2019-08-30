@@ -34,6 +34,10 @@ class ComboDelegate(QtWidgets.QItemDelegate):
     def setModelData(self,editor, model, index):
          irow = index.row()
          crow = editor.currentIndex()
+         txt = editor.itemText(editor.currentIndex())
+         '''if isinstance(self.values,RefTableModel):
+             model.setData(index, editor.currentIndex())'''
+         #model is the table storing the combo
          model.setData(index, editor.itemText(editor.currentIndex()))
 
     @QtCore.pyqtSlot()
@@ -176,12 +180,10 @@ class RefTableModel(QtCore.QAbstractTableModel):
     def data(self, index, role):
         if not index.isValid():
             return QtCore.QVariant()
-        elif role == QtCore.Qt.DisplayRole:
-           return QtCore.QVariant(self.arraydata[index.row()][1]) #column 1 is display data
-        elif role == QtCore.Qt.UserRole:
-            return QtCore.QVariant(self.arraydata[index.row()][0]) #column 0 is id
+        #elif role == QtCore.Qt.DisplayRole:
+        #  return QtCore.QVariant(self.arraydata[index.row()][1]) #column 1 is display data
         else:
-            return QtCore.QVariant()
+            return QtCore.QVariant(self.arraydata[index.row()][0]) #this fills the data field with the value in column 0
 
     def updateModel(self, newArray):
         self.arraydata = newArray

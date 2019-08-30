@@ -28,6 +28,7 @@ class MainForm(QtWidgets.QMainWindow):
         size = app.desktop().screenGeometry()
 
         for c in range(0, app.desktop().screenCount()):
+            self.screen = app.desktop().screenGeometry(app.desktop().screen(0))
             if app.desktop().availableGeometry(app.desktop().screen(c)).width() > size.width():
                 self.screen = app.desktop().screenGeometry(app.desktop().screen(c))
                 self.move(self.screen.x(),self.screen.y())
