@@ -38,7 +38,8 @@ class ComponentTableView(QtWidgets.QTableView):
         fields = []
         #combo columns
         self.setItemDelegateForColumn(ComponentFields.headernamevalue.value,ComboDelegate(self,QtCore.QStringListModel(fields),'headernamevalue'))
-        self.setItemDelegateForColumn(ComponentFields.component_id.value,ComboDelegate(self, RefTableModel(comps),'componentnamevalue'))
+        #self.setItemDelegateForColumn(ComponentFields.component_id.value,ComboDelegate(self, RefTableModel(comps),'componentnamevalue'))
+        self.setItemDelegateForColumn(ComponentFields.component_id.value, RelationDelegate(self, 'componentnamevalue'))
         self.setItemDelegateForColumn(ComponentFields.componenttype.value, RelationDelegate(self, 'componenttype'))
         self.setItemDelegateForColumn(ComponentFields.componentattributevalue.value, RelationDelegate(self, 'componentattributevalue'))
         self.setItemDelegateForColumn(ComponentFields.componentattributeunit.value, RelationDelegate(self, 'componentattributeunit'))

@@ -22,22 +22,6 @@ from PyQt5 import QtWidgets,QtCore,QtSql
 #its parent is FormSetup
 from MiGRIDS.Controller.DirectoryPreview import DirectoryPreview
 
-'''class Filter(QtCore.QObject):
-    def eventFilter(self, widget, event):
-        # FocusOut event
-        if event.type() == QtCore.QEvent.FocusOut:
-            # do custom stuff
-            print('focus out event')
-            parent = widget.parent().parent()
-            parent.folderChanged(widget.text())
-            # return False so that the widget will also handle the event
-            # otherwise it won't focus out
-            return False
-        else:
-            # we don't care about other events
-            return False'''
-
-
 class FileBlock(QtWidgets.QGroupBox):
     def __init__(self, parent, tabPosition):
         super().__init__(parent)
@@ -53,7 +37,7 @@ class FileBlock(QtWidgets.QGroupBox):
         self.setLayout(windowLayout)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.validated = False
-        dbhandler = ProjectSQLiteHandler()
+
 
 
     def flash(self,msg=None):
@@ -75,9 +59,6 @@ class FileBlock(QtWidgets.QGroupBox):
         windowLayout.addWidget(self.componentBlock)
 
         # the bottom block is disabled until a setup file is created or loaded
-        #self.createTableBlock('Environment Data', 'environment', self.assignEnvironmentBlock)
-
-        #windowLayout.addWidget(self.environmentBlock)
         return windowLayout
 
         # creates a horizontal layout containing gridlayouts for data input
@@ -290,10 +271,8 @@ class FileBlock(QtWidgets.QGroupBox):
                     wid.setCurrentIndex(wid.findText(default))
                     if wid.objectName() == 'inputfiletypevalue': #if the file type changes trigger the function to create a new preview
                         self.reconnect(wid.currentIndexChanged,self.folderChanged)
-                    #self.reconnect(wid.currentIndexChanged,self.saveInput, None)#Don't connect until a directory is set
 
         # submit data changes automatically on field changes -this doesn't work
-        #self.mapper.setSubmitPolicy(QtWidgets.QDataWidgetMapper.AutoSubmit)
         self.mapper.setSubmitPolicy(QtWidgets.QDataWidgetMapper.AutoSubmit)
         self.mapper.toFirst()
 

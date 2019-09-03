@@ -191,12 +191,7 @@ class FormSetup(QtWidgets.QWidget):
         handler = UIToHandler()
         #setup is a dictionary read from the setupFile
         setup = handler.inputHandlerToUI(setupFile,BASESET)
-        dbhandler = ProjectSQLiteHandler()
-        print(dbhandler.getAllRecords('input_files'))
-        print(dbhandler.getAllRecords('component_files')) #empty by th etime it gets here
         self.assignProjectPath(setup['project'])
-        dbhandler = ProjectSQLiteHandler()
-        print(dbhandler.getAllRecords('component_files'))
         self.displayModelData(setup)
     def showSetup(self):
             #rebuild the wizard tree with values pre-set
@@ -269,8 +264,6 @@ class FormSetup(QtWidgets.QWidget):
         if (setupFile == ('','')) | (setupFile is None):
             return
 
-        dbhandler = ProjectSQLiteHandler()
-        print(dbhandler.getAllRecords('component_files'))
         self.loadSetup(setupFile[0])
 
         # now that setup data is set display it in the form
@@ -286,11 +279,9 @@ class FormSetup(QtWidgets.QWidget):
             self.projectDatabase = False
             print('An existing project database was not found for %s.' % self.project)
         # record the current project
-        dbhandler = ProjectSQLiteHandler()
-        print(dbhandler.getAllRecords('component_files'))
-        i = self.dbHandler.updateRecord('project', ['project_name'],[self.project],['project_path'], [setupFile[0]])
-        print(dbhandler.getAllRecords('component_files'))
 
+        i = self.dbHandler.updateRecord('project', ['project_name'],[self.project],['project_path'],
+                                        getFilePath('Project',setupFolder=os.path.dirname(setupFile[0])))
 
         # look for an existing data pickle
         handler = UIToHandler()
@@ -350,8 +341,6 @@ class FormSetup(QtWidgets.QWidget):
         Each FileBlock is filled with data specific to the input directory"""
         self.tabs.removeTab(0)
         #the number of directories listed in inputFileDir indicates how many tabs are required
-        dbhandler = ProjectSQLiteHandler()
-        print(dbhandler.getAllRecords('component_files'))
         tab_count = len(setupInfo['inputFileDir.value'].split(' '))
         #if directories have been entered then replace the first tab and create a tab for each directory
         if tab_count > 0:
