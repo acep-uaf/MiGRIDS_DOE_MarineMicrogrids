@@ -89,6 +89,7 @@ def readDataFile(inputDict):
                                       unitConventionDir)[0]
                 
                 listOfComponents.append(Component(
+                        component_name = inputDict['componentNames'],
                         column_name=inputDict['useNames'][i],
                         units=units,scale=scale,
                         offset=offset,datatype=datatype,
@@ -97,5 +98,6 @@ def readDataFile(inputDict):
    
     #drop unused columns
     df = df[inputDict['useNames'] + ['DATE']]
+    df['source'] = inputDict['fileLocation']
     return df, listOfComponents
 

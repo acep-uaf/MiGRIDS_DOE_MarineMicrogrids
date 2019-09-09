@@ -33,9 +33,13 @@ TOTALP = 'total_p'  # the name of the column that contains the sum of power outp
 # Dataframe is the combined dataframe consisting of all data input (multiple files may have been merged)
 # SampleInterval is a list of sample intervals for each input file
 # returns a DataClass object with raw and cleaned data and powercomponent information
-def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
+def fixBadData(df, setupDir, ListOfComponents,runTimeSteps, **kwargs):
    '''returns cleaned dataframe'''
-   
+   sender = kwargs.get("sender")
+
+   def broadCastProgress(progress):
+       if sender:
+           sender.notifyProgress.emit(progress, 'fixing bad values')
    # local functions - not used outside fixBadData
    def checkMinMaxPower(component, dataFrameList, descriptorxml, baddata):
        '''
@@ -99,7 +103,7 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
    powerColumns = []
    eColumns = []
    loads=[]
- 
+   broadCastProgress(1)
    # replace out of bounds component values before we use these data to replace missing data
    for c in ListOfComponents:
        componentName = componentNameFromColumn(c.column_name)
@@ -109,7 +113,7 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
        if attribute == 'P':
            try:
                descriptorxml = ET.parse(descriptorxmlpath)
-               checkMinMaxPower(c.column_name, data.fixed, descriptorxml, data.baddata)
+               checkMinMaxPower(c.column_name, data.fixed, descriptorxml, data.badDataDict)
                #Power components have a P attribute, but does not include load components
                if componentName[0:4] != 'load':
                    powerColumns.append(c.column_name)
@@ -118,7 +122,7 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
            except FileNotFoundError:
                print('Descriptor xml for %s not found' % c.column_name)
                
-       elif attribute in [e.value for e in EnvironmentAttributeTypes]:
+       elif attribute in [e.name for e in EnvironmentAttributeTypes.EnvironmentAttributeTypes]:
            eColumns.append(c.column_name)       
 
    # store the power column list in the DataClass
@@ -137,8 +141,8 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
    else:
        columns = data.eColumns + data.loads
   
-   groupings = data.df[columns].apply(lambda c: isInline(c), axis=0) 
-
+   groupings = data.df[columns].apply(lambda c: isInline(c), axis=0)
+   broadCastProgress(4)
    data.setYearBreakdown()
 
    #replace offline data for total power sources
@@ -151,19 +155,20 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps):
       #replace the column in the dataframe with cleaned up data
       reps = data.fixOfflineData(columnsToReplace,groupings[TOTALP])
       data.df = data.df.drop(reps.columns, axis=1)
-      data.df= pd.concat([data.df,reps],axis=1)   
-
+      data.df= pd.concat([data.df,reps],axis=1)
+   broadCastProgress(6)
    #now e and load columns performed individually
    #nas produced from mismatched file timestamps get ignored during grouping - thus not replaced during fixbaddata
-   
-   #reps = data.df[data.eColumns + data.loads].apply(lambda c: data.fixOfflineData(c,c.name, groupings[c.name]),axis=0)  
-  
+
+   cnt = len(data.df[data.eColumns + data.loads].columns)
+   currentcnt = 1
    for c in data.df[data.eColumns + data.loads].columns:
+
        reps= data.fixOfflineData([c], groupings[c])
        data.df = data.df.drop(reps.columns, axis=1)
        data.df= pd.concat([data.df,reps],axis=1)
-
-
+       broadCastProgress(6 + round((currentcnt/cnt) * 4,0))
+   broadCastProgress(10)
    #reads the component descriptor files and
    #returns True if none of the components have isFrequencyReference=1 and
 

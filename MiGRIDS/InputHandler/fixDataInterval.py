@@ -3,11 +3,14 @@
 # Date: October 24, 2017
 # License: MIT License (see LICENSE file of this package for more information)
 
+'''Technical note. Estimations are always done at the 1 second timestep level
+If more values are produced than desired, the extra values are dropped'''
+
 #Reads a dataframe and ouputs a new dataframe with the specified sampling time interval.
 #interval is a string with time units. (i.e. '30s' for 30 seconds, '1T' for 1 minute)
 #If interval is less than the interval within the dataframe mean values are used to create a down-sampled dataframe
 #DataClass, String -> DataClass
-def fixDataInterval(data, interval):
+def fixDataInterval(data, interval, **kwargs):
     ''' data is a DataClass with a pandas dataframe with datetime index.
      interval is the desired interval of data samples. If this is 
      less than what is available in the df a langevin estimator will be used to fill
@@ -16,7 +19,11 @@ def fixDataInterval(data, interval):
     import pandas as pd
     import numpy as np
 
+    sender = kwargs.get("sender")
 
+    def broadCastProgress(progress):
+        if sender:
+            sender.update(progress, 'fixing intervals')
     #integer, numeric, numeric, numeric -> numeric array
     #uses the Langevin equation to estimate records based on provided mean (mu) and standard deviation and a start value
     def getValues(records, start, sigma, timestep):
@@ -32,8 +39,13 @@ def fixDataInterval(data, interval):
         import numpy as np
 
 
-        #number of steps 
-        n = (records / timestep) + 1
+        #number of steps
+        defaultTimestep = 1
+        #records will be the number of values that will be retained for a given timestep
+        #n is the number of values that will be estimated
+        #if the timestep is 30 seconds, and the timeinterval between 2 records is 2 minutes
+        #3 values (records) will be filled in, but 91 (n) values will be generated
+        n = (records * timestep) + 1 #all estimates are at the 1 seoond timestep
         # time constant. This value was empirically determined to result in a mean value between
         tau = records*.2
         tau[tau<1] = 1
@@ -42,8 +54,8 @@ def fixDataInterval(data, interval):
 
         # sigma scaled takes into account the difference in STD for different number of samples of data. Given a STD for
         # 1000 data samples (sigma) the mean STD that will be observed is sigmaScaled, base empirically off of 1 second
-        sigma_bis = 0.4 * sigma * np.sqrt(2.0/(900*timestep))
-        sqrtdt = np.sqrt(timestep)
+        sigma_bis = 0.4 * sigma * np.sqrt(2.0/(900*defaultTimestep))
+        sqrtdt = np.sqrt(defaultTimestep)
         # find the 95th percentile of number of steps
         n95 = int(np.percentile(n,95))
         # find where over the 95th percentile
@@ -52,7 +64,7 @@ def fixDataInterval(data, interval):
         x = np.zeros(shape=(len(start), int(n95)))
 
         # steps is an array of timesteps in seconds with length = max(records)
-        steps = np.arange(0, int(n95)*timestep, timestep)
+        steps = np.arange(0, int(n95)*defaultTimestep, defaultTimestep)
         # t is the numeric value of the dataframe timestamps
         t = pd.to_timedelta(pd.Series(pd.to_datetime(start.index.values, unit='s'), index=start.index)).dt.total_seconds()
         # intervals is the steps array repeated for every row of time
@@ -72,7 +84,7 @@ def fixDataInterval(data, interval):
         mu.iloc[-1] = mu.iloc[-2]
         #TODO replace for loops
         for i in range(n95-1):
-            x[:, i + 1] = x[:, i] + timestep * (-(x[:, i] - mu) / tau) + np.multiply(sigma_bis.values * sqrtdt, np.random.randn(len(mu)))
+            x[:, i + 1] = x[:, i] + defaultTimestep * (-(x[:, i] - mu) / tau) + np.multiply(sigma_bis.values * sqrtdt, np.random.randn(len(mu)))
 
         # remove extra values to avoid improper mixing of values when sorting
         for row in range(time_matrix.shape[0]):
@@ -88,26 +100,45 @@ def fixDataInterval(data, interval):
         # individually calc the rest
         for idx in idxOver95:
             # find remaining values to be calculated
+            currentN = n[idx]
             nRemaining = int(max([n[idx] - n95, 0]))
-            # calc remaining values
-            x0 = np.zeros(shape = (nRemaining,))
-            # first value is last value of array
-            x0[0] = x[idx, -1]
+            if nRemaining >=1:
+                # calc remaining values
+                x0 = np.zeros(shape = (nRemaining,))
+                # first value is last value of array
+                x0[0] = x[idx, -1]
 
-            # corresponding time matrix
-            time_matrix0 = time_matrix[idx,-1] + np.arange(0,nRemaining*timestep,timestep)
-            for idx0 in range(1,nRemaining):
-                x0[idx0] = x0[idx0-1] + timestep * (-(x0[idx0-1] - mu[idx]) / tau[idx]) + np.multiply(sigma_bis.values[idx] * sqrtdt, np.random.randn())
+                # corresponding time matrix
+                time_matrix0 = time_matrix[idx,-1] + np.arange(0,nRemaining*defaultTimestep,defaultTimestep)
+                for idx0 in range(1,nRemaining):
+                    x0[idx0] = x0[idx0-1] + defaultTimestep * (-(x0[idx0-1] - mu[idx]) / tau[idx]) + np.multiply(sigma_bis.values[idx] * sqrtdt, np.random.randn())
 
-            # append to already calculated values
-            values = np.append(values, x0)
-            timeArray = np.append(timeArray,time_matrix0)
+                # append to already calculated values
+                values = np.append(values, x0)
+                timeArray = np.append(timeArray,time_matrix0)
 
-        # TODO: sort values and timeArray by TimeArray.
         tv = np.array(list(zip(timeArray,values)))
         tv = tv[tv[:,0].argsort()] # sort by timeArray
 
         t, v = zip(*tv)
+
+        #clean up
+        del tv
+        del values
+        del timeArray
+        del time_matrix0
+        del nRemaining
+        del x0
+        del idxOver95
+        del intervals
+        del intervals_reshaped
+        del tau
+        del sigma
+        del sigma_bis
+        del steps
+        del mu
+        del rs
+        del tr
 
         return t,v
 
@@ -120,7 +151,7 @@ def fixDataInterval(data, interval):
         mu = df[col+'_mu']
         start = df[col]
         sigma = df[col+'_sigma']
-        records = df['timediff'] / pd.to_timedelta(interval)
+        records = df['timediff'] / pd.to_timedelta(interval) #records is the number (integer) of values missing between values. We add 1 so intervals are nto missed
         timestep = pd.Timedelta(interval).seconds
         #handle memory error exceptions by working with smaller subsets
         try:
@@ -132,26 +163,33 @@ def fixDataInterval(data, interval):
         return
         #steps is an array of timesteps in seconds with length = max(records)
 
-
-
-    for idx in range(len(data.fixed)):
+    broadCastProgress(0)
+    broadCastProgress(1)
+    #these globals get used in fixDataFrameInterval
+    loads = data.loads
+    powerComponents = data.powerComponents
+    eColumns = data.eColumns
+    def fixDataFrameInterval(data,interval):
+        '''data is a dataframe
+        interval is a timedelta interval'''
         # df contains the non-upsampled records. Means and standard deviation come from non-upsampled data.
-        df = data.fixed[idx].copy()
-
+        df = data.copy()
+        print(data.head())
         # create a list of individual loads, total of power components and environmental measurements to fix interval on
         fixColumns = []
-        fixColumns.extend(data.loads)
-        fixColumns.extend(data.eColumns)
-        #if there are power components fix intervals based on total power and scale to each component
+        fixColumns.extend(loads)
+        fixColumns.extend(eColumns)
+        # if there are power components fix intervals based on total power and scale to each component
         if df['total_p'].first_valid_index() != None:
             fixColumns.append('total_p')
-
-        print('before upsamping dataframe is: %s' %len(data.fixed[idx]))
+        print('before upsampling dataframe is: %s' % len(data))
+        print(data.head())
         # up or down sample to our desired interval
         # down sampling results in averaged values
-        #this changes the size fo data.fixed[idx], so it no longer matches df rowcount.
-        data.fixed[idx] = data.fixed[idx].resample(pd.to_timedelta(interval[0])).mean()
-        print('after upsamping dataframe is: %s' % len(data.fixed[idx]))
+        # this changes the size fo data.fixed[idx], so it no longer matches df rowcount.
+        # we start with flooring - so a value 1 second past the desired interval will become the value
+        data = data.resample(pd.to_timedelta(interval)).mean()
+        broadCastProgress(1  * (1/3))
 
         for col in fixColumns:
             df0 = df[[col]].copy()
@@ -177,48 +215,69 @@ def fixDataInterval(data, interval):
 
             # get the total power mean and std
             # mean total power in 24 hour period
-            df0[col+'_mu'] = df0[col].rolling(steps1Day, 2).mean()
+            df0[col + '_mu'] = df0[col].rolling(steps1Day, 2).mean()
             # standard deviation
-            df0[col+'_sigma'] = df0[col].rolling(steps1Day, 2).std()
+            df0[col + '_sigma'] = df0[col].rolling(steps1Day, 2).std()
             # first records get filled with first valid values of mean and standard deviation
-            df0[col+'_mu'] = df0[col+'_mu'].bfill()
-            df0[col+'_sigma'] = df0[col+'_sigma'].bfill()
+            df0[col + '_mu'] = df0[col + '_mu'].bfill()
+            df0[col + '_sigma'] = df0[col + '_sigma'].bfill()
 
             # if the resampled dataframe is bigger fill in new values
-            if len(df0) < len(data.fixed[idx]):
+            # Timediff needs to be calculated to next na, not next record
+            if len(df0) < len(data):
 
                 # t is the time, k is the estimated value
-                t, k = estimateDistribution(df0, interval[idx], col)  # t is number of seconds since 1970
+                t, k = estimateDistribution(df0, interval, col)  # t is number of seconds since 1970
                 simulatedDf = pd.DataFrame({'time': t, 'value': k})
                 simulatedDf = simulatedDf.set_index(
                     pd.to_datetime(simulatedDf['time'] * 1e9))  # need to scale to nano seconds to make datanumber
                 simulatedDf = simulatedDf[~simulatedDf.index.duplicated(keep='last')]
+
                 # make sure timestamps for both df's are rounded to the same interval in order to join sucessfully
-                data.fixed[idx].index = data.fixed[idx].index.floor(interval[idx])
-                #make sure timezones match - can't join naive and nonnaive times
-                tz = data.fixed[idx].index.tzinfo
-                simulatedDf.index = simulatedDf.index.floor(interval[idx])
-                #.apply(lambda d: timeZone.localize(d, is_dst=useDST))
+                data.index = data.index.floor(interval)
+                # make sure timezones match - can't join naive and nonnaive times
+                tz = data.index.tzinfo
+                simulatedDf.index = simulatedDf.index.floor(interval)
+                # need to remove duplicate indices genereatd from flooring
+                simulatedDf = simulatedDf[~simulatedDf.index.duplicated(keep='first')]
+                # .apply(lambda d: timeZone.localize(d, is_dst=useDST))
                 simulatedDf.index = simulatedDf.index.tz_localize('UTC')
                 # join the simulated values to the upsampled dataframe by timestamp
-                data.fixed[idx] = data.fixed[idx].join(simulatedDf, how='left')
+                data = data.join(simulatedDf, how='left')
                 # fill na's for column with simulated values
-                data.fixed[idx].loc[pd.isnull(data.fixed[idx][col]), col] = data.fixed[idx]['value']
+                data.loc[pd.isnull(data[col]), col] = data['value']
 
                 # component values get calculated based on the proportion that they made up previously if we are working with total_p
                 if col == 'total_p':
-                    adj_m = data.fixed[idx][data.powerComponents].div(data.fixed[idx]['total_p'], axis=0)
+                    adj_m = data[powerComponents].div(data['total_p'], axis=0)
                     adj_m = adj_m.ffill()
-                    data.fixed[idx] = adj_m.multiply(data.fixed[idx]['total_p'], axis=0)
+                    data = adj_m.multiply(data['total_p'], axis=0)
+                    del adj_m
 
                 # get rid of columns added
-                data.fixed[idx] = data.fixed[idx].drop('value', 1)
-                data.fixed[idx] = data.fixed[idx].drop('time', 1)
+                data = data.drop('value', 1)
+                data = data.drop('time', 1)
+                print(data.head())
+                broadCastProgress(1)
+                del df0
+                del simulatedDf
+        del df
 
-    data.removeAnomolies(stdNum = 5)
+        return data
+
+    print(data.fixed[0].head())
+    try:
+        data.fixed = list(map(lambda x, y: fixDataFrameInterval(x, y), data.fixed,interval))
+    except MemoryError as m:
+        print(m)
+        print('attempting to loop through dataframes')
+        for i in range(0,len(data.fixed)):
+            data.fixed[i] = fixDataFrameInterval(data.fixed[i], interval[i])
+    print(data.fixed[0].head())
+
+    data.removeAnomolies(stdNum=5)
+    broadCastProgress(10)
     return data
-
-#TODO NotImplemented: chunk up processing of upsampling
 def handleMemory():
     """Not implemented yet.
     Prints current memory usage stats.

@@ -39,11 +39,11 @@ def readCsv(inputDict):
         # if the first row is not the header, look for it further down in the file
         for col in df.columns:
             a = df[col].astype(str)
-            a = a.str.replace('\s+', '_')
+            a = a.str.replace(r'\s+', '_')
             # get the matches for the column name
             idxMatch = a.index[a == inputDict['columnNames'][0]].tolist()
             if len(idxMatch) != 0:
-                df.columns = df.loc[idxMatch[0]].str.replace('\s+', '_')
+                df.columns = df.loc[idxMatch[0]].str.replace(r'\s+', '_')
                 gotHeader = True
                 break
         if gotHeader is False:

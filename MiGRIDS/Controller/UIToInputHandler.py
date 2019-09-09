@@ -4,9 +4,12 @@
 import os
 import pickle
 import pandas as pd
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets,QtCore
 from bs4 import BeautifulSoup
+
+
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
+from MiGRIDS.Controller.GenericSender import GenericSender
 from MiGRIDS.InputHandler.buildProjectSetup import buildProjectSetup
 from MiGRIDS.InputHandler.fillProjectData import fillProjectData
 from MiGRIDS.InputHandler.makeSoup import makeComponentSoup
@@ -16,10 +19,10 @@ from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 
-
-
-
 class UIToHandler():
+    def __init__(self):
+        self.sender = GenericSender() #used to send signals to pyqt objects
+
     #generates an setup xml file based on information in a ModelSetupInformation object
     #ModelSetupInformation -> None
     def makeSetup(self,setName):
@@ -180,7 +183,8 @@ class UIToHandler():
         inputDictionary['componentAttributes'], inputDictionary['componentNames'], inputDictionary['useNames'] = getUnits(Village, os.path.dirname(setupFile))
 
         # read time series data, combine with wind data if files are seperate.
-        df, listOfComponents = mergeInputs(inputDictionary)
+        #Pass our sendet to mergeInputs so it can send signals
+        df, listOfComponents = mergeInputs(inputDictionary,sender=self.sender)
 
         # check the timespan of the dataset. If its more than 1 year ask for / look for limiting dates
         minDate = min(df.index)
@@ -195,16 +199,19 @@ class UIToHandler():
                 #inputDictionary['runTimeSteps'] = [newdates.startDate.text(),newdates.endDate.text()]
                 inputDictionary['runTimeSteps'] = [pd.to_datetime(newdates.startDate.text()), pd.to_datetime(newdates.endDate.text())]
                 #TODO write to the setup file so can be archived
-        #TODO signal end of import beginning data fixing
+        self.sender.update(0,'fixing bad values')
         # now fix the bad data
-        df_fixed = fixBadData(df,os.path.dirname(setupFile),listOfComponents,inputDictionary['runTimeSteps'])
-
+        df_fixed = fixBadData(df,os.path.dirname(setupFile),listOfComponents,inputDictionary['runTimeSteps'],sender=self.sender)
+        self.sender.update(0, 'fixing intervals')
         # fix the intervals
         print('fixing data timestamp intervals to %s' %inputDictionary['outputInterval'])
-        df_fixed_interval = fixDataInterval(df_fixed, inputDictionary['outputInterval'])
+        df_fixed_interval = fixDataInterval(df_fixed, inputDictionary['outputInterval'],sender=self.sender)
         df_fixed_interval.preserve(os.path.dirname(setupFile))
+
         return df_fixed_interval, listOfComponents
 
+    def relayProgress(self,i):
+        self.notifyProgress.emit(i)
     class DatesDialog(QtWidgets.QDialog):
 
         def __init__(self,minDate,maxDate):

@@ -6,6 +6,8 @@ Created on Wed Jun  6 16:59:08 2018
 """
 
 import numpy as np
+
+from MiGRIDS.Controller.GenericSender import GenericSender
 from MiGRIDS.InputHandler.readDataFile import readDataFile
 import pandas as pd
 
@@ -14,17 +16,19 @@ import pandas as pd
 YEARSECONDS = 31536000 # seconds in a non-leap Year
 #reads input files and merges them into a single dataframe
 #input dictionary must contain a fileLocation attribute, fileType, headerNames, newHeaderNames, componentUnits,
-#Dictionary->DataFrame, List
+#Dictionary->DataFrame with datetime index, List of Component objects
 
 def avg_datetime(series):
     dt_min = series.min()
     return dt_min + (series - dt_min).mean()
 
-def mergeInputs(inputDictionary):
-
+def mergeInputs(inputDictionary,**kwargs):
+    sender = kwargs.get("sender")
     # iterate through all sets of input files
     for idx in range(len(inputDictionary['fileLocation'])):
-        
+        progress = round(((idx+1)/len(inputDictionary['fileLocation'])) * 10,0)
+        if sender:
+            sender.notifyProgress.emit(int(progress),'loading')
         df0, listOfComponents0 = readDataFile(singleLocation(inputDictionary,idx))
 
         # set index as DATE
@@ -42,7 +46,7 @@ def mergeInputs(inputDictionary):
             # concat, so that duplicate rows are combined and duplicate columns remain seperate
             df = pd.concat([df, df0], axis=1, join='outer')
             listOfComponents.extend(listOfComponents0)
-    
+
     # order by datetime
     # merge duplicate columns
     # get all column names
@@ -70,6 +74,7 @@ def mergeInputs(inputDictionary):
         allCol = np.array(df.columns)
         allCol.dtype = 'object'
 
+
     def uniqueList(startList,outList):
         if len(startList) <= 0:
             return outList
@@ -81,7 +86,6 @@ def mergeInputs(inputDictionary):
     l = uniqueList(listOfComponents,[])
 
 
-    #TODO update progress bar here
     return df, l
 
 def singleLocation(dict, position):
