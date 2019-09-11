@@ -246,6 +246,19 @@ class ProjectSQLiteHandler:
                      parameter text,
                      parameter_value text);""")
 
+        self.cursor.execute("DROP TABLE IF EXISTS set_")
+        self.cursor.executescript("""
+                               CREATE TABLE IF NOT EXISTS set_
+                               (_id integer primary key,
+                               project_id integer,
+                               set_name unique,
+                               date_start text,
+                               date_end text,
+                               timestepvalue integer,
+                               timestepunit text,
+                               runtimestepsvalue
+                               );""")
+
         self.cursor.execute("DROP TABLE IF EXISTS run")
         self.cursor.executescript("""
                 CREATE TABLE IF NOT EXISTS run
@@ -253,12 +266,13 @@ class ProjectSQLiteHandler:
                 set_id text,
                 run_name text);""")
 
+        #The setup table contains information used for reading in data files
+        #setup should only ever have 1 record with an _id = 1
         self.cursor.execute("DROP TABLE IF EXISTS setup")
         self.cursor.executescript("""
                         CREATE TABLE IF NOT EXISTS setup
                         (_id integer primary key,
                         project_id integer,
-                        set_name unique,
                         date_start text,
                         date_end text,
                         timestepvalue integer,
@@ -290,15 +304,15 @@ class ProjectSQLiteHandler:
     def clearTable(self,table):
         self.cursor.execute("Delete From " + table)
         self.connection.commit()
-    def getDateRange(self,setName):
+    def getSetupDateRange(self):
         '''
 
         :param setName: String name of the set to get date range for
         :return: start datetime object and end datetime object
         '''
         import datetime
-        start = self.cursor.execute("select date_start from setup where set_name = ?", [setName]).fetchone()
-        end = self.cursor.execute("select date_end from setup where set_name = ?", [setName]).fetchone()
+        start = self.cursor.execute("select date_start from setup").fetchone()
+        end = self.cursor.execute("select date_end from setup").fetchone()
 
         # format the tuples from database output to datetime objects
         if (start == None) | (start == (None,)):  # no date data in the database yet
@@ -312,8 +326,12 @@ class ProjectSQLiteHandler:
             end = datetime.datetime.strptime(end[0], '%Y-%m-%d')
         return start,end
 
-
-    def getSetInfo(self,setName='Set0'):
+    def insertFirstSet(self,dict):
+       self.insertDictionaryRow('set_',dict)
+    def insertAllComponents(self,setName):
+         self.cursor.execute("INSERT INTO set_components (set_id, component_id,tag) SELECT set_._id, component._id,'None' FROM component, set_ where set_.set_name = '" + setName + "'")
+         self.connection.commit()
+    def getSetInfo(self,setName = 'set0'):
         '''
         Creates a dictionary of setup information for a specific set, default is set 0 which is the base case
         :param setName: String name of the set to get information for
@@ -322,7 +340,7 @@ class ProjectSQLiteHandler:
         setDict = {}
 
         #get tuple for basic set info
-        values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end from setup join project on setup.project_id = project._id where lower(set_name) = '" + setName.lower() + "'").fetchone()
+        values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end from set_ join project on set_.project_id = project._id WHERE LOWER(set_name) = '" + setName.lower() + "'").fetchone()
         if values is not None:
             setDict['project name'] = values[0]
             setDict['timeStep.value'] = values[1]
@@ -338,8 +356,63 @@ class ProjectSQLiteHandler:
             #componentChannels has ordered lists for directories and the components they contain. A component can have data in more than one directory and file type, in which case it would
             #be listed more than once in componentChannels
             #We use a left join for input files to components so the input file directories will still get listed even if no components have been added
-            tempV = self.cursor.execute("SELECT * from component_files").fetchall()
-            tempc = self.cursor.execute("select * from component").fetchall()
+
+            values = self.cursor.execute(
+            "select group_concat(COALESCE(REPLACE(inputfiledirvalue,' ','_'),'None'),' '), group_concat(COALESCE(REPLACE(inputfiletypevalue,' ','_'),'None'),' '),group_concat(componentnamevalue,' '),"
+            "group_concat(REPLACE(headernamevalue,' ','_'), ' '),group_concat(REPLACE(componentattributevalue,' ',' '), ' '), group_concat(REPLACE(componentattributeunit,' ',' '), ' '),group_concat(COALESCE(REPLACE(datechannelvalue,' ','_'),'None'), ' '),group_concat(COALESCE(REPLACE(timechannelvalue,' ','_'),'None'),' '),"
+            "group_concat(COALESCE(REPLACE(datechannelformat,' ','_'),'None'), ' '),group_concat(COALESCE(REPLACE(timechannelformat,' ','_'),'None'), ' '), "
+            "group_concat(COALESCE(REPLACE(timezonevalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(usedstvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(inpututcoffsetvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(flexibleyearvalue,' ','_'),'None'), ' ') "
+            "from input_files Left JOIN "
+            "(select component._id as component_id, COALESCE(REPLACE(componentnamevalue,' ','_'),'None') as componentnamevalue from"
+            "LEFT JOIN component on component._id = component_files.component_id "
+            "Join set_components on component._id = set_components.component_id "
+            "Join setup on set_components.set_id = setup._id  where set_name = '" + setName + "' ORDER BY component_id) as components"
+            " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
+
+            if values is not None:
+                setDict['componentChannels.componentName.value']= values[2]
+                setDict['componentChannels.headerName.value'] = values[3]
+                setDict['componentChannels.componentAttribute.value'] = values[4]
+                setDict['componentChannels.componentAttribute.unit'] = values[5]
+                setDict['dateChannel.value']=values[6]
+                setDict['dateChannel.format'] = values[8]
+                setDict['timeChannel.value'] = values[7]
+                setDict['timeChannel.format'] = values[9]
+                setDict['timeZone.value'] =  values[10]
+                setDict['inputDST.value'] = values[11]
+                setDict['inputUTCOffset.unit']  ='hr'
+                setDict['inputUTCOffset.value']=values[12]
+                setDict['flexibleYear.value']=values[13]
+
+        else:
+            return None
+
+        return setDict
+
+    def getSetUpInfo(self):
+        '''
+        Creates a dictionary of setup information for a specific set, default is set 0 which is the base case
+        :return: dictionary of xml tags and values to be written to a setup.xml file
+        '''
+        setDict = {}
+
+        #get tuple for basic set info
+        testSet = self.cursor.execute("select project_id, timestepvalue, timestepunit, date_start, date_end from setup").fetchall()
+        values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end from setup join project on setup.project_id = project._id").fetchone()
+        if values is not None:
+            setDict['project name'] = values[0]
+            setDict['timeStep.value'] = values[1]
+            setDict['timeStep.unit']=values[2]
+            setDict['date_start'] = values[3]
+            setDict['date_end'] = values[4]
+            setDict['runTimeSteps.value'] = str(values[3]) + " " + str(values[4])
+            #as long as there was basic set up info look for component setup info
+            #componentNames is a list of distinct components, order does not matter
+            setDict['componentNames.value'] =  self.getComponentNames()
+
+            #componentChannels has ordered lists for directories and the components they contain. A component can have data in more than one directory and file type, in which case it would
+            #be listed more than once in componentChannels
+            #We use a left join for input files to components so the input file directories will still get listed even if no components have been added
             values = self.cursor.execute(
             "select group_concat(COALESCE(REPLACE(inputfiledirvalue,' ','_'),'None'),' '), group_concat(COALESCE(REPLACE(inputfiletypevalue,' ','_'),'None'),' '),group_concat(componentnamevalue,' '),"
             "group_concat(REPLACE(headernamevalue,' ','_'), ' '),group_concat(REPLACE(componentattributevalue,' ',' '), ' '), group_concat(REPLACE(componentattributeunit,' ',' '), ' '),group_concat(COALESCE(REPLACE(datechannelvalue,' ','_'),'None'), ' '),group_concat(COALESCE(REPLACE(timechannelvalue,' ','_'),'None'),' '),"
@@ -347,9 +420,7 @@ class ProjectSQLiteHandler:
             "group_concat(COALESCE(REPLACE(timezonevalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(usedstvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(inpututcoffsetvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(flexibleyearvalue,' ','_'),'None'), ' ') "
             "from input_files Left JOIN "
             "(select component._id as component_id, inputfile_id, COALESCE(REPLACE(componentnamevalue,' ','_'),'None') as componentnamevalue, COALESCE(REPLACE(headernamevalue,' ',' '),'None') as headernamevalue, COALESCE(REPLACE(componentattributevalue,' ','_'),'None') as componentattributevalue, COALESCE(componentattributeunit,'None') as componentattributeunit from component_files "
-            "LEFT JOIN component on component._id = component_files.component_id "
-            "Join set_components on component._id = set_components.component_id "
-            "Join setup on set_components.set_id = setup._id  where set_name = '" + setName + "' ORDER BY component_id) as components"
+            "LEFT JOIN component on component._id = component_files.component_id ORDER BY component_id ) as components"
             " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
 
             if values is not None:
@@ -504,8 +575,9 @@ class ProjectSQLiteHandler:
         def maxLength(dict):
             m = 0
             for k in dict.keys():
-                if len(dict[k]) > m:
-                    m = len(dict[k])
+                if isinstance(dict[k],list):
+                    if len(dict[k]) > m:
+                        m = len(dict[k])
             return m
 
         ml = maxLength(dict)
@@ -566,8 +638,19 @@ class ProjectSQLiteHandler:
         codes = (codes['code']).tolist()
 
         return codes
+    def getComponentNames(self,):
+        '''
+        returns a list of names for components in the set_components table. Defaults to set0
+        :param setName: String name of the set
+        :return: list of string component names
+        '''
 
-    def getComponentNames(self,setName = 'Set0'):
+        names = self.cursor.execute("select componentnamevalue from component").fetchall()
+        if len(names) >0:
+            names = [''.join(i) for i in names if i is not None]
+            return pd.Series(names).tolist()
+        return []
+    def getSetComponentNames(self, setName ='Set0'):
         '''
         returns a list of names for components in the set_components table. Defaults to set0
         :param setName: String name of the set
@@ -575,13 +658,13 @@ class ProjectSQLiteHandler:
         '''
 
         names = self.cursor.execute("select componentnamevalue from component JOIN set_components on component._id = set_components.component_id where "
-                                    " set_id = (SELECT set_id from setup where set_name = '" + setName + "')").fetchall()
+                                    " set_id = (SELECT _id from set_ where set_name = '" + setName + "')").fetchall()
         if len(names) >0:
             names = [''.join(i) for i in names if i is not None]
             return pd.Series(names).tolist()
         return []
 
-    def updateSetupInfo(self, setupDict, setName):
+    def updateSetupInfo(self, setupDict):
         '''
         Updates the database setup tables with information from the setup.xml file
         The setup file is a mesh of both input handler information and model run information.
@@ -602,8 +685,8 @@ class ProjectSQLiteHandler:
             startdate = None
             enddate = None
 
-        setId = self.insertRecord('setup',['timestepunit','timestepvalue','runtimestepsvalue','date_start','date_end','set_name','project_id'],
-                          [setupDict['timeStep.unit'],setupDict['timeStep.value'],setupDict['runTimeSteps.value'],startdate,enddate,setName,pid])
+        setId = self.insertRecord('setup',['timestepunit','timestepvalue','runtimestepsvalue','date_start','date_end','project_id'],
+                          [setupDict['timeStep.unit'],setupDict['timeStep.value'],setupDict['runTimeSteps.value'],startdate,enddate,pid])
 
         #update input handler infomation
         #this information is in the form of space delimited ordered lists that require parsing and are used by the input handler
@@ -738,8 +821,6 @@ class ProjectSQLiteHandler:
 
         idlist = self.insertDictionaryRow('component',
                                           components)  # duplicate components should fail here, but list will still be original length
-        for i in idlist:
-            self.insertRecord('set_components', ['set_id', 'component_id', 'tag'], [setID, i, 'None'])
         return idlist
 
     def swapComponentNamesOnly(self, setupDict):

@@ -100,10 +100,10 @@ class ProjectSQLiteHandlerTest(unittest.TestCase):
 
     def test_getSetInfo(self):
         #test on empty database
-        mydict = self.handler.getSetInfo()
+        mydict = self.handler.getSetUpInfo()
         self.assertEqual(mydict, None)
         self.insertTestData()
-        mydict = self.handler.getSetInfo('Set0')
+        mydict = self.handler.getSetUpInfo('Set0')
         print(mydict)
         self.assertEqual(mydict['inputFileType'],'CSV CSV MET')
         self.assertEqual(mydict['componentNames'], 'load0 wtg0')
@@ -115,8 +115,8 @@ class ProjectSQLiteHandlerTest(unittest.TestCase):
     def test_updateRecord(self):
         self.insertTestData()
         self.handler.updateRecord('setup',['set_name'],['Set0'],['date_start','date_end'],['3','5'])
-        self.assertEqual(self.handler.getSetInfo()['date_start'],'3')
-        self.assertEqual(self.handler.getSetInfo()['date_end'],'5')
+        self.assertEqual(self.handler.getSetUpInfo()['date_start'], '3')
+        self.assertEqual(self.handler.getSetUpInfo()['date_end'], '5')
 
     def test_getComponentType(self):
         self.assertEqual(self.handler.getTypeCount('ees'),0)
@@ -128,10 +128,10 @@ class ProjectSQLiteHandlerTest(unittest.TestCase):
         self.insertTestData()
         #update component that doesnt exist
         self.handler.updateComponent({'componentnamevalue': 'wtg1', 'componentattributevalue': 'P'})
-        self.assertEqual(self.handler.getSetInfo()['componentChannels.componentAttribute.value'], 'P P WS')
+        self.assertEqual(self.handler.getSetUpInfo()['componentChannels.componentAttribute.value'], 'P P WS')
         #update component that does exist
         self.handler.updateComponent({'componentnamevalue': 'wtg0', 'componentattributevalue': 'P'})
-        self.assertEqual(self.handler.getSetInfo()['componentChannels.componentAttribute.value'],'P P P')
+        self.assertEqual(self.handler.getSetUpInfo()['componentChannels.componentAttribute.value'], 'P P P')
 
     def test_insertDictionaryRow(self):
         #insert 1 row of data and id should be 1
@@ -175,8 +175,8 @@ class ProjectSQLiteHandlerTest(unittest.TestCase):
         myDict = getSetupInformation(setupxml)
         self.handler.updateSetupInfo(myDict,'Set0')
         self.assertEqual(self.handler.getProject(),'SampleProject')
-        self.assertEqual(self.handler.getSetInfo()['componentChannels.componentAttribute.value'], 'P P WS')
-        self.assertEqual(self.handler.getSetInfo()['componentNames'],'load0 wtg0')
+        self.assertEqual(self.handler.getSetUpInfo()['componentChannels.componentAttribute.value'], 'P P WS')
+        self.assertEqual(self.handler.getSetUpInfo()['componentNames'], 'load0 wtg0')
 
     def test_addComponentsToSet(self):
         self.insertTestData()

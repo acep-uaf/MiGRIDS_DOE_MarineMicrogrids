@@ -25,13 +25,14 @@ class UIToHandler():
 
     #generates an setup xml file based on information in a ModelSetupInformation object
     #ModelSetupInformation -> None
-    def makeSetup(self,setName):
+    def makeSetup(self):
        # write the information to a setup xml
         # create a mostly blank xml setup file, componentNames is a SetupTag class so we need the value
         dbhandler=ProjectSQLiteHandler()
         project = dbhandler.getProject()
         setupFolder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', project, 'InputData','Setup'])
-        components = dbhandler.getComponentNames(setName)
+        #components are all possible components
+        components = dbhandler.getComponentNames()
         buildProjectSetup(project, setupFolder,components)
         #fill in project data into the setup xml and create descriptor xmls if they don't exist
         fillProjectData()
@@ -380,7 +381,7 @@ class UIToHandler():
         #setupInfo is a dictionary of setup tags and values to be inserted into the database
         setupInfo = getSetupInformation(setupFile)
         dbhandler = ProjectSQLiteHandler()
-        dbhandler.updateSetupInfo(setupInfo,setName)
+        dbhandler.updateSetupInfo(setupInfo)
         return setupInfo
 
 

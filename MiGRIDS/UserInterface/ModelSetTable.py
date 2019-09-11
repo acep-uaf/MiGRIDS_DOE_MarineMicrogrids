@@ -3,12 +3,21 @@ from enum import Enum
 from MiGRIDS.UserInterface.Delegates import TextDelegate, ComboDelegate
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 
-class SetFields(Enum):
+class SetComponentFields(Enum):
     _id=0
     set_id =1
     component_id = 2
     tag = 3
     value = 4
+
+class SetFields(Enum):
+    _id=0,
+    project_id=1
+    set_name=2
+    date_start=3
+    date_end=4
+    timestepvalue=5
+    timestepunit=6
 
 #subclass of QTableView for displaying set information
 class SetTableView(QtWidgets.QTableView):
@@ -45,7 +54,7 @@ class SetTableModel(QtSql.QSqlTableModel):
         self.tabName = "Set " + str(self.tabPosition)
         self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         #the set table gets filtered to only show records for that set
-        self.setFilter('set_id = ' + str(handler.getId('setup','set_name',parent.set)))
+        self.setFilter('set_id = ' + str(handler.getId('set_','set_name',parent.set)))
         self.select()
 
 

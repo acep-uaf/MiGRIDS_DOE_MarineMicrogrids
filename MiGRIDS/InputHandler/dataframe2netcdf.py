@@ -48,8 +48,8 @@ def dataframe2netcdf(df,components,saveLocation=''):
             # assign attributes
             rootgrp.variables['time'].units = 'seconds'  # set unit attribute
             rootgrp.variables['value'].units = components[component]['units'] # set unit attribute
-            rootgrp.variables['value'].Scale = get(components[component]['scale'],1) # set unit attribute
-            rootgrp.variables['value'].offset = get(components[component]['offset'],0)  # set unit attribute
+            rootgrp.variables['value'].Scale = get(components[component]['scale'],1) # set scale attribute
+            rootgrp.variables['value'].offset = get(components[component]['offset'],0)  # set offset attribute
             # close file
             rootgrp.close()
             netCDFList.append(ncName)

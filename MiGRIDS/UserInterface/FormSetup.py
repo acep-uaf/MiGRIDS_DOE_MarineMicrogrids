@@ -393,27 +393,27 @@ class FormSetup(QtWidgets.QWidget):
         projectPath = self.assignProjectPath(self.WizardTree.field('project'))
         if self.procedeToSetup():
             project_id = self.dbhandler.insertRecord("project",['project_name','project_path'],[self.WizardTree.field('project'),projectPath])
-            set_id = self.dbhandler.insertRecord("setup",['project_id','set_name','timestepvalue','timestepunit','date_start','date_end'],[project_id,BASESET,self.WizardTree.field('timestepvalue'),self.WizardTree.field('timestepunit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
-            if set_id == -1: #record was not inserted, try updating
-                self.dbhandler.updateRecord("setup","set_name",BASESET,['project_id','timestepvalue','timestepunit','date_start','date_end','runtimestepvalue'],
+            _id = self.dbhandler.insertRecord("setup",['_id','project_id','timestepvalue','timestepunit','date_start','date_end'],[project_id,1,self.WizardTree.field('timestepvalue'),self.WizardTree.field('timestepunit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
+            if _id == -1: #record was not inserted, try updating
+                self.dbhandler.updateRecord("setup","_id",1,['project_id','timestepvalue','timestepunit','date_start','date_end','runtimestepvalue'],
                                        [project_id,  self.WizardTree.field('timestepvalue'),
                                         self.WizardTree.field('timestepunit'), self.WizardTree.field('sdate'),
                                         self.WizardTree.field('edate'), str.join(" ",[self.WizardTree.field('sdate'),
                                         self.WizardTree.field('edate')])])
-                set_id = self.dbhandler.getId('setup','set_name',BASESET)
+                _id = self.dbhandler.getId('setup','_id',1)
             lot = self.dbhandler.getComponentTypes()
             for t in lot:
                 cnt = self.WizardTree.field(t[0]+'count')
                 for i in range(0,cnt):
                     comp_id = self.dbhandler.insertRecord('component',['componentnamevalue','componenttype'],[t[0] + str(i),t[0]])
-                    self.dbhandler.insertRecord('set_components',['component_id','set_id','tag'],[comp_id,set_id,None])
+                    #self.dbhandler.insertRecord('set_components',['component_id','set_id','tag'],[comp_id,_id,None])
                     #the delegate for componentname in the component table should also be updated
                     if comp_id != -1:
                         loFileBlock = self.findChildren(FileBlock)
                         for f in loFileBlock:
                            f.updateComponentNameList()
 
-            self.uihandler.makeSetup(BASESET)
+            self.uihandler.makeSetup()
             self.WizardTree.close()
         return
 
@@ -428,7 +428,7 @@ class FormSetup(QtWidgets.QWidget):
 
         # start with the setupxml
 
-        self.uihandler.makeSetup(BASESET)
+        self.uihandler.makeSetup()
         if not self.setupValid():
             #if required fields are not filled in return to setup page.
             self.showAlert("Missing Required Fields",
@@ -496,7 +496,7 @@ class FormSetup(QtWidgets.QWidget):
         import pandas as pd
         #each dataframe needs a datetime index
         for df in data.fixed:
-            print(type(df.index[0]))
+
             assert((type(df.index[0])==pd.Timestamp) | (type(df.index[0])==pd.datetime))
 
         def getDefaults(listDf,defaultStart=pd.to_datetime("1/1/1900").date(), defaultEnd = pd.datetime.today().date()):
@@ -524,14 +524,22 @@ class FormSetup(QtWidgets.QWidget):
         #default start is the first date there is record for
         values = {}
         values['date_start'], values['date_end'] = getDefaults(data.fixed)
-        values['component_names'] = self.dbhandler.getComponentNames(BASESET)
+        values['date_start'] = [values['date_start']]
+        values['date_end'] = [values['date_end']]
+        values['set_name'] = ['set0']
+        info = self.dbhandler.getSetUpInfo()
+        values['timestepvalue']=[info['timeStep.value']]
+        values['timestepunit']=[info['timeStep.unit']]
+        values['project_id'] = [1] #always 1, only 1 project per database
 
-        #self.dbhandler.updateDefaultSetup(values)
+        self.dbhandler.insertFirstSet(values)
+
+        self.dbhandler.insertAllComponents('set0')
 
         # Deliver appropriate info to the ModelForm
         modelForm = self.window().findChild(SetsTableBlock)
-        # start and end are tuples at this point
-        modelForm.makeSetInfo(start=values['date_start'], end=values['date_end'], components=values['component_names'])
+
+        modelForm.updateForm()
 
         #deliver the data to the ResultsSetup form so it can be plotted
         resultsForm = self.window().findChild(ResultsSetup)
@@ -545,13 +553,13 @@ class FormSetup(QtWidgets.QWidget):
             #self.sendSetupInputToModel()
             # on close save the xml files
 
-            self.uihandler.makeSetup(BASESET) #The setup form always contains information for set0
+            self.uihandler.makeSetup() #The setup form always contains information for set0
             self.dbhandler.closeDatabase
         #close the fileblocks
         for i in range(self.tabs.count()):
             page = self.tabs.widget(i)
             page.close()
-    #TODO add progress bar for uploading raw data and generating fixed data pickle
+
     def addProgressBar(self):
         self.progressBar = QtWidgets.QProgressBar(self)
         self.progressBar.setObjectName('progresBar')
@@ -686,10 +694,10 @@ class FormSetup(QtWidgets.QWidget):
 
         self.loadSetup(setupFile)
         return True
-
+    #pyqt slot
     def gotData(self,data):
         self.inputData = data
-
+    #pyqt slot
     def gotComponents(self,loc):
         self.components = loc
 
@@ -788,9 +796,9 @@ class TwoDatesDialog(WizardPage):
         self.registerField('edate',self.endDate,"text")
         try:
             #if the setup info has already been set dates will be in the database table set
-            print(handler.getFieldValue('setup', 'date_start', 'set_name', BASESET))
-            self.startDate.setDate(QtCore.QDate.fromString(handler.getFieldValue('setup', 'date_start', 'set_name', BASESET),"yyyy-MM-dd"))
-            self.endDate.setDate(QtCore.QDate.fromString(handler.getFieldValue('setup', 'date_end', 'set_name', BASESET),"yyyy-MM-dd"))
+            print(handler.getFieldValue('setup', 'date_start', '_id',1))
+            self.startDate.setDate(QtCore.QDate.fromString(handler.getFieldValue('setup', 'date_start', '_id', 1),"yyyy-MM-dd"))
+            self.endDate.setDate(QtCore.QDate.fromString(handler.getFieldValue('setup', 'date_end',  '-id', 1),"yyyy-MM-dd"))
         except AttributeError as a:
             print(a)
         except TypeError as a:
@@ -843,8 +851,8 @@ class TextWithDropDown(WizardPage):
         self.registerField('timestepunit',self.combo,"currentText")
         try:
             #if the setup info has already been set dates will be in the database table set
-            self.textInput.setText(handler.getFieldValue('setup', 'timestepvalue', 'set_name', BASESET))
-            self.combo.setCurrentText(handler.getFieldValue('setup', 'timestepunit', 'set_name', BASESET))
+            self.textInput.setText(handler.getFieldValue('setup', 'timestepvalue', '_id', 1))
+            self.combo.setCurrentText(handler.getFieldValue('setup', 'timestepunit', '_id', 1))
         except AttributeError as a:
             print(a)
         return grp

@@ -22,6 +22,7 @@ class DataClass:
              
             #self.fixed is a list of dataframes derived from raw_df split whenever a gap in data greater than maxmissing occurs           
             self.fixed = []
+            self.badDataDict = {}
             #df is a single dataframe converted from raw_df
             #once cleaned and split into relevent dataframes it will become fixed
             self.df = pd.DataFrame(raw_df.copy(), raw_df.index, raw_df.columns)
@@ -40,11 +41,11 @@ class DataClass:
         
         #self.timeInterval = sampleInterval
         self.powerComponents = []
-        self.ecolumns = []
+        self.Columns = []
         #runTimeSteps is a list of dates that indicate the portion of the dataframe to fix and include in analysis
         self.runTimeSteps = runTimeSteps
         self.maxMissing = maxMissing
-        self.baddata = {}
+
         return
     def getattribute(self, a):
         return self.__getattribute__(a)
@@ -206,7 +207,8 @@ class DataClass:
             cuts.sort()
             print("%s groups of missing or inline data discovered for component named %s" %(len(groups), column) )  
         df_to_fix = doReplaceData(groups, df_to_fix.loc[pd.notnull(df_to_fix[column])], cuts,df.loc[pd.notnull(df[column])])
-        badDictAdd(column, self.badDataDict, '2.Offline',
+        if len(df_to_fix[column][pd.isnull(df_to_fix[column])].index.tolist()) > 0:
+            badDictAdd(column, self.badDataDict, '2.Offline',
                    df_to_fix[column][pd.isnull(df_to_fix[column])].index.tolist())
         return df_to_fix.loc[pd.notnull(df_to_fix[column]),columnsToReplace]    
      
@@ -256,7 +258,7 @@ class DataClass:
     def logBadData(self,folder):
         #write the baddata log
         f = open(os.path.join(folder,"BadDataLog.txt"), "w")
-        f.write(str(dict))
+        f.write(str(self.badDataDict))
         f.close()
 
         return

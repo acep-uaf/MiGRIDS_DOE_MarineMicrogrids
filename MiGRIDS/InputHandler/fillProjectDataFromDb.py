@@ -25,7 +25,7 @@ def fillProjectDataFromDb():
                                     *['..', '..', 'MiGRIDSProjects', dbhandler.getProject(), 'InputData', 'Setup'])
 
     #each field in the setup table gets an xml tag that matches the setup.xml file
-    generalSetupInfo = dbhandler.getSetInfo('Set0')
+    generalSetupInfo = dbhandler.getSetUpInfo()
     if generalSetupInfo != None:
         for k in generalSetupInfo.keys():  # for each key in the model attributes
             tags = k.split('.')

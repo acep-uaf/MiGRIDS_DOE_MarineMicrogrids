@@ -103,70 +103,6 @@ def readWindData(inputDict):
                     'Units':h[oc]['Units']}
         return combinedHeader
 
-    # a data class for estimating and storing windspeed data collected at intervals
-    class windRecord():
-        def __init__(self, sigma=25, mu=250, minws = 0, maxws = 20, datetime = None):
-            self.sigma = sigma
-            self.mu = mu
-            self.distribution = None
-            self.minws = minws
-            self.maxws = maxws
-            self.datetime = datetime
-
-
-        def getDatetime(self):
-            return self.datetime
-
-        #finds the previous value based on timestamp
-        def getStart(self, duration, df):
-            #find the wind record immediately prior to current windrecord
-            previousrecordtime = self.getDatetime() - duration
-            sorteddf = df.sort_values('time')
-            myvalue = sorteddf['values'][sorteddf['time'] < previousrecordtime][-1:]
-            if len(myvalue) > 1:
-                myvalue = myvalue[0]
-            elif len(myvalue) == 0:
-                myvalue = None
-            return myvalue
-
-        #self, integer, numeric,string, integer
-        def getValues(self, elapsed_time, start,interval, tau = None):
-            mu = self.mu
-            sigma = self.sigma
-            timestep = pd.Timedelta(interval).seconds
-
-            #number of records to estimate
-            n = int(elapsed_time/timestep)
-
-            #tau scales the relationship between time and change in value of x
-            #larger values result in larger drift and diffusion
-            if tau is None:
-                tau = n
-
-            x = np.zeros(n)
-            #renormalized variables
-            sigma_bis = sigma * np.sqrt(2.0 /n)
-            sqrtdt = np.sqrt(timestep)
-
-            x[0] = start
-            #np.random is the random gaussian with mean 0
-            for i in range(n-1):
-                x[i+1] = x[i] + timestep*(-(x[i]-mu)/tau) + sigma_bis * sqrtdt * np.random.randn()
-
-            return x
-
-
-        def estimateDistribution(self, records,interval, start = None, tau = None):
-           if start is None:
-               start = self.minws
-           tau = records
-           x = self.getValues(records, start, interval, tau)
-
-           t = pd.date_range(self.datetime - pd.to_timedelta(pd.Timedelta(interval).seconds * records, unit='s'), periods=records,freq='s')
-           self.distribution = [x,t]
-           return
-
-
 
     #a dictionary of files that are read
     fileDict = {}
@@ -261,7 +197,7 @@ def readWindData(inputDict):
 
             newdf['date'] = pd.to_datetime(newdf.index)
             #turn the df records into windrecords
-            ListOfWindRecords = newdf.apply(lambda x: windRecord(x['SD'], x['Avg'], x['Min'], x['Max'], x['date']), 1)
+            ListOfWindRecords = newdf.apply(lambda x: WindRecord(x['SD'], x['Avg'], x['Min'], x['Max'], x['date']), 1)
             logging.info(len(ListOfWindRecords))
             #k is a list of values for each 10 minute interval
             recordCount = 0
@@ -300,3 +236,66 @@ def readWindData(inputDict):
     winddf = processInputDataFrame(inputDict)
    
     return fileDict, winddf
+
+# a data class for estimating and storing windspeed data collected at intervals
+class WindRecord():
+    def __init__(self, sigma=25, mu=250, minws = 0, maxws = 20, datetime = None):
+        self.sigma = sigma
+        self.mu = mu
+        self.distribution = None
+        self.minws = minws
+        self.maxws = maxws
+        self.datetime = datetime
+
+
+    def getDatetime(self):
+        return self.datetime
+
+    #finds the previous value based on timestamp
+    def getStart(self, duration, df):
+        #find the wind record immediately prior to current windrecord
+        previousrecordtime = self.getDatetime() - duration
+        sorteddf = df.sort_values('time')
+        myvalue = sorteddf['values'][sorteddf['time'] < previousrecordtime][-1:]
+        if len(myvalue) > 1:
+            myvalue = myvalue[0]
+        elif len(myvalue) == 0:
+            myvalue = None
+        return myvalue
+
+    #self, integer, numeric,string, integer
+    def getValues(self, elapsed_time, start,interval, tau = None):
+        mu = self.mu
+        sigma = self.sigma
+        timestep = pd.Timedelta(interval).seconds
+
+        #number of records to estimate
+        n = int(elapsed_time/timestep)
+
+        #tau scales the relationship between time and change in value of x
+        #larger values result in larger drift and diffusion
+        if tau is None:
+            tau = n
+
+        x = np.zeros(n)
+        #renormalized variables
+        sigma_bis = sigma * np.sqrt(2.0 /n)
+        sqrtdt = np.sqrt(timestep)
+
+        x[0] = start
+        #np.random is the random gaussian with mean 0
+        for i in range(n-1):
+            x[i+1] = x[i] + timestep*(-(x[i]-mu)/tau) + sigma_bis * sqrtdt * np.random.randn()
+
+        return x
+
+
+    def estimateDistribution(self, records,interval, start = None, tau = None):
+       if start is None:
+           start = self.minws
+       tau = records
+       x = self.getValues(records, start, interval, tau)
+
+       t = pd.date_range(self.datetime - pd.to_timedelta(pd.Timedelta(interval).seconds * records, unit='s'), periods=records,freq='s')
+       self.distribution = [x,t]
+       return

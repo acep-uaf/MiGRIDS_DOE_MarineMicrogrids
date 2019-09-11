@@ -1,5 +1,5 @@
 #Form for display model run parameters
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtWidgets, QtCore, QtGui, QtSql
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.TableHandler import TableHandler
 from MiGRIDS.UserInterface.ModelSetTable import SetTableModel, SetTableView
@@ -11,6 +11,9 @@ import datetime
 import os
 
 #main form containing setup and run information for a project
+from MiGRIDS.UserInterface.qdateFromString import qdateFromString
+
+
 class FormModelRun(QtWidgets.QWidget):
     handler = ProjectSQLiteHandler()
     def __init__(self, parent):
@@ -87,6 +90,7 @@ class FormModelRun(QtWidgets.QWidget):
 
 
 #the set table shows components to include in the set and attributes to change for runs
+#This widget is the main windget for each set tab on the model tab.
 class SetsTableBlock(QtWidgets.QGroupBox):
     def __init__(self, parent, set):
         super().__init__(parent)
@@ -94,6 +98,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
 
     def init(self, set):
         self.componentDefault = []
+        self.dbhandler = ProjectSQLiteHandler()
         self.set = set #set is an integer
         self.setName = "Set" + str(self.set) #set name is a string with a prefix
         self.tabName = "Set " + str(self.set)
@@ -103,7 +108,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         #setup info for a set
 
         self.setInfo = self.makeSetInfo()
-        tableGroup.addWidget(self.setInfo)
+        tableGroup.addWidget(self.infoBox)
 
         #buttons for adding and deleting set records
         tableGroup.addWidget(self.dataButtons('sets'))
@@ -132,6 +137,16 @@ class SetsTableBlock(QtWidgets.QGroupBox):
     #fill form with existing data
     def fillData(self,set):
        return
+
+    def updateForm(self):
+        record = self.mapper.currentIndex()
+        self.setModel.select()
+        rcount = self.setModel.rowCount()
+        self.mapper.toLast()
+        myRecords = self.dbhandler.getAllRecords('set_')
+        self.setModel.submit()
+        record = self.mapper.currentIndex()
+        print(myRecords)
 
     #sets the start and end date range based on available dataset.
     #if no values are provided the values are drawn from the database
@@ -164,7 +179,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         :return:
         '''
         handler = ProjectSQLiteHandler()
-        start, end = handler.getDateRange(setName)
+        start, end = handler.getSetupDateRange(setName)
         self.startDate = start
         self.endDate = end
         return
@@ -172,14 +187,20 @@ class SetsTableBlock(QtWidgets.QGroupBox):
     def onClick(self, buttonFunction):
         buttonFunction()
 
-    def makeSetInfo(self, **kwargs):
+    def makeSetInfo(self):
         '''
         Creates the input form for fields needed to create and run a model set
         :param kwargs: String set can be passed as a keyword argument which refers to the setname in the project_manager database tble setup
         :return: QtWidgets.QGroupbox input fields for a model set
         '''
-        set = kwargs.get("set")
+        self.infoBox = self.makeSetLayout()
+        self.setModel = self.makeSetModel()
+        self.mapWidgets()
 
+        return
+    def updateModel(self):
+        self.setModel.select()
+    def makeSetLayout(self):
         infoBox = QtWidgets.QGroupBox()
         infoRow = QtWidgets.QHBoxLayout()
         # time range filters
@@ -189,19 +210,52 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         infoRow.addWidget(QtWidgets.QLabel(' to '))
         de = self.makeDateSelector(False)
         infoRow.addWidget(de)
-
         infoRow.addWidget(QtWidgets.QLabel('Timestep:'))
         timestepWidget = QtWidgets.QLineEdit('1')
-        timestepWidget.setObjectName(('timestep'))
+        timestepWidget.setObjectName(('timestepvalue'))
         timestepWidget.setValidator(QtGui.QIntValidator())
-
         infoRow.addWidget(timestepWidget)
-        infoRow.addWidget(QtWidgets.QLabel('Seconds'),1)
+        infoRow.addWidget(QtWidgets.QLabel('Seconds'), 1)
         infoRow.addWidget(QtWidgets.QLabel('Components'))
-        infoRow.addWidget(self.componentSelector(),2)
+        infoRow.addWidget(self.componentSelector(), 2)
         infoBox.setLayout(infoRow)
-
         return infoBox
+
+    def mapWidgets(self):
+        '''
+        create a widget mapper object to tie fields to data in database tables
+        :return:
+        '''
+        # map model to fields
+        self.mapper = QtWidgets.QDataWidgetMapper()
+        self.mapper.setModel(self.setModel)
+        self.mapper.setItemDelegate(QtSql.QSqlRelationalDelegate())
+
+        # map the widgets we created with our dictionary to fields in the sql table
+        for i in range(0, self.setModel.columnCount()):
+            if self.infoBox.findChild(QtWidgets.QWidget, self.setModel.record().fieldName(i)) != None:
+                wid = self.infoBox.findChild(QtWidgets.QWidget, self.setModel.record().fieldName(i))
+                self.mapper.addMapping(wid, i)
+                if isinstance(wid,QtWidgets.QDateEdit):
+                    wid.setDate(qdateFromString(self.setModel.data(self.setModel.index(0,i))))
+
+        # submit data changes automatically on field changes -this doesn't work
+        self.mapper.setSubmitPolicy(QtWidgets.QDataWidgetMapper.AutoSubmit)
+        self.mapper.toFirst()
+        return
+
+
+    def makeSetModel(self):
+        # set model
+        infoRowModel = QtSql.QSqlRelationalTableModel()
+        infoRowModel.setTable("set_")
+        parent = QtCore.QModelIndex()
+        infoRowModel.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
+        infoRowModel.select();
+        infoRowModel.setFilter('set_._id = ' + str(self.set +1))
+        infoRowModel.select()
+        infoRowModel.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
+        return infoRowModel
 
     #->QtWidgets.QLineEdit
     def componentSelector(self,**kwargs):
@@ -220,11 +274,11 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         return widg
     #fills the setup portion of a set tab with either default values or current database values
     #String -> None
-    def fillSetInfo(self, set = 'set0'):
+    def fillSetInfo(self,setName = '0'):
 
         databaseHandler = ProjectSQLiteHandler()
         # dictionary of set info
-        setInfo = databaseHandler.getSetInfo(self.setName)
+        setInfo = databaseHandler.getSetInfo('set' + str(setName))
         if setInfo != None:
             if type(setInfo['componentNames.value']) == str:
                 self.componentDefault = setInfo['componentNames.value'].split(',')
@@ -280,9 +334,11 @@ class SetsTableBlock(QtWidgets.QGroupBox):
     def makeDateSelector(self, start=True):
         widg = QtWidgets.QDateEdit()
         if start:
-            widg.setObjectName('startDate')
+            widg.setObjectName('date_start')
         else:
-            widg.setObjectName('endDate')
+            widg.setObjectName('date_end')
+        widg.setDisplayFormat('yyyy-MM-dd')
+        widg.setCalendarPopup(True)
         return widg
 
     #QDateEdit, Boolean -> QDateEdit()
@@ -328,9 +384,9 @@ class SetsTableBlock(QtWidgets.QGroupBox):
 
         dbhandler = ProjectSQLiteHandler()
         try:
-            dbhandler.insertRecord('setup',['set_name', 'date_start', 'date_end', 'timestepvalue','timestepunit'],values)
+            dbhandler.insertRecord('set_',['set_name', 'date_start', 'date_end', 'timestepvalue','timestepunit'],values)
         except:
-            dbhandler.updateRecord('setup',['set_name'],currentSet,['date_start', 'date_end', 'timestepvalue','timestepunit'], values[1:])
+            dbhandler.updateRecord('set_',['set_name'],currentSet,['date_start', 'date_end', 'timestepvalue','timestepunit'], values[1:])
         dbhandler.addComponentsToSet(self.findChild(QtWidgets.QLineEdit,'componentNames').text().split(","))
 
         uihandler = UIToHandler()

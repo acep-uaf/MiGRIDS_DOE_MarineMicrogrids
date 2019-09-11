@@ -31,6 +31,7 @@ class FileBlock(QtWidgets.QGroupBox):
 
     # creates a single form for entering individual file type information
     def init(self, tabPosition):
+        self.dbhandler = ProjectSQLiteHandler()
         self.tabPosition = tabPosition
         self.tabName = "Input " + str(self.tabPosition)
         windowLayout = self.createFileTab()
@@ -44,7 +45,7 @@ class FileBlock(QtWidgets.QGroupBox):
         print("flash: " + str(msg))
 
     def createFileTab(self):
-        self.dbhandler = ProjectSQLiteHandler()
+
         #print(self.dbhandler.getDataTypeCodes())
         windowLayout = QtWidgets.QVBoxLayout()
         self.createTopBlock('Setup',self.assignFileBlock)
