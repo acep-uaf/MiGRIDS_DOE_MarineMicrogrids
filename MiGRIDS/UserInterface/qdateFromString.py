@@ -2,12 +2,22 @@
 # Created by: # Created on: 9/10/2019
 # Purpose :  qdateFromString
 import datetime
+from PyQt5 import QtCore
+
 
 def qdateFromString(strDate):
     if type(strDate) == str:
-        realDate = datetime.datetime.strptime(strDate, '%Y-%m-%d')
+       return QtCore.QDate(asDate(strDate))
     elif type(strDate) == list:
-        realDate = datetime.datetime.strptime(strDate[0], '%Y-%m-%d')
+       return QtCore.QDate(asDate(strDate[0]))
     else:
-        realDate = datetime.datetime.today()
-    return realDate
+        return QtCore.QDate(datetime.datetime.today())
+
+
+def asDate(strDate):
+    try:
+        realDate = datetime.datetime.strptime(strDate, '%Y-%m-%d')
+    except ValueError as v:
+        realDate = datetime.datetime.strptime(strDate, '%Y-%m-%d %H:%M:%S')
+    finally:
+        return realDate

@@ -6,9 +6,12 @@ from MiGRIDS.UserInterface.ModelSetTable import SetTableModel, SetTableView
 from MiGRIDS.UserInterface.ModelRunTable import RunTableModel, RunTableView
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.Pages import Pages
+from MiGRIDS.UserInterface.DialogComponentList import ComponentSetListForm
 import datetime
 import os
+import pandas as pd
 
 #main form containing setup and run information for a project
 from MiGRIDS.UserInterface.qdateFromString import qdateFromString
@@ -139,24 +142,24 @@ class SetsTableBlock(QtWidgets.QGroupBox):
        return
 
     def updateForm(self):
-        record = self.mapper.currentIndex()
-        self.setModel.select()
-        rcount = self.setModel.rowCount()
-        self.mapper.toLast()
-        myRecords = self.dbhandler.getAllRecords('set_')
-        self.setModel.submit()
-        record = self.mapper.currentIndex()
-        print(myRecords)
+        self.setModel.select() #update the set data inputs
+        self.setValidators() #update the validators tied to inputs
+        self.mapper.toLast() #make sure the mapper is on the actual record (1 per tab)
+        self.setModel.submit() #submit any data that was changed
+        self.updateComponentLineEdit(self.dbhandler.getComponentNames()) # update the clickable line edit to show current components
+
+    def updateComponentLineEdit(self,listNames):
+        lineedit = self.infoBox.findChild(ClickableLineEdit,'componentNames')
+        lineedit.setText(",".join(listNames))
+        return
 
     #sets the start and end date range based on available dataset.
     #if no values are provided the values are drawn from the database
     #tuple(s) -> None
     def getDefaultDates(self):
-        #TODO this should come from a preview
 
-        handler = ProjectSQLiteHandler()
-        start = handler.cursor.execute("select date_start from setup where set_name = 'Set0'").fetchone()
-        end = handler.cursor.execute("select date_end from setup where set_name = 'Set0'").fetchone()
+        start,end = self.dbhandler.getSetupDateRange()
+
        #format the tuples from database output to datetime objects
         if (start == None) | (start == (None,)): #no date data in the database yet
             #end = datetime.datetime.today().strftime('%Y-%m-%d')
@@ -178,8 +181,8 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         :param setName:
         :return:
         '''
-        handler = ProjectSQLiteHandler()
-        start, end = handler.getSetupDateRange(setName)
+
+        start, end = self.dbhandler.getSetupDateRange(setName)
         self.startDate = start
         self.endDate = end
         return
@@ -211,15 +214,36 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         de = self.makeDateSelector(False)
         infoRow.addWidget(de)
         infoRow.addWidget(QtWidgets.QLabel('Timestep:'))
-        timestepWidget = QtWidgets.QLineEdit('1')
+        #timestepWidget = QtWidgets.QLineEdit('1')
+        timestepWidget = QtWidgets.QDoubleSpinBox()
+        timestepWidget.setRange(1,86400)
+        timestepWidget.setDecimals(0)
         timestepWidget.setObjectName(('timestepvalue'))
-        timestepWidget.setValidator(QtGui.QIntValidator())
+        #timestepWidget.setValidator(QtGui.QIntValidator(1,86400))
         infoRow.addWidget(timestepWidget)
         infoRow.addWidget(QtWidgets.QLabel('Seconds'), 1)
         infoRow.addWidget(QtWidgets.QLabel('Components'))
         infoRow.addWidget(self.componentSelector(), 2)
         infoBox.setLayout(infoRow)
         return infoBox
+    def setValidators(self):
+        #timesteps need to be equal to or greater than te setup timestep
+        minSeconds = self.dbhandler.getFieldValue('setup','timestepvalue','_id',1)
+        units = self.dbhandler.getFieldValue('setup','timestepunit','_id',1)
+        if units.lower() != 's':
+            minSeconds = self.dbhandler.convertToSeconds(minSeconds,units)
+        timestepWidget = self.infoBox.findChild(QtWidgets.QDoubleSpinBox,'timestepvalue')
+        #timestepWidget.setValidator(QtGui.QIntValidator(int(minSeconds),86400))
+        timestepWidget.setMinimum(int(minSeconds))
+        def constrainDateRange(dateWidget,start,end):
+            dateWidget.setMinimumDate(start)
+            dateWidget.setMaximumDate(end)
+        #start date needs to be equal to or greater than the setup start
+        start, end = self.dbhandler.getSetupDateRange()
+        wids = self.infoBox.findChildren(QtWidgets.QDateEdit)
+        p = len(wids)
+
+        list(map(lambda w: constrainDateRange(w,qdateFromString(start),qdateFromString(end)), wids))
 
     def mapWidgets(self):
         '''
@@ -249,7 +273,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         # set model
         infoRowModel = QtSql.QSqlRelationalTableModel()
         infoRowModel.setTable("set_")
-        parent = QtCore.QModelIndex()
+
         infoRowModel.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
         infoRowModel.select();
         infoRowModel.setFilter('set_._id = ' + str(self.set +1))
@@ -258,16 +282,15 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         return infoRowModel
 
     #->QtWidgets.QLineEdit
-    def componentSelector(self,**kwargs):
-        from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
+    def componentSelector(self):
+
         #if components are not provided use the default list
-        if kwargs.get("components"):
-            components = kwargs.get("components")
-        else:
-            components = self.componentDefault
 
+        allcomponents = self.dbhandler.getComponentNames()
+        #setcomponents = self.dbhandler.getSetComponentNames(self.setName)
 
-        widg = ClickableLineEdit(','.join(components))
+        widg = ClickableLineEdit(','.join(allcomponents)) #all are selectable
+        widg.setText(','.join(allcomponents))
         widg.setObjectName('componentNames')
 
         widg.clicked.connect(lambda: self.componentCellClicked())
@@ -309,25 +332,17 @@ class SetsTableBlock(QtWidgets.QGroupBox):
 
     @QtCore.pyqtSlot()
     def componentCellClicked(self):
-        from MiGRIDS.UserInterface.DialogComponentList import ComponentSetListForm
-        from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 
-        import pandas as pd
-        handler = ProjectSQLiteHandler('project_manager')
+        # get the cell, and open a listbox of checked components for this project
+        listDialog = ComponentSetListForm(self.setName)
 
-        # get the cell, and open a listbox of possible components for this project
-        checked = pd.read_sql_query("select componentnamevalue from component", handler.connection)
-
-        checked = list(checked['componentnamevalue'])
-        handler.closeDatabase()
-        # checked is a comma seperated string but we need a list
-        #checked = checked.split(',')
-        listDialog = ComponentSetListForm(checked)
+        #get the selected Items
         components = listDialog.checkedItems()
         # format the list to be inserted into a text field in a datatable
         str1 = ','.join(components)
         widg = self.findChild(QtWidgets.QLineEdit,'componentNames')
         widg.setText(str1)
+        self.dbhandler.updateSetComponents(self.setName,components)
         self.updateComponentDelegate(components)
 
     #Boolean -> QDateEdit

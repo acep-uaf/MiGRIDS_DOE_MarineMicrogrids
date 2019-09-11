@@ -16,10 +16,12 @@ from MiGRIDS.UserInterface.FormModelRuns import SetsTableBlock
 from MiGRIDS.UserInterface.Pages import Pages
 from MiGRIDS.UserInterface.FileBlock import FileBlock
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.UserInterface.qdateFromString import qdateFromString
 from MiGRIDS.UserInterface.switchProject import switchProject
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.replaceDefaultDatabase import replaceDefaultDatabase
 from MiGRIDS.UserInterface.Resources.SetupWizardDictionary import *
+import datetime
 
 BASESET ='Set0'
 class FormSetup(QtWidgets.QWidget):
@@ -290,13 +292,7 @@ class FormSetup(QtWidgets.QWidget):
         self.inputData= self.uihandler.loadInputData(
             os.path.join(self.setupFolder, self.project + 'Setup.xml'))
 
-        if self.inputData is not None:
-            self.updateModelPage(self.inputData)
-            self.dataLoadedOutput.setText('data loaded')
-            #refresh the plot
-            resultDisplay = self.parent().findChild(ResultsSetup)
-            resultDisplay.defaultPlot()
-
+        self.dataLoaded() #check that data exists and inform its dependents
         #look for an existing component pickle or create one from information in setup xml
         self.components = self.uihandler.loadComponents(os.path.join(self.setupFolder, self.project + 'Setup.xml'))
         if self.components is None:
@@ -456,13 +452,17 @@ class FormSetup(QtWidgets.QWidget):
     def dataLoaded(self):
         # This has to happen after thread completes
         if self.inputData:
-            self.updateModelPage(self.inputData)
+            #indicate that the data has loaded
             self.dataLoadedOutput.setText('data loaded')
-            # refresh the plot
-            resultDisplay = self.parent().findChild(ResultsSetup)
-            resultDisplay.defaultPlot()
+            #make sure the date range is valid
+            self.validateRunTimeSteps()
+            #update the Model tab with set information
+            self.updateDependents(self.inputData)
+            # refresh the plot or processed data
+            self.refreshDataPlot()
             self.progressBar.setRange(0, 1)
-        # generate netcdf files
+
+        # generate netcdf files if requested
         msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Time Series loaded",
                                     "Do you want to generate netcdf files?.")
         msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.No)
@@ -471,6 +471,37 @@ class FormSetup(QtWidgets.QWidget):
         if result == QtWidgets.QMessageBox.Ok:
             self.makeNetcdfs()
         return
+
+    def validateRunTimeSteps(self):
+        #run time steps need to either equal the range of the data set or be a subset within the dataset
+        def indexValue(lodf, minmax):
+            if minmax == 'min':
+                return min([min(df.index) for df in lodf])
+            else:
+                return max([max(df.index) for df in lodf])
+
+        dataStart = indexValue(self.inputData.fixed,'min').replace(tzinfo=None)
+        dataEnd = indexValue(self.inputData.fixed,'max').replace(tzinfo=None)
+        apparentStart,apparentEnd = self.dbhandler.getSetupDateRange()
+
+        if (apparentStart == None):
+            # update Start
+            self.dbhandler.updateRecord('setup',['_id'],[1],['date_start'],[dataStart])
+        elif (dataStart > qdateFromString(apparentStart)):
+            self.dbhandler.updateRecord('setup', ['_id'], [1], ['date_start'], [dataStart])
+        if (apparentEnd ==  None):
+            #update End
+            self.dbhandler.updateRecord('setup', ['_id'], [1], ['date_end'], [dataEnd])
+        elif (dataEnd < qdateFromString(apparentEnd)):
+            self.dbhandler.updateRecord('setup', ['_id'], 1, ['date_end'], [dataEnd])
+
+        apparentStart, apparentEnd = self.dbhandler.getSetupDateRange()
+        print(apparentStart)
+        return
+
+    def refreshDataPlot(self):
+        resultDisplay = self.parent().findChild(ResultsSetup)
+        resultDisplay.defaultPlot()
 
     def makeNetcdfs(self):
         d = {}
@@ -485,7 +516,7 @@ class FormSetup(QtWidgets.QWidget):
 
         return
 
-    def updateModelPage(self, data):
+    def updateDependents(self, data):
         '''
         updates the default component list, time range and time step values in the setup table in the project database
         based on fields and timesteps found in data.fixed and passes these values to the ModelDialog
@@ -499,7 +530,7 @@ class FormSetup(QtWidgets.QWidget):
 
             assert((type(df.index[0])==pd.Timestamp) | (type(df.index[0])==pd.datetime))
 
-        def getDefaults(listDf,defaultStart=pd.to_datetime("1/1/1900").date(), defaultEnd = pd.datetime.today().date()):
+        def getDefaults(listDf,defaultStart=pd.datetime.today().date(), defaultEnd = pd.datetime.today().date()):
             '''
             returns the earliest and latest date index found in a list of dataframes with date indices. Will return initial default
             start and end if no dates are found in dataframes.
@@ -526,7 +557,7 @@ class FormSetup(QtWidgets.QWidget):
         values['date_start'], values['date_end'] = getDefaults(data.fixed)
         values['date_start'] = [values['date_start']]
         values['date_end'] = [values['date_end']]
-        values['set_name'] = ['set0']
+        values['set_name'] = ['Set0']
         info = self.dbhandler.getSetUpInfo()
         values['timestepvalue']=[info['timeStep.value']]
         values['timestepunit']=[info['timeStep.unit']]
@@ -534,7 +565,7 @@ class FormSetup(QtWidgets.QWidget):
 
         self.dbhandler.insertFirstSet(values)
 
-        self.dbhandler.insertAllComponents('set0')
+        self.dbhandler.insertAllComponents('Set0')
 
         # Deliver appropriate info to the ModelForm
         modelForm = self.window().findChild(SetsTableBlock)
@@ -694,10 +725,12 @@ class FormSetup(QtWidgets.QWidget):
 
         self.loadSetup(setupFile)
         return True
-    #pyqt slot
+
+    @QtCore.pyqtSlot()
     def gotData(self,data):
         self.inputData = data
-    #pyqt slot
+
+    @QtCore.pyqtSlot()
     def gotComponents(self,loc):
         self.components = loc
 

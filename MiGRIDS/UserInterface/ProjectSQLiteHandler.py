@@ -73,9 +73,9 @@ class ProjectSQLiteHandler:
 
     #String, ListOfTuples -> None
     def addRefValues(self, tablename, values):
+        self.insertRecord(tablename,['sort_order','code','description'],values)
 
-        self.cursor.executemany("INSERT INTO " + tablename + "(sort_order,code, description) VALUES (?,?,?)" ,values)
-        self.connection.commit()
+
     def makeComponents(self):
         '''Uses the information in the project_manager database to make a list of Component Objects
         :return List of component objects'''
@@ -110,6 +110,8 @@ class ProjectSQLiteHandler:
         ]
         for r in refTables:
             self.createRefTable(r)
+        #the time units table gets an extra field for converting time to seconds
+        self.cursor.executescript("ALTER TABLE ref_time_units ADD COLUMN multiplier DOUBLE")
         #various file types can be read in through the user interface
         #TODO update wiki to add file conventions for reading in the various file types.
         self.addRefValues('ref_file_type',[(0,'CSV','Comma Seperated Values'),
@@ -126,7 +128,7 @@ class ProjectSQLiteHandler:
         self.addRefValues('ref_true_false',[(0,'T','True'),(1,'F','False')])
         self.addRefValues('ref_speed_units', [(0, 'm/s','meters per second'),(1,'ft/s','feet per second'),
                                               (2,'km/hr','kilometers per hour'),(3,'mi/hr','miles per hour')])
-        self.addRefValues('ref_time_units',[(0,'S','Seconds'),(1,'m','Minutes'),(2,'ms','Milliseconds')])
+        self.insertRecord('ref_time_units',['sort_order','code','description','multiplier'],[(0,'S','Seconds',1),(1,'m','Minutes',0.01667),(2,'ms','Milliseconds',0.001)])
         self.addRefValues('ref_date_format',[(0,'MM/DD/YY','(0[0-9]|1[0-2])/[0-3][0-9]/[0-9]{2}'),(1,'MM/DD/YYYY','(0[0-9]|1[0-2])/[0-3][0-9]/[0-9]{4}'),
                                                  (2,'YYYY/MM/DD','[0-9]{4}/(0[0-9]|1[0-2])/[0-9]{2}'),(3,'DD/MM/YYYY','[0-9]{2}/(0[0-9]|1[0-2])/[0-9]{4}'),
                                              (4, 'MM-DD-YY', '(0[0-9]|1[0-2])-[0-3][0-9]-[0-9]{2}'), (5, 'MM-DD-YYYY', '(0[0-9]|1[0-2])-[0-3][0-9]-[0-9]{4}'),
@@ -304,33 +306,49 @@ class ProjectSQLiteHandler:
     def clearTable(self,table):
         self.cursor.execute("Delete From " + table)
         self.connection.commit()
+    def updateSetComponents(self,setName,loc):
+        '''
+        adds components listed in loc to the set_component table for the specified set and removes any components present that are nto
+        in loc
+        :param setName: String name of the set found in set_ table set_name column
+        :param loc: List of String names of components to add to the set_component table
+        :return: None
+        '''
+        setid = self.getId('set_','set_name',setName)
+
+        compid = list(map(lambda c: self.getId('component','componentnamevalue',c),loc))
+        fields = ['component_id','set_id','tag']
+        values =[(str(x),setid,'None') for x in compid]
+
+        deleters = [(setid,str(c)) for c in compid]
+        self.insertRecord('set_components',fields,values)
+        self.cursor.executemany("DELETE FROM set_components WHERE set_id = ? AND component_id != ?",deleters)
+        self.connection.commit()
+        return
+
     def getSetupDateRange(self):
         '''
 
         :param setName: String name of the set to get date range for
-        :return: start datetime object and end datetime object
+        :return: start and end are string datetime values in the start and end date fields in the setup table
         '''
-        import datetime
+
         start = self.cursor.execute("select date_start from setup").fetchone()
         end = self.cursor.execute("select date_end from setup").fetchone()
 
-        # format the tuples from database output to datetime objects
-        if (start == None) | (start == (None,)):  # no date data in the database yet
-            end = datetime.datetime.today()
-            start = (datetime.datetime.today() - datetime.timedelta(days=365))
-        elif type(start) == str:
-            start = datetime.datetime.strptime(start, '%Y-%m-%d')
-            end = datetime.datetime.strptime(end, '%Y-%m-%d')
-        else:
-            start = datetime.datetime.strptime(start[0], '%Y-%m-%d')
-            end = datetime.datetime.strptime(end[0], '%Y-%m-%d')
-        return start,end
+        return start[0],end[0]
 
     def insertFirstSet(self,dict):
        self.insertDictionaryRow('set_',dict)
     def insertAllComponents(self,setName):
          self.cursor.execute("INSERT INTO set_components (set_id, component_id,tag) SELECT set_._id, component._id,'None' FROM component, set_ where set_.set_name = '" + setName + "'")
          self.connection.commit()
+
+    def convertToSeconds(self,value,currentUnits):
+        '''uses the multiplier field in ref_time_units to convert a value to seconds'''
+        multiplier = self.getFieldValue('ref_time_units','multiplier','code',currentUnits)
+        return round(value * multiplier,0)
+
     def getSetInfo(self,setName = 'set0'):
         '''
         Creates a dictionary of setup information for a specific set, default is set 0 which is the base case
@@ -454,10 +472,20 @@ class ProjectSQLiteHandler:
         :param values: List of values in to insert into fields
         :return: Integer id of last row inserted, if failed returns -1
         '''
+
+        #if values is a list of values execue many
+
+
         string_fields = ','.join(fields)
         string_values = ','.join('?' * len(values))
         try:
-            self.cursor.execute("INSERT INTO " + table + "(" + string_fields + ")" + "VALUES (" + string_values + ")", values)
+            if isinstance(values[0], tuple):
+                string_values = ','.join('?' * len(values[0]))
+                self.cursor.executemany(
+                    "INSERT INTO " + table + "(" + string_fields + ")" + "VALUES (" + string_values + ")", values)
+
+            else:
+                self.cursor.execute("INSERT INTO " + table + "(" + string_fields + ")" + "VALUES (" + string_values + ")", values)
             self.connection.commit()
             return self.cursor.lastrowid
         except Exception as e:
@@ -505,7 +533,7 @@ class ProjectSQLiteHandler:
         '''
         updateFields = ', '.join([str(a) + " = '" + str(b) + "'" for a,b in zip(fields,values)])
 
-        keyFields = ', '.join([a + " = '" + b + "'" for a,b in zip(keyField,keyValue)])
+        keyFields = ', '.join([str(a) + " = '" + str(b) + "'" for a,b in zip(keyField,keyValue)])
         try:
             self.cursor.execute("UPDATE " + table + " SET " + updateFields + " WHERE " + keyFields )
             self.connection.commit()

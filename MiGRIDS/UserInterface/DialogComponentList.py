@@ -2,10 +2,10 @@
 from PyQt5 import QtWidgets, QtCore, QtSql
 class ComponentSetListForm(QtWidgets.QDialog):
     #initialize with a list of component names and list of boolean values for whether or not to include
-    def __init__(self,checked):
+    def __init__(self,setName):
         super().__init__()
-
-        self.checked =  checked
+       #checked is the list of components that are actually checked
+        self.setName = setName
         self.init()
     def init(self):
         layout = QtWidgets.QVBoxLayout()
@@ -24,16 +24,18 @@ class ComponentSetListForm(QtWidgets.QDialog):
         self.components = pd.read_sql_query("select componentnamevalue from component",sqlhandler.connection)
 
         self.components = list(self.components['componentnamevalue'])
-        checked = [x in self.checked for x in self.components]
+
+        #checked boxes will appear for all components listed in the set_components table
+        checked = sqlhandler.getSetComponentNames(self.setName)
         sqlhandler.closeDatabase()
         listWidget = QtWidgets.QListWidget()
         for i in range(len(self.components)):
            item = QtWidgets.QListWidgetItem(self.components[i])
            item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-           if checked[i]:
+           if self.components[i] in checked:
                item.setCheckState(QtCore.Qt.Checked)
            else:
-               item.setCheckState(QtCore.Qt.unchecked)
+               item.setCheckState(QtCore.Qt.Unchecked)
            listWidget.addItem(item)
 
         listWidget.itemClicked.connect(self.on_listWidget_itemClicked)
