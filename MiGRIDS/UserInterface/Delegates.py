@@ -104,8 +104,8 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
         if relation.isValid():
             pmodel = QtSql.QSqlTableModel()
             pmodel.setTable(relation.tableName())
-            if self.filter:
-                pmodel.setFilter(self.filter)
+            '''if self.filter:
+                pmodel.setFilter(self.filter)'''
             pmodel.select()
             editor.setModel(pmodel)
             editor.setModelColumn(pmodel.fieldIndex(relation.displayColumn()))

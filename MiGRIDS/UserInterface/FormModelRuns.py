@@ -119,6 +119,8 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         tv = SetTableView(self,position=self.set)
         tv.setObjectName('sets')
         self.set_componentsModel = SetTableModel(self,self.set)
+        self.set_componentsModel.setFilter('set_id = ' + str(self.set + 1) + " and tag != 'None'")
+        self.set_componentsModel.select()
 
         tv.setModel(self.set_componentsModel)
         '''for r in range(m.rowCount()):
@@ -143,7 +145,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         self.mapper.toLast() #make sure the mapper is on the actual record (1 per tab)
         self.setModel.submit() #submit any data that was changed
         self.updateComponentLineEdit(self.dbhandler.getComponentNames()) # update the clickable line edit to show current components
-        self.updateComponentDelegate(self.dbhandler.getComponentNames())
+        #self.updateComponentDelegate(self.dbhandler.getComponentNames())
         self.set_componentsModel.select()
 
     def updateComponentLineEdit(self,listNames):
@@ -313,16 +315,16 @@ class SetsTableBlock(QtWidgets.QGroupBox):
             self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'startDate'))
             self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'endDate'),False)
             self.findChild(QtWidgets.QLineEdit,'componentNames').setText(','.join(self.componentDefault))
-            self.updateComponentDelegate(self.componentDefault)
+            #self.updateComponentDelegate(self.componentDefault)
 
         return
 
-    def updateComponentDelegate(self,components):
+    '''def updateComponentDelegate(self,components):
 
         # find the component drop down delegate and reset its list to the selected components
         tv = self.findChild(QtWidgets.QWidget, 'sets')
         tableHandler = TableHandler(self)
-        tableHandler.updateComponentDelegate(components,tv,'componentName')
+        tableHandler.updateComponentDelegate(components,tv,'componentName')'''
 
     @QtCore.pyqtSlot()
     def componentCellClicked(self):
@@ -337,7 +339,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         widg = self.findChild(QtWidgets.QLineEdit,'componentNames')
         widg.setText(str1)
         self.dbhandler.updateSetComponents(self.setName,components)
-        self.updateComponentDelegate(components)
+        #self.updateComponentDelegate(components)
         self.set_componentsModel.select()
 
     #Boolean -> QDateEdit
@@ -368,7 +370,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         buttonBox = QtWidgets.QGroupBox()
         buttonRow = QtWidgets.QHBoxLayout()
 
-        buttonRow.addWidget(makeButtonBlock(self, lambda: handler.functionForNewRecord(table),
+        buttonRow.addWidget(makeButtonBlock(self, lambda: self.functionForNewRecord(table),
                                             '+', None,
                                             'Add a component change'))
         buttonRow.addWidget(makeButtonBlock(self, lambda: handler.functionForDeleteRecord(table),
@@ -412,3 +414,6 @@ class SetsTableBlock(QtWidgets.QGroupBox):
             msg.exec()
     def revalidate(self):
         return True
+    def functionForNewRecord(self,table):
+        handler = TableHandler(self)
+        handler.functionForNewRecord(table, fields=[1], values=[self.set + 1])

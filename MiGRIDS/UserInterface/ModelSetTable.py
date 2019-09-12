@@ -53,7 +53,7 @@ class SetTableModel(QtSql.QSqlRelationalTableModel):
         self.setTable('set_components')
         self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         #the set table gets filtered to only show records for that set
-        self.setFilter('set_id = ' + str(position + 1)  )#+ ' and tag != None'
+        self.setFilter('set_id = ' + str(position + 1) + ' and tag != None')
         self.setRelation(SetComponentFields.component_id.value,
                          QtSql.QSqlRelation('component', '_id', 'componentnamevalue'))
         self.select()

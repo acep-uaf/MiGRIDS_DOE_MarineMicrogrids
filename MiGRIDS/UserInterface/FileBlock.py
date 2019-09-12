@@ -27,8 +27,6 @@ class FileBlock(QtWidgets.QGroupBox):
         super().__init__(parent)
         #integer -> FileBlock
         self.init(tabPosition)
-
-
     # creates a single form for entering individual file type information
     def init(self, tabPosition):
         self.dbhandler = ProjectSQLiteHandler()
@@ -38,8 +36,6 @@ class FileBlock(QtWidgets.QGroupBox):
         self.setLayout(windowLayout)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.validated = False
-
-
 
     def flash(self,msg=None):
         print("flash: " + str(msg))
@@ -330,8 +326,6 @@ class FileBlock(QtWidgets.QGroupBox):
                 self.updateComponentDelegate(self.preview, tableHandler)
             except AttributeError as a:
                 print(a)
-
-
         self.filterTables()
         gb.setLayout(tableGroup)
         gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
