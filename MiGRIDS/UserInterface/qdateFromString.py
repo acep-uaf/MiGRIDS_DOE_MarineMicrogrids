@@ -19,5 +19,5 @@ def asDate(strDate):
         realDate = datetime.datetime.strptime(strDate, '%Y-%m-%d')
     except ValueError as v:
         realDate = datetime.datetime.strptime(strDate, '%Y-%m-%d %H:%M:%S')
-    finally:
-        return realDate
+
+    return realDate

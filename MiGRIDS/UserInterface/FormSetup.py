@@ -483,16 +483,17 @@ class FormSetup(QtWidgets.QWidget):
         dataStart = indexValue(self.inputData.fixed,'min').replace(tzinfo=None)
         dataEnd = indexValue(self.inputData.fixed,'max').replace(tzinfo=None)
         apparentStart,apparentEnd = self.dbhandler.getSetupDateRange()
-
+        s = self.dbhandler.getAllRecords('setup')
+        print(s)
         if (apparentStart == None):
             # update Start
             self.dbhandler.updateRecord('setup',['_id'],[1],['date_start'],[dataStart])
-        elif (dataStart > qdateFromString(apparentStart)):
+        elif (dataStart.date() > qdateFromString(apparentStart).toPyDate()):
             self.dbhandler.updateRecord('setup', ['_id'], [1], ['date_start'], [dataStart])
         if (apparentEnd ==  None):
             #update End
             self.dbhandler.updateRecord('setup', ['_id'], [1], ['date_end'], [dataEnd])
-        elif (dataEnd < qdateFromString(apparentEnd)):
+        elif (dataEnd.date() < qdateFromString(apparentEnd).toPyDate()):
             self.dbhandler.updateRecord('setup', ['_id'], 1, ['date_end'], [dataEnd])
 
         apparentStart, apparentEnd = self.dbhandler.getSetupDateRange()

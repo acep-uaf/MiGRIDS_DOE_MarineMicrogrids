@@ -116,15 +116,15 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         #buttons for adding and deleting set records
         tableGroup.addWidget(self.dataButtons('sets'))
         #the table view filtered to the specific set for each tab
-        tv = SetTableView(self,column1=self.set)
+        tv = SetTableView(self,position=self.set)
         tv.setObjectName('sets')
-        m = SetTableModel(self,set)
-        m.setFilter("set_name = " + self.setName)
-        tv.setModel(m)
-        for r in range(m.rowCount()):
+        self.set_componentsModel = SetTableModel(self,self.set)
+
+        tv.setModel(self.set_componentsModel)
+        '''for r in range(m.rowCount()):
             item = m.index(r,1)
             item.flags(~QtCore.Qt.ItemIsEditable)
-            m.setItemData(QtCore.QModelIndex(r,1),item)
+            m.setItemData(QtCore.QModelIndex(r,1),item)'''
 
         #hide the id column
         tv.hideColumn(0)
@@ -137,10 +137,6 @@ class SetsTableBlock(QtWidgets.QGroupBox):
             self.fillSetInfo()
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
-    #fill form with existing data
-    def fillData(self,set):
-       return
-
     def updateForm(self):
         self.setModel.select() #update the set data inputs
         self.setValidators() #update the validators tied to inputs
@@ -148,6 +144,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         self.setModel.submit() #submit any data that was changed
         self.updateComponentLineEdit(self.dbhandler.getComponentNames()) # update the clickable line edit to show current components
         self.updateComponentDelegate(self.dbhandler.getComponentNames())
+        self.set_componentsModel.select()
 
     def updateComponentLineEdit(self,listNames):
         lineedit = self.infoBox.findChild(ClickableLineEdit,'componentNames')
@@ -174,7 +171,6 @@ class SetsTableBlock(QtWidgets.QGroupBox):
             end = datetime.datetime.strptime(end[0], '%Y-%m-%d')
 
         return start, end
-
 
     def getSetDates(self,setName):
         '''
@@ -269,7 +265,6 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         self.mapper.toFirst()
         return
 
-
     def makeSetModel(self):
         # set model
         infoRowModel = QtSql.QSqlRelationalTableModel()
@@ -322,14 +317,12 @@ class SetsTableBlock(QtWidgets.QGroupBox):
 
         return
 
-
     def updateComponentDelegate(self,components):
 
         # find the component drop down delegate and reset its list to the selected components
         tv = self.findChild(QtWidgets.QWidget, 'sets')
         tableHandler = TableHandler(self)
         tableHandler.updateComponentDelegate(components,tv,'componentName')
-
 
     @QtCore.pyqtSlot()
     def componentCellClicked(self):
@@ -345,6 +338,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         widg.setText(str1)
         self.dbhandler.updateSetComponents(self.setName,components)
         self.updateComponentDelegate(components)
+        self.set_componentsModel.select()
 
     #Boolean -> QDateEdit
     def makeDateSelector(self, start=True):

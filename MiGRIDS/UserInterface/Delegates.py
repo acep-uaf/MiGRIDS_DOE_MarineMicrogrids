@@ -6,7 +6,7 @@ from MiGRIDS.UserInterface.displayComponentXML import displayComponentXML
 
 
 class ComboDelegate(QtWidgets.QItemDelegate):
-    componentNameChanged = QtCore.pyqtSignal(str)
+
     def __init__(self,parent,values, name=None):
         QtWidgets.QItemDelegate.__init__(self,parent)
         self.values = values
@@ -44,10 +44,7 @@ class ComboDelegate(QtWidgets.QItemDelegate):
         from MiGRIDS.UserInterface.getComponentAttributesAsList import getComponentAttributesAsList
         self.commitData.emit(self.sender())
         #if its the sets table then the attribute list needs to be updated
-        if self.name == 'componentName':
 
-            currentSelected = self.sender().currentText()
-            self.componentNameChanged.emit(currentSelected)
 
 #LineEdit textbox connected to the table
 class TextDelegate(QtWidgets.QItemDelegate):
@@ -83,10 +80,12 @@ class TextDelegate(QtWidgets.QItemDelegate):
 
 #combo boxes for tables with foreign keys
 class RelationDelegate(QtSql.QSqlRelationalDelegate):
-    def __init__(self, parent,name):
+    componentNameChanged = QtCore.pyqtSignal(str)
+    def __init__(self, parent,name,**kwargs):
         QtSql.QSqlRelationalDelegate.__init__(self,parent)
         self.parent = parent
         self.name=name
+        self.filter = kwargs.get("filter")
 
     def createEditor(self, parent, option, index):
         #make a combo box if there is a valid relation
@@ -101,10 +100,12 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
     def setEditorData(self, editor, index):
         m = index.model()
         relation = m.relation(index.column())
-        #TODO filter possible components
+
         if relation.isValid():
             pmodel = QtSql.QSqlTableModel()
             pmodel.setTable(relation.tableName())
+            if self.filter:
+                pmodel.setFilter(self.filter)
             pmodel.select()
             editor.setModel(pmodel)
             editor.setModelColumn(pmodel.fieldIndex(relation.displayColumn()))
@@ -113,11 +114,12 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
     def setModelData(self,editor, model, index):
          model.setData(index, editor.itemText(editor.currentIndex()))
 
-
-
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
         self.commitData.emit(self.sender())
+        if self.name == 'componentName':
+            currentSelected = self.sender().currentText()
+            self.componentNameChanged.emit(currentSelected)
         return
 
 #QLineEdit that when clicked performs an action
