@@ -103,21 +103,26 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
 
         if relation.isValid():
             pmodel = QtSql.QSqlTableModel()
+            t = relation.tableName()
             pmodel.setTable(relation.tableName())
             '''if self.filter:
                 pmodel.setFilter(self.filter)'''
             pmodel.select()
             editor.setModel(pmodel)
+            d = relation.displayColumn()
+            t = str(m.data(index))
+
             editor.setModelColumn(pmodel.fieldIndex(relation.displayColumn()))
             editor.setCurrentIndex(editor.findText(str(m.data(index))))
 
     def setModelData(self,editor, model, index):
-         model.setData(index, editor.itemText(editor.currentIndex()))
+
+         return super(RelationDelegate, self).setModelData(editor,model,index)
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
         self.commitData.emit(self.sender())
-        if self.name == 'componentName':
+        if self.name == 'componentname':
             currentSelected = self.sender().currentText()
             self.componentNameChanged.emit(currentSelected)
         return
