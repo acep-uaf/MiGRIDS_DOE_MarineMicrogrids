@@ -321,8 +321,9 @@ class ProjectSQLiteHandler:
         values =[(str(x),setid,'None') for x in compid]
 
         deleters = [(setid,str(c)) for c in compid]
+        self.cursor.executemany("DELETE FROM set_components WHERE set_id = ? AND component_id != ?", deleters)
         self.insertRecord('set_components',fields,values)
-        self.cursor.executemany("DELETE FROM set_components WHERE set_id = ? AND component_id != ?",deleters)
+
         self.connection.commit()
         return
 
@@ -482,7 +483,7 @@ class ProjectSQLiteHandler:
             if isinstance(values[0], tuple):
                 string_values = ','.join('?' * len(values[0]))
                 self.cursor.executemany(
-                    "INSERT INTO " + table + "(" + string_fields + ")" + "VALUES (" + string_values + ")", values)
+                    "INSERT OR REPLACE INTO " + table + "(" + string_fields + ")" + "VALUES (" + string_values + ")", values)
 
             else:
                 self.cursor.execute("INSERT INTO " + table + "(" + string_fields + ")" + "VALUES (" + string_values + ")", values)
@@ -704,10 +705,19 @@ class ProjectSQLiteHandler:
         #update actual setup fields - these have a single value and are used in models
         #update project table
         pid = self.insertRecord('project',['project_name','project_path'],[setupDict['project'],setupDict['projectPath']])
+        def dateOnly(value):
+            '''determins if a string contains both date and time or just date values'''
+            return ":" not in value
         #update fields that are in the setup table
         try:
-            startdate = setupDict['runTimeSteps.value'].split(" ")[0]
-            enddate = setupDict['runTimeSteps.value'].split(" ")[1]
+            if dateOnly(setupDict['runTimeSteps.value']):
+                startdate = setupDict['runTimeSteps.value'].split(" ")[0]
+                enddate = setupDict['runTimeSteps.value'].split(" ")[1]
+            else:
+                startdate = setupDict['runTimeSteps.value'].split(" ")[0] + " " +setupDict['runTimeSteps.value'].split(" ")[1]
+                enddate = setupDict['runTimeSteps.value'].split(" ")[2] + " " + \
+                            setupDict['runTimeSteps.value'].split(" ")[3]
+
         except IndexError as i:
             print("runtimesteps not start stop indices")
             startdate = None
