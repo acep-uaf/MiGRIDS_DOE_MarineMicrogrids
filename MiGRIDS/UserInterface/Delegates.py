@@ -6,6 +6,7 @@ from MiGRIDS.UserInterface.displayComponentXML import displayComponentXML
 
 
 class ComboDelegate(QtWidgets.QItemDelegate):
+    componentNameChanged = QtCore.pyqtSignal(str)
     def __init__(self,parent,values, name=None):
         QtWidgets.QItemDelegate.__init__(self,parent)
         self.values = values
@@ -32,9 +33,7 @@ class ComboDelegate(QtWidgets.QItemDelegate):
 
     #write model data
     def setModelData(self,editor, model, index):
-         irow = index.row()
-         crow = editor.currentIndex()
-         txt = editor.itemText(editor.currentIndex())
+
          if isinstance(self.values,RefTableModel):
              model.setData(index, editor.currentIndex())
          #model is the table storing the combo
@@ -46,18 +45,9 @@ class ComboDelegate(QtWidgets.QItemDelegate):
         self.commitData.emit(self.sender())
         #if its the sets table then the attribute list needs to be updated
         if self.name == 'componentName':
-            tv = self.parent()
-            cbs = tv.findChildren(ComboDelegate)
-            for cb in cbs:
-                if cb.name == 'componentAttribute':
-                    lm = cb.values
-                    #populate the combo box with the possible attributes that can be changed
 
-                    # project folder is from
-                    projectFolder = tv.window().findChild(QtWidgets.QWidget, "setupDialog").getprojectFolder()
-                    componentFolder = getFilePath('components',projectFolder = projectFolder)
-                    #the current selected component, and the folder with component xmls are passed used to generate tag list
-                    lm.setStringList(getComponentAttributesAsList(self.sender().currentText(),componentFolder))
+            currentSelected = self.sender().currentText()
+            self.componentNameChanged.emit(currentSelected)
 
 #LineEdit textbox connected to the table
 class TextDelegate(QtWidgets.QItemDelegate):
@@ -127,7 +117,6 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
-
         self.commitData.emit(self.sender())
         return
 
@@ -187,5 +176,3 @@ class RefTableModel(QtCore.QAbstractTableModel):
 
     def updateModel(self, newArray):
         self.arraydata = newArray
-        print("current components")
-        print(self.arraydata)

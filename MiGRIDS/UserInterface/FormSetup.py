@@ -285,8 +285,8 @@ class FormSetup(QtWidgets.QWidget):
             print('An existing project database was not found for %s.' % self.project)
         # record the current project
 
-        i = self.dbhandler.updateRecord('project', ['project_name'],[self.project],['project_path'],
-                                        getFilePath('Project',setupFolder=os.path.dirname(setupFile[0])))
+        i = self.dbhandler.updateRecord('project', ['project_name'],[self.project],['project_path'],[
+                                        getFilePath('Project',setupFolder=os.path.dirname(setupFile[0]))])
 
         # look for an existing data pickle
         self.inputData= self.uihandler.loadInputData(

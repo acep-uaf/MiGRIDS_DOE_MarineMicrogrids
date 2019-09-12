@@ -22,7 +22,7 @@ def makeComponentSoup(component, saveDir):
             return componentType
         return
 
-    #assert(None in [saveDir, component]), "Save path is incomplete"
+
     file = os.path.join(saveDir, component + 'Descriptor.xml')
     #if exists build soup
     if not os.path.isfile(file):

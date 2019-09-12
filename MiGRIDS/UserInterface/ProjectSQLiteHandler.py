@@ -25,7 +25,7 @@ class ProjectSQLiteHandler:
 
     def getProjectPath(self):
         if self.tableExists('project'):
-            projectPath = self.cursor.execute("select project_path from project").fetchone()
+            projectPath = self.cursor.execute("select project_path from project").fetchone() #returns a tuple
             if projectPath is not None:
                 return projectPath[0]
 

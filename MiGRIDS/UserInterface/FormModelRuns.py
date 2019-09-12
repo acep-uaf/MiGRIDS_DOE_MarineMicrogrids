@@ -147,6 +147,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         self.mapper.toLast() #make sure the mapper is on the actual record (1 per tab)
         self.setModel.submit() #submit any data that was changed
         self.updateComponentLineEdit(self.dbhandler.getComponentNames()) # update the clickable line edit to show current components
+        self.updateComponentDelegate(self.dbhandler.getComponentNames())
 
     def updateComponentLineEdit(self,listNames):
         lineedit = self.infoBox.findChild(ClickableLineEdit,'componentNames')
@@ -323,7 +324,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
 
 
     def updateComponentDelegate(self,components):
-        from MiGRIDS.UserInterface.Delegates import ComboDelegate, ComponentFormOpenerDelegate
+
         # find the component drop down delegate and reset its list to the selected components
         tv = self.findChild(QtWidgets.QWidget, 'sets')
         tableHandler = TableHandler(self)

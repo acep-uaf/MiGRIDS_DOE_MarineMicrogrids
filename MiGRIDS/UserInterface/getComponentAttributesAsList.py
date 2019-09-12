@@ -1,5 +1,7 @@
+from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+
+
 def getComponentAttributesAsList(componentName, componentFolder):
-    from Controller.UIToHandler import UIToHandler
 
     handler = UIToHandler()
     componentSoup = handler.makeComponentDescriptor(componentName, componentFolder)
