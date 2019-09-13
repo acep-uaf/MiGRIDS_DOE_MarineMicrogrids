@@ -74,7 +74,7 @@ class FormModelRun(QtWidgets.QWidget):
     def newTab(self):
         # get the set count
         tab_count = self.tabs.count()
-        widg = SetsTableBlock(self, 'set' + str(tab_count))
+        widg = SetsTableBlock(self, tab_count)
         widg.fillSetInfo()
         self.tabs.addTab(widg, 'Set' + str(tab_count))
 
