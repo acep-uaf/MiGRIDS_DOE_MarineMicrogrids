@@ -140,6 +140,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
     def updateForm(self):
+
         self.setModel.select() #update the set data inputs
         self.setValidators() #update the validators tied to inputs
         self.mapper.toLast() #make sure the mapper is on the actual record (1 per tab)
@@ -147,6 +148,7 @@ class SetsTableBlock(QtWidgets.QGroupBox):
         self.updateComponentLineEdit(self.dbhandler.getComponentNames()) # update the clickable line edit to show current components
         #self.updateComponentDelegate(self.dbhandler.getComponentNames())
         self.set_componentsModel.select()
+
 
     def updateComponentLineEdit(self,listNames):
         lineedit = self.infoBox.findChild(ClickableLineEdit,'componentNames')
@@ -415,5 +417,6 @@ class SetsTableBlock(QtWidgets.QGroupBox):
     def revalidate(self):
         return True
     def functionForNewRecord(self,table):
+
         handler = TableHandler(self)
         handler.functionForNewRecord(table, fields=[1], values=[self.set + 1])

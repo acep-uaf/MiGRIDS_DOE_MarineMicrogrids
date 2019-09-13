@@ -319,9 +319,11 @@ class ProjectSQLiteHandler:
         compid = list(map(lambda c: self.getId('component','componentnamevalue',c),loc))
         fields = ['component_id','set_id','tag']
         values =[(str(x),setid,'None') for x in compid]
-
-        deleters = [(setid,str(c)) for c in compid]
-        self.cursor.executemany("DELETE FROM set_components WHERE set_id = ? AND component_id != ?", deleters)
+        if len(values) <=0: #if values are empty then set has no components
+            self.cursor.execute("DELETE FROM set_components WHERE set_id = ?", [setid])
+        else:
+            deleters =  "(" + ",".join([str(x) for x in filter(None, compid)]) + ")"
+            self.cursor.execute("DELETE FROM set_components WHERE set_id = ? AND component_id not in " + str(deleters) , [setid]) #AND component_id not in ('1','2')"
         self.insertRecord('set_components',fields,values)
 
         self.connection.commit()
@@ -342,7 +344,7 @@ class ProjectSQLiteHandler:
     def insertFirstSet(self,dict):
        self.insertDictionaryRow('set_',dict)
     def insertAllComponents(self,setName):
-         self.cursor.execute("INSERT INTO set_components (set_id, component_id,tag) SELECT set_._id, component._id,'None' FROM component, set_ where set_.set_name = '" + setName + "'")
+         self.cursor.execute("INSERT INTO set_components (set_id, component_id, tag) SELECT set_._id, component._id,'None' FROM component, set_ where set_.set_name = '" + setName + "'")
          self.connection.commit()
 
     def convertToSeconds(self,value,currentUnits):

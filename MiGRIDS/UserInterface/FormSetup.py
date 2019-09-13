@@ -291,15 +291,10 @@ class FormSetup(QtWidgets.QWidget):
         # look for an existing data pickle
         self.inputData= self.uihandler.loadInputData(
             os.path.join(self.setupFolder, self.project + 'Setup.xml'))
-
-        self.dataLoaded() #check that data exists and inform its dependents
-        #look for an existing component pickle or create one from information in setup xml
-        self.components = self.uihandler.loadComponents(os.path.join(self.setupFolder, self.project + 'Setup.xml'))
-        if self.components is None:
-            self.makeComponentList()
-
-        #list netcdf files previously generated
+        # list netcdf files previously generated
         self.netCDFsLoaded.setText('Processed Files: ' + ', '.join(self.listNetCDFs()))
+        self.dataLoaded() #check that data exists and inform its dependents
+
         #TODO this part of the code always sets setsRun to false, need to implement check for models run
         #boolean indicator of whether or not model sets have already been run
         setsRun = False
@@ -450,8 +445,13 @@ class FormSetup(QtWidgets.QWidget):
         return
 
     def dataLoaded(self):
+        # look for an existing component pickle or create one from information in setup xml
+        self.components = self.uihandler.loadComponents(os.path.join(self.setupFolder, self.project + 'Setup.xml'))
+        if self.components is None:
+            self.makeComponentList()
         # This has to happen after thread completes
         if self.inputData:
+
             #indicate that the data has loaded
             self.dataLoadedOutput.setText('data loaded')
             #make sure the date range is valid

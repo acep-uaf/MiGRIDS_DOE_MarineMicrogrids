@@ -31,14 +31,18 @@ class SetTableView(QtWidgets.QTableView):
         self.resizeColumnsToContents()
         attributes = QtCore.QStringListModel([])
         self.setItemDelegateForColumn(1, TextDelegate(self))
-        cdel = RelationDelegate(self, 'componentnamevalue',filter="_id in SELECT component_id from set_components where set_id = " + str(self.tabPosition +1))
+        cdel = RelationDelegate(self, 'componentname',filter="_id in (SELECT component_id from set_components WHERE set_id = " + str(self.tabPosition + 1) + ")") #"_id in ('1')", "_id in (SELECT component_id from set_components)"
         cdel.componentNameChanged.connect(self.updateTagList)
+
         #self.setItemDelegateForColumn(2,cdel)
         self.setItemDelegateForColumn(SetComponentFields.component_id.value, cdel)
         #attributes (column 3)get updated when component Name gets selected (column 2)
         self.setItemDelegateForColumn(3, ComboDelegate(self, attributes,'componentAttribute'))
+        self.dbhandler = ProjectSQLiteHandler()
+
 
     def updateTagList(self,compname):
+        print(self.dbhandler.getAllRecords('set_components')) #extra row appears
         projectFolder = self.dbhandler.getProjectPath()
         componentFolder = getFilePath('Components', projectFolder=projectFolder)
         # the current selected component, and the folder with component xmls are passed used to generate tag list
