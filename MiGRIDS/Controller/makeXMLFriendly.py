@@ -26,8 +26,7 @@ def xmlToString(myString,i = 0):
     '''xml files for this project use space delimited lists so underscores need to be replaced with whitespace to match actual file values'''
     def singleString(thisString):
         thisString = thisString.replace('_', ' ')
-        #regex = re.compile(r"&(?!amp;|lt;|gt;)")
-        #thisString = regex.sub("&amp;", thisString)
+
         return thisString
 
     # If myString is a list alter all strings in the list

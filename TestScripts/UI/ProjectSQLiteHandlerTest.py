@@ -173,7 +173,7 @@ class ProjectSQLiteHandlerTest(unittest.TestCase):
     def test_updateSetupInfo(self):
         setupxml = os.path.join(os.path.dirname(__file__), '..','..','MiGRIDSProjects','SampleProject','InputData','Setup','SampleProjectSetup.xml')
         myDict = getSetupInformation(setupxml)
-        self.handler.updateSetupInfo(myDict,'Set0')
+        self.handler.updateSetupInfo(myDict,setupxml)
         self.assertEqual(self.handler.getProject(),'SampleProject')
         self.assertEqual(self.handler.getSetUpInfo()['componentChannels.componentAttribute.value'], 'P P WS')
         self.assertEqual(self.handler.getSetUpInfo()['componentNames'], 'load0 wtg0')

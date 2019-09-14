@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets, QtCore
 from bs4 import BeautifulSoup
 import os
-from MiGRIDS.UserInterface.gridFromXML import gridFromXML
+from MiGRIDS.UserInterface.GridFromXML import GridFromXML
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 
@@ -27,7 +27,7 @@ class FormOptimize(QtWidgets.QWidget):
         infile_child.close()
         soup = BeautifulSoup(contents_child, 'xml')
 
-        myLayout = gridFromXML(self,soup)
+        myLayout = GridFromXML(self, soup)
         widget.setLayout(myLayout)
         widget.setObjectName('inputGrid')
         scrollArea = QtWidgets.QScrollArea()

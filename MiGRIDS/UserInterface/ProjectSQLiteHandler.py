@@ -175,7 +175,8 @@ class ProjectSQLiteHandler:
         self.cursor.executescript("""CREATE TABLE project
         (_id  integer primary key,
         project_path text,
-        project_name text);""")
+        project_name text,
+        setupFile text);""")
 
         #component files contains information for loading component data
         #components can have different units, scale and offset in their input files than in their output files
@@ -372,7 +373,7 @@ class ProjectSQLiteHandler:
             #as long as there was basic set up info look for component setup info
             #componentNames is a list of distinct components, order does not matter
             setDict['componentNames.value'] =  self.cursor.execute("SELECT group_concat(componentnamevalue,' ') from component join set_components on component._id = set_components.component_id "
-                                                             "join setup on set_components.set_id = setup._id where set_name = '" + setName + "'").fetchone()[0]
+                                                             "join set on set_components.set_id = set_._id where set_name = '" + setName + "'").fetchone()[0]
 
             #componentChannels has ordered lists for directories and the components they contain. A component can have data in more than one directory and file type, in which case it would
             #be listed more than once in componentChannels
@@ -695,7 +696,7 @@ class ProjectSQLiteHandler:
             return pd.Series(names).tolist()
         return []
 
-    def updateSetupInfo(self, setupDict):
+    def updateSetupInfo(self, setupDict,setupFile):
         '''
         Updates the database setup tables with information from the setup.xml file
         The setup file is a mesh of both input handler information and model run information.
@@ -706,7 +707,7 @@ class ProjectSQLiteHandler:
         '''
         #update actual setup fields - these have a single value and are used in models
         #update project table
-        pid = self.insertRecord('project',['project_name','project_path'],[setupDict['project'],setupDict['projectPath']])
+        pid = self.insertRecord('project',['project_name','project_path','setupfile'],[setupDict['project'],setupDict['projectPath'],setupFile])
         def dateOnly(value):
             '''determins if a string contains both date and time or just date values'''
             return ":" not in value

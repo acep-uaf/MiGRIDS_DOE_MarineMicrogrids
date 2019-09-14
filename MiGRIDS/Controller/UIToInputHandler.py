@@ -376,14 +376,11 @@ class UIToHandler():
         #now start running models
         runSimulation(projectSetDir=setDir)
 
-    def inputHandlerToUI(self,setupFile,setName):
+    def readInSetupFile(self, setupFile):
         from MiGRIDS.InputHandler.getSetupInformation import getSetupInformation
         #setupInfo is a dictionary of setup tags and values to be inserted into the database
         setupInfo = getSetupInformation(setupFile)
-        dbhandler = ProjectSQLiteHandler()
-        dbhandler.updateSetupInfo(setupInfo)
         return setupInfo
-
 
     def getSetAttributeXML(self, xmlFile):
         '''
@@ -398,7 +395,6 @@ class UIToHandler():
         soup = BeautifulSoup(contents_child, 'xml')  # turn into soup
 
         return soup
-
 
     def getComponentTypes(self):
         '''

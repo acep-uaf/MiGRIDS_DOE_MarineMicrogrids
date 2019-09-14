@@ -470,7 +470,7 @@ class FileBlock(QtWidgets.QGroupBox):
     #reads data from an file input top block and returns a list of fields and values
     def getSetupInfo(self):
         fieldNames = ['_id']
-        #values = [re.findall(r'\d+',self.input)[0]]
+
         values=[self.tabPosition]
         for child in self.FileBlock.findChildren((QtWidgets.QLineEdit, QtWidgets.QComboBox)):
 

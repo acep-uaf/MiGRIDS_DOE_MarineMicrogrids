@@ -1,7 +1,7 @@
 #creates a dynamic form based on the information in xml files
 from PyQt5 import QtWidgets, QtCore, QtGui
 
-class gridFromXML(QtWidgets.QHBoxLayout):
+class GridFromXML(QtWidgets.QHBoxLayout):
     def __init__(self, parent,soup, fields = [],write=False):
         super().__init__()
         self.fields = fields
@@ -20,7 +20,7 @@ class gridFromXML(QtWidgets.QHBoxLayout):
     #BeautifulSoup QVBoxLayout -> QVBoxLayout
     def displayXML(self, soup, vlayout):
 
-        from UserInterface.gridLayoutSetup import setupGrid
+        from MiGRIDS.UserInterface.gridLayoutSetup import setupGrid
         g1 = {'headers': [1,2,3,4,5],
               'rowNames': [],
               'columnWidths': [2, 1, 1, 1, 1]}

@@ -18,19 +18,21 @@ from MiGRIDS.UserInterface.qdateFromString import qdateFromString
 
 
 class FormModelRun(QtWidgets.QWidget):
-    handler = ProjectSQLiteHandler()
+
     def __init__(self, parent):
         super().__init__(parent)
         self.initUI()
 
     def initUI(self):
+        self.dbhandler = ProjectSQLiteHandler()
         self.setObjectName("modelDialog")
         #the first page is for set0
         #self.tabs = SetsPages(self, 'Set0')
-        self.tabs = Pages(self,0,SetsTableBlock)
+        self.tabs = Pages(self, 0, SetsAttributeEditorBlock)
         self.tabs.setObjectName('modelPages')
         #self.setsTable = self.tabs
-        #create the run table
+
+        #create the run table #TODO should this move to SetsTableBlock?
         self.runTable = self.createRunTable()
 
         self.layout = QtWidgets.QVBoxLayout()
@@ -49,6 +51,7 @@ class FormModelRun(QtWidgets.QWidget):
 
         self.setLayout(self.layout)
         self.showMaximized()
+
 
     #the run table shows ??
     def createRunTable(self):
@@ -74,16 +77,16 @@ class FormModelRun(QtWidgets.QWidget):
     def newTab(self):
         # get the set count
         tab_count = self.tabs.count()
-        widg = SetsTableBlock(self, tab_count)
-        widg.fillSetInfo()
+        widg = SetsAttributeEditorBlock(self, tab_count)
+        #widg.fillSetInfo()
         self.tabs.addTab(widg, 'Set' + str(tab_count))
-
+        #TODO make sure this is done when we go to write to the set folder.
         #create a folder to hold the relevent set data
-        #project folder is from FormSetup model
-        projectFolder = self.window().findChild(QtWidgets.QWidget, "setupDialog").model.projectFolder
+        '''#project folder is from FormSetup model
+        projectFolder = self.dbhandler.getProjectPath()
         newFolder = os.path.join(projectFolder,'OutputData', 'Set' + str(tab_count))
         if not os.path.exists(newFolder):
-            os.makedirs(newFolder)
+            os.makedirs(newFolder)'''
 
     # calls the specified function connected to a button onClick event
     @QtCore.pyqtSlot()
@@ -91,10 +94,9 @@ class FormModelRun(QtWidgets.QWidget):
         buttonFunction()
 
 
-
 #the set table shows components to include in the set and attributes to change for runs
 #This widget is the main windget for each set tab on the model tab.
-class SetsTableBlock(QtWidgets.QGroupBox):
+class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     def __init__(self, parent, set):
         super().__init__(parent)
         self.init(set)
@@ -108,13 +110,15 @@ class SetsTableBlock(QtWidgets.QGroupBox):
 
         #main layouts
         tableGroup = QtWidgets.QVBoxLayout()
-        #setup info for a set
 
-        self.setInfo = self.makeSetInfo()
+        #setup info for a set
+        self.setInfo = self.makeSetInfo() #edits on setup attributes
         tableGroup.addWidget(self.infoBox)
 
-        #buttons for adding and deleting set records
+        #buttons for adding and deleting component attribute edits - edits to descriptor files
         tableGroup.addWidget(self.dataButtons('sets'))
+
+        #table of descriptor file changes to be made
         #the table view filtered to the specific set for each tab
         tv = SetTableView(self,position=self.set)
         tv.setObjectName('sets')
@@ -130,7 +134,11 @@ class SetsTableBlock(QtWidgets.QGroupBox):
 
         #hide the id column
         tv.hideColumn(0)
+        #tv.hideColumn(1)
         tableGroup.addWidget(tv, 1)
+
+        #predictorEditing block
+        self.predictEditor = PredictEditorHolder(self.set)
 
         self.setLayout(tableGroup)
         if set is not None:

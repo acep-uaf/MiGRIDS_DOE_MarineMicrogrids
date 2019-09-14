@@ -12,7 +12,7 @@ from MiGRIDS.Controller.UIToInputHandler import UIToHandler
 from MiGRIDS.InputHandler.DataClass import DataClass
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.ResultsSetup import  ResultsSetup
-from MiGRIDS.UserInterface.FormModelRuns import SetsTableBlock
+from MiGRIDS.UserInterface.FormModelRuns import SetsAttributeEditorBlock
 from MiGRIDS.UserInterface.Pages import Pages
 from MiGRIDS.UserInterface.FileBlock import FileBlock
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
@@ -196,7 +196,9 @@ class FormSetup(QtWidgets.QWidget):
     def loadSetup(self, setupFile):
 
         #setup is a dictionary read from the setupFile
-        setup = self.uihandler.inputHandlerToUI(setupFile, BASESET)
+        setup = self.uihandler.readInSetupFile(setupFile, BASESET)
+
+        self.dbhandler.updateSetupInfo(setup,setupFile)
         self.assignProjectPath(setup['project'])
         self.displayModelData(setup)
     def showSetup(self):
@@ -569,7 +571,7 @@ class FormSetup(QtWidgets.QWidget):
         self.dbhandler.insertAllComponents('Set0')
 
         # Deliver appropriate info to the ModelForm
-        modelForm = self.window().findChild(SetsTableBlock)
+        modelForm = self.window().findChild(SetsAttributeEditorBlock)
 
         modelForm.updateForm()
 

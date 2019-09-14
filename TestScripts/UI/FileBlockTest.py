@@ -3,9 +3,7 @@ import sys
 import os
 from PyQt5 import QtWidgets, QtTest, QtSql, QtGui, QtCore
 from MiGRIDS.UserInterface.FileBlock import FileBlock
-
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-
 
 class FileBlockTest(unittest.TestCase):
     app = QtWidgets.QApplication(sys.argv)
