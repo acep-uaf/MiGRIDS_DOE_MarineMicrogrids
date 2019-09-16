@@ -115,7 +115,7 @@
     </loadProfileFile>
 
 
-    <LoadPredict value="predictLoad1">
+    <LoadPredict value="Loadpredict0">
             <!-- 'predictLoad' refers to the function that is used to predict the load. If a user defines their own load
     predicting function, it is the path and filename of the function used to predict short term (several hours) future
     load. Otherwise, it is the name of the dispatch filename included in the software package. Options include:
@@ -124,7 +124,7 @@
     </LoadPredict>
 
 
-    <WindPredict value="predictWind0">
+    <WindPredict value="Windpredict0">
             <!-- 'predictWind' refers to the function that is used to predict the wind speed. If a user defines their own wind
     predicting function, it is the path and filename of the function used to predict short term (several hours) future
     load. Otherwise, it is the name of the dispatch filename included in the software package. Options include:
