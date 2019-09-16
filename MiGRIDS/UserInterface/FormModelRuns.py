@@ -1,5 +1,7 @@
 #Form for display model run parameters
 from PyQt5 import QtWidgets, QtCore, QtGui, QtSql
+
+from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.TableHandler import TableHandler
 from MiGRIDS.UserInterface.ModelSetTable import SetTableModel, SetTableView
@@ -15,7 +17,6 @@ import pandas as pd
 
 #main form containing setup and run information for a project
 from MiGRIDS.UserInterface.qdateFromString import qdateFromString
-
 
 class FormModelRun(QtWidgets.QWidget):
 
@@ -43,12 +44,11 @@ class FormModelRun(QtWidgets.QWidget):
         newTabButton.setFixedWidth(100)
         newTabButton.clicked.connect(self.newTab)
         self.layout.addWidget(newTabButton)
-        #set table goes below the new tab button
 
+        #set table goes below the new tab button
         self.layout.addWidget(self.tabs)
         #runs are at the bottom
         self.layout.addWidget(self.runTable)
-
         self.setLayout(self.layout)
         self.showMaximized()
 
@@ -137,9 +137,9 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         #tv.hideColumn(1)
         tableGroup.addWidget(tv, 1)
 
-        #predictorEditing block
-        self.predictEditor = PredictEditorHolder(self.set)
-
+        #xmlEditing block
+        self.xmlEditor = XMLEditorHolder(self, self.set)
+        tableGroup.addWidget(self.xmlEditor)
         self.setLayout(tableGroup)
         if set is not None:
             self.fillSetInfo(set)
@@ -307,9 +307,9 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     #String -> None
     def fillSetInfo(self,setName = '0'):
 
-        databaseHandler = ProjectSQLiteHandler()
+
         # dictionary of set info
-        setInfo = databaseHandler.getSetInfo('set' + str(setName))
+        setInfo = self.dbhandler.getSetInfo('set' + str(setName))
         if setInfo != None:
             if type(setInfo['componentNames.value']) == str:
                 self.componentDefault = setInfo['componentNames.value'].split(',')

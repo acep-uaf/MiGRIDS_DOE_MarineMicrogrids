@@ -8,29 +8,35 @@ from MiGRIDS.Controller.UIToInputHandler import UIToHandler
 from MiGRIDS.UserInterface.XMLEditor import XMLEditor
 
 
-class ModelEditorHolder(QtWidgets.QWidget):
+class XMLEditorHolder(QtWidgets.QWidget):
     PREFIX = 'project'
     SUFFIX = 'Inputs.xml'
-    def __init__(self,tab):
+    def __init__(self,parent,tab):
+        super().__init__(parent)
         self.tab = tab
         self.set = tab + 1
         self.xmls = {} #the list of possible xml files for each resource type and xml type combination (read from resource folder)
         self.xmlDefaults = {} #the value combo boxes for file selectors are originally set to
         self.dbhandler  = ProjectSQLiteHandler()
         self.controler = UIToHandler()
+        self.makeWidget()
 
     def makeWidget(self):
 
         self.setAllXMLFiles()
-        self.xmlDfaults = self.setSelectedPredictorsFromSetup(self.designateSetupFile())
+        self.xmlDefaults = self.getSelectedModelsFromSetup(self.designateSetupFile())
         self.setLayout(self.createLayout())
+        #self.setMaximumHeight((len(self.xmlDefaults) * 50))
+
 
     def createLayout(self):
         layout = QtWidgets.QVBoxLayout()
+        layout.setSpacing(1)
+        layout.setContentsMargins(0,1,0,1)
         #each file editor gets its own widget
         #TODO the widgets should be ordered in a meaningful way
         for k in self.xmls.keys():
-            layout.addWidget(XMLEditor(self.xmls[k],self.xmlDefaults[k]))
+            layout.addWidget(XMLEditor(self, self.xmls[k],self.xmlDefaults[k]))
         return layout
     def setAllXMLFiles(self):
         self.predictorXMLs = self.getPredictorFiles()
@@ -115,7 +121,7 @@ class ModelEditorHolder(QtWidgets.QWidget):
         #TODO make sure this shouldn't look for set setup file first
         setupFile = self.dbhandler.getFieldValue('project','setupfile','_id',1)
         if setupFile is None:
-            setupFile = os.path.join(os.pathdir(__file__), *['..', 'Model', 'Resources', 'Setup', 'projectSetup.xml'])
+            setupFile = os.path.join(os.path.dirname(__file__), *['..', 'Model', 'Resources', 'Setup', 'projectSetup.xml'])
         # read setup (using resource default if necessary)
         setup = self.controler.readInSetupFile(setupFile)
         return setup

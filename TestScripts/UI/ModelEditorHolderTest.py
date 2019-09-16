@@ -1,11 +1,11 @@
 import unittest
 import os
-from MiGRIDS.UserInterface.ModelEditorHolder import ModelEditorHolder
+from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
 from MiGRIDS.Controller.UIToInputHandler import UIToHandler
 class ModelEditorHolderTest(unittest.TestCase):
 
     def setUp(self):
-        self.peht = ModelEditorHolder(0)
+        self.peht = XMLEditorHolder(0)
 
     def tearDown(self):
         del self.peht
