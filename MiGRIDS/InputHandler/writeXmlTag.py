@@ -1,10 +1,10 @@
-# Project: GBS Tool
-# Author: Jeremy VanderMeer, jbvandermeer@alaska.edu
-# Date: November 2, 2017
+# Project: MiGRIDS
+# Author: tmorgan
+# Date: September 17, 2020
 # License: MIT License (see LICENSE file of this package for more information)
 
 # write a value to an xml tag
-def writeXmlTag(fileName,tag,attr,value,fileDir=''):
+def writeXmlTag(fileName,tag,attr,value):
     '''
     Writes a value to a specified tag and attribute within an xml file.
     :param fileName: [String] name of the xml to write
@@ -20,29 +20,35 @@ def writeXmlTag(fileName,tag,attr,value,fileDir=''):
     from bs4 import BeautifulSoup
 
     # open file and read into soup
-    infile_child = open(os.path.join(fileDir,fileName), "r")  # open
-    contents_child = infile_child.read()
-    infile_child.close()
-    soup = BeautifulSoup(contents_child, 'xml')  # turn into soup
+    with open(fileName, "r+") as infile:  # open
+        contents_child =infile.read()
+        soup = BeautifulSoup(contents_child, 'xml')  # turn into soup
 
-    # assign value
-    if isinstance(tag,(list,tuple)): # if tag is a list or tuple, itereate down
-        a = soup.find(tag[0])
-        for i in range(1,len(tag)): # for each other level of tags, if there are any
-            a = a.find(tag[i])
-    else: # if it is just one string
-        a = soup.find(tag)
-    # convert value to strings if not already
-    if isinstance(value, (list, tuple, np.ndarray)): # if a list or tuple, iterate
-        value = [str(e) for e in value]
-    else:
-        value = str(value)
-    if a is not None:
-        a[attr] = value
+        def findTag(soup,mytag):
+            '''matches a tag in soup regardless of case'''
+            a = soup.find(mytag)
+            if a == None:
+                a = soup.find(lambda tag:tag.name.lower() ==mytag.lower())
+            return a
+        # assign value
+        if isinstance(tag,(list,tuple)): # if tag is a list or tuple, itereate down
+            a = findTag(soup,tag[0])
 
-    # save again
-    f = open(os.path.join(fileDir,fileName), "w")
-    f.write(soup.prettify())
-    f.close()
+            for i in range(1,len(tag)): # for each other level of tags, if there are any
+                a = a.find(tag[i])
+        else: # if it is just one string
+            a = findTag(soup,tag)
+        # convert value to strings if not already
+        if isinstance(value, (list, tuple, np.ndarray)): # if a list or tuple, iterate
+            value = [str(e) for e in value]
+        else:
+            value = str(value)
+        if a is not None:
+            a[attr] = value
+
+    with open(fileName, 'w') as infile:
+        # save again
+        infile.write(soup.prettify())
+
 
     return

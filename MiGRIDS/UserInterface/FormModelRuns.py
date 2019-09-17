@@ -1,6 +1,7 @@
 #Form for display model run parameters
 from PyQt5 import QtWidgets, QtCore, QtGui, QtSql
 
+from MiGRIDS.UserInterface.XMLEditor import XMLEditor
 from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.TableHandler import TableHandler
@@ -156,7 +157,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.updateComponentLineEdit(self.dbhandler.getComponentNames()) # update the clickable line edit to show current components
         #self.updateComponentDelegate(self.dbhandler.getComponentNames())
         self.set_componentsModel.select()
-
+        self.xmlEditor.updateWidget()
 
     def updateComponentLineEdit(self,listNames):
         lineedit = self.infoBox.findChild(ClickableLineEdit,'componentNames')
@@ -397,31 +398,18 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     def runSet(self):
         # currentSet
         currentSet = self.set
-        #set info needs to be updated in the database
+        xmlHolder = self.findChild(XMLEditorHolder)
 
-        values = [currentSet,self.findChild(QtWidgets.QDateEdit,'startDate').text(),
-            self.findChild(QtWidgets.QDateEdit, 'endDate').text(),
-            self.findChild(QtWidgets.QLineEdit,'timestepvalue').text(),
-            self.findChild(QtWidgets.QComboBox, 'timestepunit').Currenttext()]
 
-        dbhandler = ProjectSQLiteHandler()
-        try:
-            dbhandler.insertRecord('set_',['set_name', 'date_start', 'date_end', 'timestepvalue','timestepunit'],values)
-        except:
-            dbhandler.updateRecord('set_',['set_name'],currentSet,['date_start', 'date_end', 'timestepvalue','timestepunit'], values[1:])
-        dbhandler.addComponentsToSet(self.findChild(QtWidgets.QLineEdit,'componentNames').text().split(","))
+        xmls = xmlHolder.findChildren(XMLEditor)
+        written = [x.writeXML() for x in xmls]#write the model xml files
 
         uihandler = UIToHandler()
-
         # component table is the table associated with the button
         componentTable = self.findChild(SetTableView).model()
         if componentTable.rowCount() > 0:
             uihandler.runModels(currentSet, componentTable,self.window().findChild(QtWidgets.QWidget,'setupDialog').model)
-        else:
-            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Add components",
-                                        "You need to select component attributes to alter before running sets.")
-            msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
-            msg.exec()
+
     def revalidate(self):
         return True
     def functionForNewRecord(self,table):

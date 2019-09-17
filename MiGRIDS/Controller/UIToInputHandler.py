@@ -61,12 +61,26 @@ class UIToHandler():
         createComponentDescriptor(component, fileDir, soup)
         return
 
+    def writeSoup(self,soup,file):
+        f = open(file, "w")
+        f.write(soup.prettify())
+        f.close()
+
+    def writeTag(self,file,tag,value):
+        def splitAttribute(tag):
+            a = tag.split(".")[len(tag.split(".")) -1]
+            tag =  tag.split(".")[len(tag.split(".")) -2]
+            return tag,a
+        tag, a = splitAttribute(tag)
+
+        writeXmlTag(file, tag, a, value)
+
     #fill a single tag for an existing component descriptor file
     #dictionary, string -> None
     def updateComponentDiscriptor(self, componentDict, tag):
-        attr = 'value'
+
         value = componentDict[tag]
-        writeXmlTag(componentDict['component_name'] + 'Descriptor.xml', tag, attr, value, componentDict['filepath'])
+        self.writeTag(componentDict['component_name'] + 'Descriptor.xml', tag + ".value", value)
         return
 
     #delete a descriptor xml from the project component folder

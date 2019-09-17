@@ -11,8 +11,9 @@ from MiGRIDS.UserInterface.XMLEditor import XMLEditor
 class XMLEditorHolder(QtWidgets.QWidget):
     PREFIX = 'project'
     SUFFIX = 'Inputs.xml'
+
     def __init__(self,parent,tab):
-        super().__init__(parent)
+        super(XMLEditorHolder,self).__init__(parent)
         self.tab = tab
         self.set = tab + 1
         self.xmls = {} #the list of possible xml files for each resource type and xml type combination (read from resource folder)
@@ -21,12 +22,22 @@ class XMLEditorHolder(QtWidgets.QWidget):
         self.controler = UIToHandler()
         self.makeWidget()
 
+    def updateWidget(self):
+        '''Update the selected xml files and their values'''
+        #new defaults
+        self.xmlDefaults = self.getSelectedModelsFromSetup(self.designateSetupFile())
+        for k in self.xmls.keys():
+            for r in self.xmls[k].keys():
+                editor = self.findChild(XMLEditor,k+r)
+                if editor is not None:
+                    editor.update(self.xmlDefaults[k][r])
+        return
+
+
     def makeWidget(self):
         self.setAllXMLFiles()
         self.xmlDefaults = self.getSelectedModelsFromSetup(self.designateSetupFile())
         self.setLayout(self.createLayout())
-        #self.setMaximumHeight((len(self.xmlDefaults) * 50))
-
 
     def createLayout(self):
         layout = QtWidgets.QVBoxLayout()
@@ -41,6 +52,7 @@ class XMLEditorHolder(QtWidgets.QWidget):
             layout.addWidget(self.makeDivider(k))
             wids = list(map(lambda x: addEditor(k,x),self.xmls[k].keys()))
             list(map(layout.addWidget,wids))
+
         return layout
 
     def makeDivider(self,blockTitle):

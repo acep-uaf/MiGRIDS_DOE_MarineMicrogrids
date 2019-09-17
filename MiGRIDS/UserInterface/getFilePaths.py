@@ -14,10 +14,12 @@ def getFilePath(designator,**kwargs):
         return os.path.join(setupFolder, *['..', 'Components'])
     elif designator == 'OutputData':
         return os.path.join(setupFolder, *['..', '..','OutputData'])
-    elif designator[0:3] == 'Set':
+    elif (designator[0:3] == 'Set') & (designator[-2:] != 'up') :
         return os.path.join(setupFolder, *['..', '..','OutputData', designator])
     elif designator[0:3] == 'Run':
         return os.path.join(setupFolder, *['..', '..','OutputData', kwargs.get('Set'), designator])
     elif designator == 'Project':
         return os.path.join(setupFolder,*['..','..'])
+    elif designator == 'Setup':
+        return setupFolder
 

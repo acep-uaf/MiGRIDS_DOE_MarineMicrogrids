@@ -176,7 +176,7 @@ class ProjectSQLiteHandler:
         (_id  integer primary key,
         project_path text,
         project_name text,
-        setupFile text);""")
+        setupfile text);""")
 
         #component files contains information for loading component data
         #components can have different units, scale and offset in their input files than in their output files

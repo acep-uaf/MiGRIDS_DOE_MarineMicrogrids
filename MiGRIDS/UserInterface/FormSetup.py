@@ -196,7 +196,7 @@ class FormSetup(QtWidgets.QWidget):
     def loadSetup(self, setupFile):
 
         #setup is a dictionary read from the setupFile
-        setup = self.uihandler.readInSetupFile(setupFile, BASESET)
+        setup = self.uihandler.readInSetupFile(setupFile)
 
         self.dbhandler.updateSetupInfo(setup,setupFile)
         self.assignProjectPath(setup['project'])

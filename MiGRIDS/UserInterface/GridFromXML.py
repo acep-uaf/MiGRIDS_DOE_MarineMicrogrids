@@ -10,7 +10,7 @@ class GridFromXML(QtWidgets.QVBoxLayout):
         #write is whether or not to write the changed soup an xml file; default is False
         self.write = write
         self.changes={}
-        gb = self.displayXML(self.soup, self)
+        gb = self.displayXML(self.soup)
 
         #self.addLayout(gb)
 
@@ -18,7 +18,7 @@ class GridFromXML(QtWidgets.QVBoxLayout):
 
     #create a layout from the xml that was turned into soup
     #BeautifulSoup QVBoxLayout -> QVBoxLayout
-    def displayXML(self, soup, vlayout):
+    def displayXML(self, soup):
 
         from MiGRIDS.UserInterface.gridLayoutSetup import setupGrid
         g1 = {'headers': [1,2,3,4,5],
@@ -95,8 +95,47 @@ class GridFromXML(QtWidgets.QVBoxLayout):
         #make the grid layout from the dictionary
         grid = setupGrid(g1)
         #add the grid to the parent layout
-        vlayout.addLayout(grid)
+        self.addLayout(grid)
 
-        return vlayout
+        return
 
+    # updates the soup to reflect changes in the form
+    # None->Soup, Dictionary
+    def extractValues(self):
+
+        # soup belongs to the layout object
+        soup = self.soup
+        changes = self.changes
+        # for every tag in the soup fillSetInfo its value from the form
+        for tag in soup.find_all():
+            if tag.parent.name not in ['component', 'childOf', 'type', '[document]']:
+                parent = tag.parent.name
+                pt = '.'.join([parent, tag.name])
+            else:
+                pt = tag.name
+            for a in tag.attrs:
+
+                widget = self.findChild((QtWidgets.QLineEdit, QtWidgets.QComboBox, QtWidgets.QCheckBox),
+                                        '.'.join([pt, str(a)]))
+
+                if type(widget) == QtWidgets.QLineEdit:
+                    if tag.attrs[a] != widget.text():
+                        changes['.'.join([pt, str(a)])] = widget.text()
+                        tag.attrs[a] = widget.text()
+
+                elif type(widget) == QtWidgets.QComboBox:
+                    if tag.attrs[a] != widget.currentText():
+                        changes['.'.join([pt, str(a)])] = widget.currentText()
+                        tag.attrs[a] = widget.currentText()
+
+                elif type(widget) == QtWidgets.QCheckBox:
+
+                    if (widget.isChecked()) & (tag.attrs[a] != 'TRUE'):
+                        changes['.'.join([pt, str(a)])] = 'TRUE'
+                        tag.attrs[a] = 'TRUE'
+                    elif (not widget.isChecked()) & (tag.attrs[a] != 'FALSE'):
+                        changes['.'.join([pt, str(a)])] = 'TRUE'
+                        tag.attrs[a] = 'FALSE'
+
+        return soup, changes
 
