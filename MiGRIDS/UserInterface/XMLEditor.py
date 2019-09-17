@@ -3,10 +3,14 @@
 # Purpose :  XMLEditor displays xml forms for a specific selected file
 from PyQt5 import QtWidgets, QtCore
 import os
+import re
 from MiGRIDS.UserInterface.GridFromXML import GridFromXML
 from bs4 import BeautifulSoup
 
 class XMLEditor(QtWidgets.QWidget):
+    SUFFIX = 'Inputs.xml'
+    PREFIX = 'project'
+    pattern = re.compile(r'([a-z]*)(predict|dispatch|minsrc|schedule)(\d)', re.IGNORECASE)
 
     def __init__(self,parent,xmllist,xmldefault):
         super().__init__(parent)
@@ -37,27 +41,29 @@ class XMLEditor(QtWidgets.QWidget):
         self.titleBar.btn_show.setVisible(False)
         self.titleBar.btn_hide.setVisible(True)
         return
+    def newXML(self,position):
+
+        self.formStack.setCurrentIndex(position)
 
     def getResourceFromFileName(self):
-
-        return 'Re'
+        #resource comes after the prefix, but before the number xmltype
+        resourceType =self.pattern.search(self.default).group(1)
+        if resourceType == "get":
+            resourceType =""
+        return resourceType
 
     def getXMLTypeFromFileName(self):
-        return 'Dispatch'
+        x = self.pattern.search(self.default).group(2)
+        return x
 
     def makeTitleBar(self):
-        T = TitleBar(self,self.xmltype,self.default)
+        T = TitleBar(self,self.xmlOptions,self.resourcetype,self.default)
         T.btn_hide.clicked.connect(self.hideForm)
         T.btn_show.clicked.connect(self.showForm)
+        T.selector.changeFile.connect(self.newXML)
         return T
 
-    def updateTitle(self):
-        '''
-        Called when the selected xml file shanges.
-        Changes the title bar to reflect the selected form
-        :return:
-        '''
-        return
+
     def makeLayout(self):
         '''The layout contains a title heading with buttons to expand/reduce and a
         form area derived from the xml it is linked to'''
@@ -69,14 +75,25 @@ class XMLEditor(QtWidgets.QWidget):
         self.titleBar = self.makeTitleBar()
         mainLayout.addWidget(self.titleBar)
         #add the form space
-        self.form = self.makeForm(self.default)
+        #the possible forms are stacked
+        self.form = self.makeStack()
+
         mainLayout.addWidget(self.form)
 
+        self.formStack.setCurrentWidget(self.formStack.findChild(XMLForm,self.default))
+        self.form.setVisible(False)
         return mainLayout
 
+    def makeStack(self):
+        form = QtWidgets.QWidget()
+        self.formStack = QtWidgets.QStackedLayout()
+        for x in self.xmlOptions:
+            self.formStack.addWidget(self.makeForm(x))
+        form.setLayout(self.formStack)
+        return form
     def makeForm(self,selectedXML):
         F = XMLForm(selectedXML)
-        #TODO change starting visibility to false
+        F.setObjectName(selectedXML)
         F.setVisible(False)
         return F
 
@@ -103,13 +120,15 @@ class XMLForm(QtWidgets.QWidget):
 
 class TitleBar(QtWidgets.QWidget):
 
-    def __init__(self, parent, xmltype, xmlvalue):
+    def __init__(self, parent, xmlOptions, resourcetype, xmlvalue):
         super(TitleBar, self).__init__()
         '''returns a custom title bar layout with buttons'''
         bar = QtWidgets.QHBoxLayout()
         bar.setContentsMargins(-1, 0, -1, 0)
-        self.title = QtWidgets.QLabel(xmltype + " " + xmlvalue)
+        self.title = QtWidgets.QLabel(resourcetype)
         bar.addWidget(self.title)
+        self.selector = FileSelector(bar,xmlOptions,xmlvalue)
+        bar.addWidget(self.selector)
         btn_size = 20
         self.title.setFixedHeight(btn_size)
         self.title.setContentsMargins(0,0,0,0)
@@ -118,22 +137,32 @@ class TitleBar(QtWidgets.QWidget):
         #self.setMaximumHeight(2*btn_size)
 
         self.btn_hide = QtWidgets.QPushButton("X")
-
         self.btn_hide.setFixedSize(btn_size, btn_size)
         self.btn_hide.setStyleSheet(" QPushButton { text-align: center; background-color: red;}")
         self.btn_hide.setVisible(False)
         self.btn_hide.setContentsMargins(0,0,0,0)
 
         self.btn_show = QtWidgets.QPushButton("+")
-
         self.btn_show.setFixedSize(btn_size, btn_size)
         self.btn_show.setStyleSheet(" QPushButton { text-align: center; background-color: green;}")
         self.btn_show.setVisible(True)
-
-
 
         bar.addWidget(self.btn_hide)
         bar.addWidget(self.btn_show)
         self.setMaximumHeight(btn_size)
         self.setLayout(bar)
         return
+
+class FileSelector(QtWidgets.QComboBox):
+    changeFile = QtCore.pyqtSignal(int)
+    def __init__(self,parent,items,selected):
+        super(FileSelector, self).__init__()
+        self.addItems(items)
+        self.setCurrentText(selected)
+        self.currentIndexChanged.connect(self.selectionChange)
+
+
+    def selectionChange(self):
+        position = self.currentIndex()
+        self.changeFile.emit(position)
+

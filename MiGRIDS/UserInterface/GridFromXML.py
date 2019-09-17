@@ -1,7 +1,7 @@
 #creates a dynamic form based on the information in xml files
 from PyQt5 import QtWidgets, QtCore, QtGui
 
-class GridFromXML(QtWidgets.QHBoxLayout):
+class GridFromXML(QtWidgets.QVBoxLayout):
     def __init__(self, parent,soup, fields = [],write=False):
         super().__init__()
         self.fields = fields
@@ -10,9 +10,9 @@ class GridFromXML(QtWidgets.QHBoxLayout):
         #write is whether or not to write the changed soup an xml file; default is False
         self.write = write
         self.changes={}
-        gb = self.displayXML(self.soup, QtWidgets.QVBoxLayout())
+        gb = self.displayXML(self.soup, self)
 
-        self.addLayout(gb)
+        #self.addLayout(gb)
 
 
 
@@ -60,6 +60,9 @@ class GridFromXML(QtWidgets.QHBoxLayout):
 
                     widget = 'txt'
                     items = None
+                    #We don't want names to be editable so if its a name tag then it gets set as a label
+                    if a == 'name':
+                        widget ='lbl'
                     #if setting units attribute use a combo box
                     if 'choices' in tag.attrs:
                         widget = 'combo'

@@ -22,7 +22,6 @@ class XMLEditorHolder(QtWidgets.QWidget):
         self.makeWidget()
 
     def makeWidget(self):
-
         self.setAllXMLFiles()
         self.xmlDefaults = self.getSelectedModelsFromSetup(self.designateSetupFile())
         self.setLayout(self.createLayout())
@@ -34,10 +33,28 @@ class XMLEditorHolder(QtWidgets.QWidget):
         layout.setSpacing(1)
         layout.setContentsMargins(0,1,0,1)
         #each file editor gets its own widget
-        #TODO the widgets should be ordered in a meaningful way
+
+        def addEditor(xkey,rkey):
+            return XMLEditor(self, self.xmls[xkey][rkey], self.xmlDefaults[xkey][rkey])
+
         for k in self.xmls.keys():
-            layout.addWidget(XMLEditor(self, self.xmls[k],self.xmlDefaults[k]))
+            layout.addWidget(self.makeDivider(k))
+            wids = list(map(lambda x: addEditor(k,x),self.xmls[k].keys()))
+            list(map(layout.addWidget,wids))
         return layout
+
+    def makeDivider(self,blockTitle):
+        '''creates a dividing bar widget to be placed between xmleditor widget sections '''
+        bar = QtWidgets.QWidget()
+        bar.setContentsMargins(-1,0,-1,0)
+        title = QtWidgets.QLabel()
+        title.setText(blockTitle)
+        title.setStyleSheet("background-color: grey;")
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(title)
+        bar.setLayout(layout)
+        return bar
+
     def setAllXMLFiles(self):
         self.predictorXMLs = self.getPredictorFiles()
         self.dispatchXMLs = self.getDispatchFiles()
@@ -82,13 +99,14 @@ class XMLEditorHolder(QtWidgets.QWidget):
 
         def addTo(file):
             resourceType = pattern.search(file).group(1)  # group 1 is the part of the file name indicated in the pattern by ([a-z]*)
-            if (resourceType.lower() + xmltype.lower()) in XMLs.keys():
-                XMLs[resourceType.lower() + xmltype.lower()].append(file[len(self.PREFIX):len(file)-len(self.SUFFIX)])
+            if xmltype.lower() in XMLs.keys():
+                if resourceType.lower()in XMLs[xmltype.lower()].keys():
+                    XMLs[xmltype.lower()][resourceType.lower()].append(file[len(self.PREFIX):len(file)-len(self.SUFFIX)])
+                else:
+                    XMLs[xmltype.lower()][resourceType.lower()] = [file[len(self.PREFIX):len(file)-len(self.SUFFIX)]]
             else:
-                XMLs[resourceType.lower() + xmltype.lower()] = [file[len(self.PREFIX):len(file)-len(self.SUFFIX)]]
-
+                XMLs[xmltype.lower()] = {resourceType.lower():[file[len(self.PREFIX):len(file)-len(self.SUFFIX)]]}
         list(map(addTo,fileList))
-
 
         return XMLs
 
@@ -109,11 +127,15 @@ class XMLEditorHolder(QtWidgets.QWidget):
         setup = dict(zip(map(str.lower, setup.keys()), setup.values()))
         defaults = {}
         for k in self.xmls.keys():
-            #each key should have a default in the setup file
-            try:
-                defaults[k] = setup[k +'.value']
-            except AttributeError as e:
-                print(e)
+            for r in self.xmls[k].keys():
+                #each key should have a default in the setup file
+                try:
+                    if k in defaults.keys():
+                        defaults[k][r] = setup[r + k +'.value']
+                    else:
+                        defaults[k] = {r:setup[r + k +'.value']}
+                except AttributeError as e:
+                    print(e)
         return defaults
 
     def designateSetupFile(self):
