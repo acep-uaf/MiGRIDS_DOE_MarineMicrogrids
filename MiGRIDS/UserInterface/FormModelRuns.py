@@ -3,6 +3,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui, QtSql
 
 from MiGRIDS.UserInterface.XMLEditor import XMLEditor
 from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
+from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.TableHandler import TableHandler
 from MiGRIDS.UserInterface.ModelSetTable import SetTableModel, SetTableView
@@ -394,21 +395,56 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
 
         buttonBox.setLayout(buttonRow)
         return buttonBox
+    def makeSetFolder(self):
+        path = self.dbhandler.getProjectPath
+        setFolder = getFilePath(self.setName, projectFolder = path)
+        if not os.path.exists(setFolder):
+            os.mkdir(setFolder)
 
     def runSet(self):
         # currentSet
         currentSet = self.set
         xmlHolder = self.findChild(XMLEditorHolder)
-
-
         xmls = xmlHolder.findChildren(XMLEditor)
-        written = [x.writeXML() for x in xmls]#write the model xml files
+        [x.writeXML() for x in xmls]#write the model xml files
 
+        #create a set folder
+        #write the attributes xml to the set folder
+        self.makeSetFolder()
+        #the attributes xml gets written, but it does not get used (this is a legacy from early model running
+        #strictly from xml files
+
+        #write the setup for the set
+        self.writeSetup()
+        #write the model xmls for the set
+        self.writeXMLs()
+        #calculate the run combinations
+        runs = self.calculateRuns()
+        #write the component descriptors
+        self.writeComponentDescriptors()
         uihandler = UIToHandler()
         # component table is the table associated with the button
-        componentTable = self.findChild(SetTableView).model()
-        if componentTable.rowCount() > 0:
-            uihandler.runModels(currentSet, componentTable,self.window().findChild(QtWidgets.QWidget,'setupDialog').model)
+        uihandler.runModels(currentSet, componentTable,self.window().findChild(QtWidgets.QWidget,'setupDialog').model)
+
+    def writeSetup(self):
+        '''copies the setup file from the project setup folder to the set folder
+        and makes tag modifications where specified in the modelrun form'''
+        setupSoup = self.handler.readSetup() #from the base setup
+        self.handler.writeSetup(setupSoup,self.setName) #written to the set folder
+        self.handler.updateSetup(setupSoup,self.setName) #updated to reflect changes in the database
+
+        return
+
+    def writeXMLs(self):
+        '''calls each xml editor to write its file to the set folder'''
+        return
+
+    def calculateRuns(self):
+        '''calculates a dictionary of run possibilities. Each key is the name of a run folder from Run0...Run#
+        The number of runs is based on the number of possible combination for component tag changes
+        :return dictionary of run combinations'''
+        return
+
 
     def revalidate(self):
         return True

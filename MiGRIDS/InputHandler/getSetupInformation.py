@@ -7,12 +7,16 @@ def getSetupInformation(setupXML):
     '''
 
     from bs4 import BeautifulSoup
-    import os
-    #read the setupfile
-    infile = open(setupXML, "r")
-    contents = infile.read()
 
-    soup = BeautifulSoup(contents, 'xml')
+    #read the setupfile
+    with open(setupXML, "r") as infile:
+        contents = infile.read()
+        soup = BeautifulSoup(contents, 'xml')
+    return soup
+
+def setupToDictionary(soup,setupXML):
+    '''converts a soup object into a setup dictionary'''
+    import os
     setupInfo={}
     # # get project name
     setupInfo['project'] = soup.project.attrs['name']
@@ -28,6 +32,6 @@ def getSetupInformation(setupXML):
                 for k in children[i].attrs.keys():
                     setupInfo[children[i].name + "." + k]= children[i][k]
 
-    infile.close()
+
     setupInfo['projectPath'] = os.path.join(setupXML,'..','..','..')
     return setupInfo

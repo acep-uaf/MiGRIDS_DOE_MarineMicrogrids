@@ -7,7 +7,12 @@ import pandas as pd
 from PyQt5 import QtWidgets,QtCore
 from bs4 import BeautifulSoup
 
+from PyQt5 import QtWidgets
 
+from MiGRIDS.InputHandler.getSetupInformation import setupToDictionary
+from MiGRIDS.Model.Operational.generateRuns import generateRuns
+from MiGRIDS.UserInterface.makeAttributeXML import makeAttributeXML, writeAttributeXML
+from MiGRIDS.Model.Operational.runSimulation import runSimulation
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
 from MiGRIDS.Controller.GenericSender import GenericSender
 from MiGRIDS.InputHandler.buildProjectSetup import buildProjectSetup
@@ -17,29 +22,29 @@ from MiGRIDS.InputHandler.writeXmlTag import writeXmlTag
 from MiGRIDS.InputHandler.mergeInputs import mergeInputs
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
+from MiGRIDS.UserInterface.makeAttributeXML import makeAttributeXML
+from MiGRIDS.InputHandler.getSetupInformation import getSetupInformation
 
 
 class UIToHandler():
     def __init__(self):
         self.sender = GenericSender() #used to send signals to pyqt objects
+        self.dbhandler = ProjectSQLiteHandler()
 
-    #generates an setup xml file based on information in a ModelSetupInformation object
-    #ModelSetupInformation -> None
     def makeSetup(self):
        # write the information to a setup xml
         # create a mostly blank xml setup file, componentNames is a SetupTag class so we need the value
-        dbhandler=ProjectSQLiteHandler()
-        project = dbhandler.getProject()
+
+        project = self.dbhandler.getProject()
         setupFolder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', project, 'InputData','Setup'])
         #components are all possible components
-        components = dbhandler.getComponentNames()
+        components = self.dbhandler.getComponentNames()
         buildProjectSetup(project, setupFolder,components)
         #fill in project data into the setup xml and create descriptor xmls if they don't exist
         fillProjectData()
         return
 
-    #string, string -> Soup
-    #calls the InputHandler functions required to write component descriptor xml files
+
     def makeComponentDescriptor(self, component,componentDir):
         '''
         calls makecomponentSoup to write a default desciptor xml file for a component.
@@ -51,8 +56,7 @@ class UIToHandler():
         componentSoup = makeComponentSoup(component, componentDir)
         return componentSoup
 
-    #pass a component name, component folder and soup object to be written to a component descriptor
-    #string, string, soup -> None
+
     def writeComponentSoup(self, component, soup):
         from MiGRIDS.InputHandler.createComponentDescriptor import createComponentDescriptor
         dbHandler=ProjectSQLiteHandler()
@@ -348,27 +352,50 @@ class UIToHandler():
         loC = pickle.load(file)
         file.close()
         return loC
-    #generates all the set and run folders in the output directories and starts the sequence of models running
-    #String, ComponentTable, SetupInformation
-    def runModels(self, currentSet, componentTable, setupInfo):
-        from PyQt5 import QtWidgets
-        from MiGRIDS.Model.Operational.generateRuns import generateRuns
-        from MiGRIDS.UserInterface.makeAttributeXML import makeAttributeXML, writeAttributeXML
-        from MiGRIDS.Model.Operational.runSimulation import runSimulation
-        #generate xml's based on inputs
-        #call to run models
+    def makeAttributeXML(self,currentSet):
+        # TODO remove this legacy code - not needed when models are run from gui
+        # THIS IS OBSOLETE
+        # generate the setAttributes xml file
+        soup = makeAttributeXML(currentSet)
+        dbhandler = ProjectSQLiteHandler()
+        fileName = dbhandler.getProject() + currentSet.capitalize() + 'Attributes.xml'
+        setDir = getFilePath(currentSet, projectFolder=dbhandler.getProjectPath())
+        writeAttributeXML(soup, setDir, fileName)
+
+    def readSetup(self,setupFile):
+        '''reads in the project setup file and returns it as a soup'''
+        setupSoup = getSetupInformation(setupFile)
+        return setupSoup
+
+    def updateSetup(self, setName):
+        '''modifies and existing setup soup with database values for a set'''
+        projectPath = self.dbhandler.getProjectPath()
+        setupFile = os.path.join(getFilePath(setName,projectFolder=projectPath),
+                                              self.dbhandler.getProject() + setName.capitaliz() + 'Setup.xml')
+        setRecord = self.dbhandler.getRecordDictionary('set_',self.dbhandler.getId('set_','set_name',setName))
+        for k in setRecord.keys():
+            attr = k.split(".")[len(k.split(".")-1)]
+            tag = k.split(".")[len(k.split(".") - 2)]
+            writeXmlTag(setupFile,tag,attr,setRecord[k])
+
+    def writeSetup(self, setupSoup, setName):
+        '''writes a setupSoup specific for a set to a set folder'''
+        projectPath= self.dbhandler.getProjectPath()
+        self.writeSoup(setupSoup,os.path.join(getFilePath(setName,projectFolder=projectPath),
+                                              self.dbhandler.getProject() + setName.capitalize() + 'Setup.xml'))
+
+    def runModels(self, currentSet):
+        '''makes a call to the model package to run a model set.
+        All required xmls are already in the set and run directories'''
 
         msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Starting Models",
                                     "You won't beable to edit data while models are running. Are you sure you want to continue?")
         msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
         msg.exec()
-        #generate the setAttributes xml file
-        soup = makeAttributeXML(currentSet,componentTable)
-        setDir = os.path.join(setupInfo.projectFolder,'OutputData',currentSet.capitalize())
-        fileName = setupInfo.project + currentSet.capitalize() + 'Attributes.xml'
+        dbhandler = ProjectSQLiteHandler()
+        setDir = getFilePath(currentSet,projectFolder=dbhandler.getProjectPath())
 
-        writeAttributeXML(soup,setDir,fileName)
-
+        #this is silly to have more than 1 database in a single program
         # Check if a set component attribute database already exists
         if os.path.exists(os.path.join(setDir, currentSet + 'ComponentAttributes.db')):
             #ask to delete it or generate a new set
@@ -383,17 +410,182 @@ class UIToHandler():
                 #create a new set tab
                 return
 
-        #if it does delete it.
-        #generate run folders from attributes xml
-        generateRuns(setDir)
-
-        #now start running models
+        # call to run models
         runSimulation(projectSetDir=setDir)
 
+    """  
+    def generateRuns(self,setNum):
+       '''generate runs puts the necessary files into the set folder
+       The necessary files include: setup, model xmls'''
+        
+
+        # load the file with the list of different component attributes
+        compName = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml', ['compAttributeValues', 'compName'],
+                              'value')
+        compTag = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml', ['compAttributeValues', 'compTag'],
+                             'value')
+        compAttr = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml', ['compAttributeValues', 'compAttr'],
+                              'value')
+        compValue = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml',
+                               ['compAttributeValues', 'compValue'], 'value')
+
+        # check if wind turbine values were varied from base case. If so, will set the 'recalculateWtgPAvail' tag to 1
+        # for each wind turbine
+        # isWtg = any(['wtg' in x for x in compName])
+        compValue = 
+        valSplit = []  # list of lists of attribute values
+        for val in compValue:  # iterate through all comonent attributes
+            if not isinstance(val,
+                              list):  # readXmlTag will return strings or lists, depending if there are commas. we need lists.
+                val = [val]
+            valSplit.append(val)  # split according along commas
+
+        # get all possible combinations of the attribute values
+        runValues = list(itertools.product(*valSplit))
+
+        # get headings
+        heading = [x + '.' + compTag[idx] + '.' + compAttr[idx] for idx, x in enumerate(compName)]
+
+        # get the setup information for this set of simulations
+        setupTag = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml',
+                              ['setupAttributeValues', 'setupTag'], 'value')
+        setupAttr = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml',
+                               ['setupAttributeValues', 'setupAttr'], 'value')
+        setupValue = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml',
+                                ['setupAttributeValues', 'setupValue'],
+                                'value')
+
+        # copy the setup xml file to this simulation set directory and make the specified changes
+        # if Setup dir does not exist, create
+        setupFile = os.path.join(projectSetDir, 'Setup', projectName + 'Set' + str(setNum) + 'Setup.xml')
+        if os.path.exists(os.path.join(projectSetDir, 'Setup')):
+            inpt = input("This simulation set already has runs generated, overwrite? y/n")
+            if inpt.lower() == 'y':
+                generateFiles = 1
+            else:
+                generateFiles = 0
+        else:
+            generateFiles = 1
+        if generateFiles == 1:
+            if os.path.exists(os.path.join(projectSetDir, 'Setup')):
+                rmtree(os.path.join(projectSetDir, 'Setup'))
+            os.mkdir(os.path.join(projectSetDir, 'Setup'))
+            # copy setup file
+            copyfile(os.path.join(projectDir, 'InputData', 'Setup', projectName + 'Setup.xml'), setupFile)
+            # make the cbanges to it defined in projectSetAttributes
+            for idx, val in enumerate(setupValue):  # iterate through all setup attribute values
+                tag = setupTag[idx].split('.')
+                attr = setupAttr[idx]
+                value = val
+                writeXmlTag(setupFile, tag, attr, value)
+
+            # make changes to the predict Load input file
+            generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'predictLoad')
+            # make changes to the predict Wind input file
+            generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'predictWind')
+            # make changes to the reDispatch input file
+            generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'reDispatch')
+            # make changes to the getMinSrc input file
+            generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'getMinSrc')
+            # make changes to the gen dispatch
+            generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'genDispatch')
+            # make changes to the genSchedule input file
+            generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'genSchedule')
+            # make changes to the wtg dispatch input file
+            generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'wtgDispatch')
+            # make changes to the ees dispatch input file
+            generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'eesDispatch')
+            # make changes to the tes dispatch input file
+            generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'tesDispatch')
+
+        # get the components to be run
+        components = readXmlTag(setupFile, 'componentNames', 'value')
+
+        # generate the run directories
+        runValuesUpdated = runValues  # if any runValues are the names of another tag, then it will be updated here
+        for run, val in enumerate(runValues):  # for each simulation run
+            # check if there already is a directory for this run number.
+            runDir = os.path.join(projectSetDir, 'Run' + str(run))
+            compDir = os.path.join(runDir, 'Components')
+            if not os.path.isdir(runDir):
+                os.mkdir(runDir)  # make run directory
+
+                os.mkdir(compDir)  # make component directory
+            # copy component descriptors  and fillSetInfo
+            for cpt in components:  # for each component
+                # copy from main input data
+                copyfile(os.path.join(projectDir, 'InputData', 'Components', cpt + 'Descriptor.xml'),
+                         os.path.join(compDir, cpt + 'Set' + str(setNum) + 'Run' + str(run) + 'Descriptor.xml'))
+
+            # make changes
+            for idx, value in enumerate(val):
+                compFile = os.path.join(compDir,
+                                        compName[idx] + 'Set' + str(setNum) + 'Run' + str(run) + 'Descriptor.xml')
+                tag = compTag[idx].split('.')
+                attr = compAttr[idx]
+                # check if value is a tag in the xml document
+                tryTagAttr = value.split('.')  # split into tag and attribute
+                if len(tryTagAttr) > 1:
+                    # seperate into component, tags and attribute. There may be multiple tags
+                    tryComp = tryTagAttr[0]
+                    tryTag = tryTagAttr[1]
+                    for i in tryTagAttr[2:-1]:  # if there are any other tag values
+                        tryTag = tryTag + '.' + i
+                    tryAttr = tryTagAttr[-1]  # the attribute
+                    if tryComp in compName:
+                        idxComp = [i for i, x in enumerate(compName) if x == tryComp]
+                        idxTag = [i for i, x in enumerate(compTag) if x == tryTag]
+                        idxAttr = [i for i, x in enumerate(compAttr) if x == tryAttr]
+                        idxVal = list(set(idxTag).intersection(idxAttr).intersection(idxComp))
+                        value = val[idxVal[0]]  # choose the first match, if there are multiple
+                        a = list(runValuesUpdated[run])  # change values from tuple
+                        a[idx] = value
+                        runValuesUpdated[run] = tuple(a)
+                    else:
+                        # check if it is referring to a tag in the same component
+                        # seperate into tags and attribute. There may be multiple tags
+                        tryTag = tryTagAttr[0]
+                        for i in tryTagAttr[1:-1]:  # if there are any other tag values
+                            tryTag = tryTag + '.' + i
+                        if tryTag in compTag:
+                            tryAttr = tryTagAttr[-1]  # the attribute
+                            idxTag = [i for i, x in enumerate(compTag) if x == tryTag]
+                            idxAttr = [i for i, x in enumerate(compAttr) if x == tryAttr]
+                            idxVal = list(set(idxTag).intersection(idxAttr))
+                            value = val[idxVal[0]]  # choose the first match, if there are multiple
+                            a = list(runValuesUpdated[run])  # change values from tuple
+                            a[idx] = value
+                            runValuesUpdated[run] = tuple(a)
+                writeXmlTag(compFile, tag, attr, value)
+
+                # if this is a wind turbine, then its values are being altered and the wind power time series will need
+                # to be recalculated
+                if 'wtg' in compName[idx]:
+                    if tag == 'powerCurveDataPoints' or tag == 'cutInWindSpeed' or tag == 'cutOutWindSpeedMax' or tag == 'cutOutWindSpeedMin' or tag == 'POutMaxPa':
+                        writeXmlTag(compFile, 'recalculateWtgPAvail', 'value', 'True')
+
+        # create dataframe and save as SQL
+        df = pd.DataFrame(data=runValuesUpdated, columns=heading)
+        # add columns to indicate whether the simulation run has started or finished. This is useful for when multiple processors are
+        # running runs to avoid rerunning simulations. The columns are called 'started' and 'finished'. 0 indicate not
+        # started (finished) and 1 indicates started (finished)
+        df = df.assign(started=[0] * len(runValues))
+        df = df.assign(finished=[0] * len(runValues))
+        conn = sqlite3.connect('set' + str(setNum) + 'ComponentAttributes.db')  # create sql database
+
+        try:
+            df.to_sql('compAttributes', conn, if_exists="replace", index=False)  # write to table compAttributes in db
+        except sqlite3.Error as er:
+            print(er)
+            print(
+                'You need to delete the existing set ComponentAttributes.db before creating a new components attribute table')
+
+        conn.close()
+        os.chdir(here)"""
     def readInSetupFile(self, setupFile):
-        from MiGRIDS.InputHandler.getSetupInformation import getSetupInformation
+
         #setupInfo is a dictionary of setup tags and values to be inserted into the database
-        setupInfo = getSetupInformation(setupFile)
+        setupInfo = setupToDictionary(getSetupInformation(setupFile))
         return setupInfo
 
     def getSetAttributeXML(self, xmlFile):
@@ -420,11 +612,3 @@ class UIToHandler():
         dbhandler.closeDatabase()
         return loT
 
-    def findSetupFolder(self,projectName):
-        '''
-        finds the theoretical path to a setup folder given a project name
-        :param projectName: String name of a project
-        :return: String path to setup folder
-        '''
-        folder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', projectName, 'InputData','Setup'])
-        return folder
