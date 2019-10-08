@@ -8,7 +8,9 @@ In the case of a windspeed file a windspeed netcdf file will be generated and po
 on each wtg components descriptor file.'''
 import os
 from PyQt5 import QtCore, QtWidgets, QtGui
-from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+
+from MiGRIDS.Controller.SetupHandler import SetupHandler
+from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from MiGRIDS.InputHandler.DataClass import DataClass
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.ResultsSetup import  ResultsSetup
@@ -22,6 +24,7 @@ from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.replaceDefaultDatabase import replaceDefaultDatabase
 from MiGRIDS.UserInterface.Resources.SetupWizardDictionary import *
 import datetime
+import pandas as pd
 
 BASESET ='Set0'
 class FormSetup(QtWidgets.QWidget):
@@ -32,19 +35,18 @@ class FormSetup(QtWidgets.QWidget):
     #initialize the form
     def initUI(self):
         self.dbhandler = ProjectSQLiteHandler()
-        self.uihandler = UIToHandler()
+        self.uihandler = SetupHandler()
         self.setObjectName("setupDialog")
         #the main layout is oriented vertically
         windowLayout = QtWidgets.QVBoxLayout()
 
         # the top block is buttons to load setup xml and data files
-        self.createButtonBlock()
+        self.createTopButtonBlock()
         windowLayout.addWidget(self.ButtonBlock)
         self.makeTabs(windowLayout)
 
         #list of dictionaries containing information for wizard
         #this is the information that is not input file specific.
-
         self.WizardTree = self.buildWizardTree(dlist)
         self.createBottomButtonBlock()
         windowLayout.addWidget(self.BottomButtons)
@@ -56,6 +58,7 @@ class FormSetup(QtWidgets.QWidget):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         #show the form
         self.showMaximized()
+
     def makeTabs(self, windowLayout):
         # each tab is for an individual input file.
         self.tabs = Pages(self, 1, FileBlock)
@@ -67,7 +70,7 @@ class FormSetup(QtWidgets.QWidget):
         newTabButton.clicked.connect(self.newTab)
         windowLayout.addWidget(newTabButton)
         windowLayout.addWidget(self.tabs, 3)
-    def createButtonBlock(self):
+    def createTopButtonBlock(self):
         '''
         create the layout containing buttons to load or create a new project
         :return: QWidgets.QHBoxLayout
@@ -111,6 +114,14 @@ class FormSetup(QtWidgets.QWidget):
         button.setFixedWidth(200)
         # windowLayout.addWidget(makeButtonBlock(self,self.createInputFiles,'Create input files',None,'Create input files to run models'),3)
         hlayout.addWidget(button)
+        #make the data log viewing button
+        button = QtWidgets.QPushButton('Details')
+        button.setToolTip('View data fixing log.')
+        button.clicked.connect(lambda: self.onClick(self.viewLogDetails))
+        button.setFixedWidth(200)
+        button.setEnabled(False)
+        # windowLayout.addWidget(makeButtonBlock(self,self.createInputFiles,'Create input files',None,'Create input files to run models'),3)
+        hlayout.addWidget(button)
         dataLoaded = QtWidgets.QLineEdit()
         dataLoaded.setFrame(False)
         dataLoaded.setObjectName('dataloaded')
@@ -125,10 +136,10 @@ class FormSetup(QtWidgets.QWidget):
         netCDFButton = self.createSubmitButton()
         hlayout.addWidget(netCDFButton)
         button.setFixedWidth(200)
-        self.netCDFsLoaded  = QtWidgets.QLineEdit()
-        self.netCDFsLoaded.setFrame(False)
-        self.netCDFsLoaded.setText("none")
-        hlayout.addWidget(self.netCDFsLoaded)
+        self.currentNetcdfs  = QtWidgets.QLineEdit()
+        self.currentNetcdfs.setFrame(False)
+        self.currentNetcdfs.setText("none")
+        hlayout.addWidget(self.currentNetcdfs)
         #hlayout.addStretch(1)
         self.BottomButtons.setLayout(hlayout)
 
@@ -141,6 +152,10 @@ class FormSetup(QtWidgets.QWidget):
         :return: None
         '''
         buttonFunction()
+
+    def viewLogDetails(self):
+        '''Opens a window for viewing data fixing metrics and log file'''
+        return
     def projectExists(self):
         return os.path.exists(self.setupFolder)
     def functionForCreateButton(self):
@@ -293,8 +308,7 @@ class FormSetup(QtWidgets.QWidget):
         # look for an existing data pickle
         self.inputData= self.uihandler.loadInputData(
             os.path.join(self.setupFolder, self.project + 'Setup.xml'))
-        # list netcdf files previously generated
-        self.netCDFsLoaded.setText('Processed Files: ' + ', '.join(self.listNetCDFs()))
+
         self.dataLoaded() #check that data exists and inform its dependents
 
         #TODO this part of the code always sets setsRun to false, need to implement check for models run
@@ -310,6 +324,7 @@ class FormSetup(QtWidgets.QWidget):
 
         #set the project name on the GUI form
         self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.project)
+
         return
     def makeComponentList(self):
         loc = self.dbhandler.makeComponents()
@@ -329,7 +344,7 @@ class FormSetup(QtWidgets.QWidget):
             return lof
         except FileNotFoundError as e:
             print('No netcdf model files found.')
-            return
+            return []
     def displayModelData(self,setupInfo):
         """creates a tab for each input directory specified the SetupModelInformation model inputFileDir attribute.
         Each tab contains a FileBlock object to interact with the data input
@@ -393,7 +408,7 @@ class FormSetup(QtWidgets.QWidget):
                                         self.WizardTree.field('timestepunit'), self.WizardTree.field('sdate'),
                                         self.WizardTree.field('edate'), str.join(" ",[self.WizardTree.field('sdate'),
                                         self.WizardTree.field('edate')])])
-                _id = self.dbhandler.getId('setup','_id',1)
+                _id = self.dbhandler.getId('setup','_id',1)[0]
             lot = self.dbhandler.getComponentTypes()
             for t in lot:
                 cnt = self.WizardTree.field(t[0]+'count')
@@ -409,7 +424,6 @@ class FormSetup(QtWidgets.QWidget):
             self.uihandler.makeSetup()
             self.WizardTree.close()
         return
-
     def createInputFiles(self):
         '''
         Create a dataframe of input data based on importing files within each SetupModelInformation.inputFileDir
@@ -450,20 +464,28 @@ class FormSetup(QtWidgets.QWidget):
         # look for an existing component pickle or create one from information in setup xml
         self.components = self.uihandler.loadComponents(os.path.join(self.setupFolder, self.project + 'Setup.xml'))
         if self.components is None:
-            self.makeComponentList()
-        # This has to happen after thread completes
+            self.components = self.makeComponentList()
+
+
         if self.inputData:
-
-            #indicate that the data has loaded
-            self.dataLoadedOutput.setText('data loaded')
-            #make sure the date range is valid
-            self.validateRunTimeSteps()
-            #update the Model tab with set information
-            self.updateDependents(self.inputData)
-            # refresh the plot or processed data
-            self.refreshDataPlot()
-            self.progressBar.setRange(0, 1)
-
+            self.inputDataLoaded()
+        else:
+            self.netCdfsLoaded()
+        return
+    def netCdfsLoaded(self):
+        # list netcdf files previously generated
+        self.currentNetcdfs.setText('Processed Files: ' + ', '.join(self.listNetCDFs()))
+        self.updateDependents()
+    def inputDataLoaded(self):
+        # indicate that the data has loaded
+        self.dataLoadedOutput.setText('data loaded')
+        # make sure the date range is valid
+        self.validateRunTimeSteps()
+        # update the Model tab with set information
+        self.updateDependents(self.inputData)
+        # refresh the plot or processed data
+        self.refreshDataPlot()
+        self.progressBar.setRange(0, 1)
         # generate netcdf files if requested
         msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Time Series loaded",
                                     "Do you want to generate netcdf files?.")
@@ -472,7 +494,6 @@ class FormSetup(QtWidgets.QWidget):
         # if yes create netcdf files, Otherwise this can be done after the data is reviewed.
         if result == QtWidgets.QMessageBox.Ok:
             self.makeNetcdfs()
-        return
 
     def validateRunTimeSteps(self):
         #run time steps need to either equal the range of the data set or be a subset within the dataset
@@ -501,7 +522,6 @@ class FormSetup(QtWidgets.QWidget):
         apparentStart, apparentEnd = self.dbhandler.getSetupDateRange()
         print(apparentStart)
         return
-
     def refreshDataPlot(self):
         resultDisplay = self.parent().findChild(ResultsSetup)
         resultDisplay.defaultPlot()
@@ -519,7 +539,7 @@ class FormSetup(QtWidgets.QWidget):
 
         return
 
-    def updateDependents(self, data):
+    def updateDependents(self, data = None):
         '''
         updates the default component list, time range and time step values in the setup table in the project database
         based on fields and timesteps found in data.fixed and passes these values to the ModelDialog
@@ -527,13 +547,25 @@ class FormSetup(QtWidgets.QWidget):
         :return: None
         '''
         # start and end dates get set written to database as default date ranges
-        import pandas as pd
-        #each dataframe needs a datetime index
-        for df in data.fixed:
 
-            assert((type(df.index[0])==pd.Timestamp) | (type(df.index[0])==pd.datetime))
+        values = self.updateInputDataDependents(data)
 
-        def getDefaults(listDf,defaultStart=pd.datetime.today().date(), defaultEnd = pd.datetime.today().date()):
+        self.updateModelInputDependents(values)
+
+    def updateModelInputDependents(self, values):
+        self.dbhandler.insertFirstSet(values)
+        self.dbhandler.insertAllComponents('Set0')
+        # Deliver appropriate info to the ModelForm
+        modelForm = self.window().findChild(SetsAttributeEditorBlock)
+        modelForm.updateForm()
+
+    def updateInputDataDependents(self, data = None):
+        # each dataframe needs a datetime index
+        if data != None:
+            for df in data.fixed:
+                assert ((type(df.index[0]) == pd.Timestamp) | (type(df.index[0]) == pd.datetime))
+
+        def getDefaults(listDf, defaultStart=pd.datetime.today().date(), defaultEnd=pd.datetime.today().date()):
             '''
             returns the earliest and latest date index found in a list of dataframes with date indices. Will return initial default
             start and end if no dates are found in dataframes.
@@ -545,42 +577,38 @@ class FormSetup(QtWidgets.QWidget):
 
             if len(listDf) > 0:
                 s = listDf[0].index[0].date()
-                e = listDf[0].index[len(listDf[0])-1].date()
+                e = listDf[0].index[len(listDf[0]) - 1].date()
 
                 if (s < defaultStart) & (e > defaultEnd):
-                    return getDefaults(listDf[1:],s,e)
+                    return getDefaults(listDf[1:], s, e)
                 elif s < defaultStart:
-                    return getDefaults(listDf[1:],s,defaultEnd)
+                    return getDefaults(listDf[1:], s, defaultEnd)
                 elif e > defaultStart:
                     return getDefaults(listDf[1:], defaultStart, e)
             return str(defaultStart), str(defaultEnd)
 
-        #default start is the first date there is record for
+        # default start is the first date there is record for
         values = {}
-        values['date_start'], values['date_end'] = getDefaults(data.fixed)
+        if data!= None:
+            values['date_start'], values['date_end'] = getDefaults(data.fixed)
+        else:
+            values['date_start'], values['date_end'] = getDefaults([])
         values['date_start'] = [values['date_start']]
         values['date_end'] = [values['date_end']]
         values['set_name'] = ['Set0']
         info = self.dbhandler.getSetUpInfo()
-        values['timestepvalue']=[info['timeStep.value']]
-        values['timestepunit']=[info['timeStep.unit']]
-        values['project_id'] = [1] #always 1, only 1 project per database
+        values['timestepvalue'] = [info['timeStep.value']]
+        values['timestepunit'] = [info['timeStep.unit']]
+        values['project_id'] = [1]  # always 1, only 1 project per database
 
-        self.dbhandler.insertFirstSet(values)
+        # deliver the data to the ResultsSetup form so it can be plotted
+        if data != None:
+            resultsForm = self.window().findChild(ResultsSetup)
+            resultsForm.setPlotData(data)
+            resultsForm.defaultPlot()
 
-        self.dbhandler.insertAllComponents('Set0')
-
-        # Deliver appropriate info to the ModelForm
-        modelForm = self.window().findChild(SetsAttributeEditorBlock)
-
-        modelForm.updateForm()
-
-        #deliver the data to the ResultsSetup form so it can be plotted
-        resultsForm = self.window().findChild(ResultsSetup)
-        resultsForm.setPlotData(data)
-        resultsForm.defaultPlot()
+        return values
     # close event is triggered when the form is closed
-
     def closeEvent(self, event):
         #save xmls
         if 'projectFolder' in self.__dict__.keys():
@@ -703,7 +731,7 @@ class FormSetup(QtWidgets.QWidget):
         #MainWindow = self.window()
        # setupForm = MainWindow.findChild(QtWidgets.QWidget, 'setupDialog')
         #componentModel = setupForm.findChild(QtWidgets.QWidget, 'components').model()
-        handler = UIToHandler()
+        handler = UIHandler()
         if data:
             df = data.fixed
         componentDict = {}
@@ -717,7 +745,7 @@ class FormSetup(QtWidgets.QWidget):
 
         #filesCreated is a list of netcdf files that were generated
         self.ncs = handler.createNetCDF(df, componentDict,self.setupFolder)
-        self.netCDFsLoaded.setText(', '.join(self.ncs))
+        self.netCdfsLoaded()
     def getProjectFolder(self):
         return self.dbhandler.getProjectPath()
     def revalidate(self):
@@ -928,7 +956,7 @@ class ThreadedDataCreate(QtCore.QThread):
         self.wait()
 
     def run(self):
-        handler = UIToHandler()
+        handler = UIHandler()
         handler.sender.notifyProgress.connect(self.notify)
         cleaned_data, components = handler.createCleanedData(
             os.path.join(self.setupFolder, self.project + 'Setup.xml'))\
