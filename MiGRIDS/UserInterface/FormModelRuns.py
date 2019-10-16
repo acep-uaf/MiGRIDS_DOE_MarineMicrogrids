@@ -452,7 +452,9 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.submitData()
         #cretae the required xml files and set directory
         self.setupSet()
-
+        self.startModeling()
+    def startModeling(self):
+        #starts running models based on xml files that were genereted in a set directory
     # close event is triggered when the form is closed
     def closeEvent(self, event):
 

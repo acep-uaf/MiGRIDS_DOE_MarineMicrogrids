@@ -11,7 +11,6 @@ import sqlite3
 import time
 # add to sys path
 
-import tkinter as tk
 from tkinter import filedialog
 
 import pandas as pd
@@ -23,16 +22,14 @@ sys.path.append(os.path.join(here, '../'))
 sys.path.append(here)
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
 from MiGRIDS.Analyzer.DataWriters.writeNCFile import writeNCFile
-
+from MiGRIDS.Model.Exceptions.NoDirectoryException import NoDirectoryException
 
 def runSimulation(projectSetDir = ''):
 
     if projectSetDir == '':
-        print('Choose the project directory')
-        root = tk.Tk()
-        root.withdraw()
-        projectSetDir = filedialog.askdirectory()
-
+         #throw an error
+         raise NoDirectoryException("Specify a valid directory")
+    
     # get set number
     dir_path = os.path.basename(projectSetDir)
     setNum = str(dir_path[3:])
