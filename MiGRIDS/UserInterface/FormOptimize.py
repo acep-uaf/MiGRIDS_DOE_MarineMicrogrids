@@ -5,7 +5,7 @@ from MiGRIDS.UserInterface.GridFromXML import GridFromXML
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.Controller.UIToInputHandler import UIHandler
 
 class FormOptimize(QtWidgets.QWidget):
     def __init__(self, parent):
@@ -75,7 +75,7 @@ class FormOptimize(QtWidgets.QWidget):
 
     def writeXML(self,soup):
         #calls the controller to write an xml file of the optimization config file into the project folder
-        handler = UIToHandler()
+        handler = UIHandler()
         myGrid = self.findChildren(GridFromXML)[0]
         outFile = 'optimizerConfig.xml'
         outFile = os.path.join(getFilePath('Optimize',projectFolder = self.dbhandler.getProjectFolder()),outFile)

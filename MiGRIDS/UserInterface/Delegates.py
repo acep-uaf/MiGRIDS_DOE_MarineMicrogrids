@@ -41,7 +41,6 @@ class ComboDelegate(QtWidgets.QItemDelegate):
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
-        from MiGRIDS.UserInterface.getComponentAttributesAsList import getComponentAttributesAsList
         self.commitData.emit(self.sender())
         #if its the sets table then the attribute list needs to be updated
 
@@ -81,6 +80,7 @@ class TextDelegate(QtWidgets.QItemDelegate):
 #combo boxes for tables with foreign keys
 class RelationDelegate(QtSql.QSqlRelationalDelegate):
     componentNameChanged = QtCore.pyqtSignal(str)
+
     def __init__(self, parent,name,**kwargs):
         QtSql.QSqlRelationalDelegate.__init__(self,parent)
         self.parent = parent
@@ -91,14 +91,13 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
         #make a combo box if there is a valid relation
         if index.model().relation(index.column()).isValid:
             editor = QtWidgets.QComboBox(parent)
-            #editor.setCurrentIndex(0)
-            editor.activated.connect(self.currentIndexChanged)
+            editor.currentIndexChanged.connect(self.currentIndexChanged)
+            #editor.activated.connect(self.currentIndexChanged)
             return editor
         else:
             return QtWidgets.QStyledItemDelegate(parent).createEditor(parent,option,index)
 
     def setEditorData(self, editor, index):
-
         m = index.model()
         relation = m.relation(index.column())
 
@@ -112,14 +111,14 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
 
             editor.setModelColumn(pmodel.fieldIndex(relation.displayColumn()))
             editor.setCurrentIndex(editor.findText(str(m.data(index))))
-
+        return
     def setModelData(self,editor, model, index):
 
          return super(RelationDelegate, self).setModelData(editor,model,index)
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
-
+        #i = index
         self.commitData.emit(self.sender())
         if self.name == 'componentname':
             currentSelected = self.sender().currentText()

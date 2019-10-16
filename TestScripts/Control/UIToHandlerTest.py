@@ -2,7 +2,7 @@ import unittest
 import os
 from bs4 import BeautifulSoup
 from PyQt5 import QtSql
-from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from MiGRIDS.InputHandler.readSetupFile import readSetupFile
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 
@@ -19,7 +19,7 @@ class UIToHandlerTest(unittest.TestCase):
 
     def setUp(self):
         self.handler = ProjectSQLiteHandler()
-        self.u = UIToHandler()
+        self.u = UIHandler()
         self.insertTestData()
 
     def tearDown(self):

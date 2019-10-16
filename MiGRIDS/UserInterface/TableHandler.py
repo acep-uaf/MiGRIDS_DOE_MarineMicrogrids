@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets
 
 import MiGRIDS
-from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.Controller.UIToInputHandler import UIHandler
 class TableHandler():
 
     def __init__(self, parent):
@@ -14,7 +14,7 @@ class TableHandler():
         # get the model
         tableView = self.parent.findChild((QtWidgets.QTableView), table)
         model = tableView.model()
-
+        debugvar = model.rowCount()
         # insert an empty row as the last record
         model.insertRows(model.rowCount(), 1)
 
@@ -52,8 +52,6 @@ class TableHandler():
                 else:
                     lm.setStringList(loi)
 
-
-
     #removes selected records from the table and its underlying sql table
     #String -> None
     def functionForDeleteRecord(self, table):
@@ -78,7 +76,7 @@ class TableHandler():
             result = msg.exec()
 
             if result == 1024:
-                handler = UIToHandler()
+                handler = UIHandler()
                 for r in selected:
                     model.removeRows(r.row(), 1)
 

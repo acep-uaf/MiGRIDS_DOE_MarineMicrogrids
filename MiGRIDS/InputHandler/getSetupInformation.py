@@ -3,7 +3,7 @@ def getSetupInformation(setupXML):
     Creates a dictionary based on tags in the setup xml
     :param setupXML: [String] path to a setup xml file
 
-    :return: Dictionary with tags from setup.xml as keys
+    :return: Soup from setup xml
     '''
 
     from bs4 import BeautifulSoup

@@ -3,47 +3,65 @@ import pandas as pd
 
 #uses a set name and data model of component attribute changes to generate set#attribute.xml based on template
 #string, Table -> Beautifulsoup
-def makeAttributeXML(currentSet,compmodel):
-    from UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+
+
+def makeAttributeXML(currentSet):
     from PyQt5 import QtWidgets
     soup = readTemplateAttributeXML()
 
     #fillSetInfo the soup to reflect the model
     #for each row in model
-    compName =''
-    compTag = ''
-    compAttr=''
-    compValue=''
-    for i in range(compmodel.rowCount()):
-        compName = ' '.join([compName, compmodel.data(compmodel.index(i,2))])
-        compTag = ' '.join([compTag, '.'.join(compmodel.data(compmodel.index(i,3)).split('.')[:-1])])
-        compAttr =  ' '.join([compAttr, compmodel.data(compmodel.index(i,3)).split('.')[-1]])
-        compValue = ' '.join([compValue, compmodel.data(compmodel.index(i, 4))])
 
-    tag = soup.find('compName')
-    tag.attrs['value'] = compName.lstrip()
-    tag = soup.find('compTag')
-    tag.attrs['value'] = compTag.lstrip()
-    tag = soup.find('compAttr')
-    tag.attrs['value'] = compAttr.lstrip()
-    tag = soup.find('compValue')
-    tag.attrs['value']= compValue.lstrip()
 
-    #fillSetInfo the set information
-    handler = ProjectSQLiteHandler()
-    dataTuple = handler.cursor.execute("SELECT set_name, date_start, date_end, timestep, component_names from setup where set_name = '" + currentSet.lower() + "'").fetchone()
-
-    tag = soup.find('setupTag')
-    tag.attrs['value'] = "componentNames runTimeSteps timeStep"
-    tag = soup.find('setupAttr')
-    tag.attrs['value']= "value value value"
-    tag = soup.find('setupValue')
-    df = compmodel.parent().window().findChild(QtWidgets.QWidget, 'setupDialog').model.data.fixed
-    tag.attrs['value'] = " ".join([dataTuple[4],timeStepsToInteger(dataTuple[1],dataTuple[2],df),str(dataTuple[3])])
-
+    #changes to component files
+    dbhandler = ProjectSQLiteHandler()
+    #get a list of tuples for tag modifications
+    updateComponentAttributes(currentSet, dbhandler, soup)
+    updateSetupAttributes(currentSet, dbhandler, soup)
     return soup
-#write a soup to xml file
-#BeautifulSoup, String, String -> None
+
+def dropAttr(lotag):
+        t = []
+        a = []
+        for l in lotag.split(','):
+           t.append(".".join(l.split(".")[0:len(l.split(".")) - 1]))
+           a.append(l.split(".")[-1])
+        newT= ",".join(t)
+        newA = ",".join(a)
+        return newT, newA
+
+def updateComponentAttributes(currentSet, dbhandler,  soup):
+    '''updates a soup with changes entered into the project database'''
+    compChanges = dbhandler.getSetChanges(dbhandler.getId('set_', 'set_name', currentSet)[0][0])
+    compName, compTag, compValue = zip(*compChanges)
+    splitTags = [dropAttr(t) for t in compTag]
+    compTag,compAttr =list(zip(*splitTags))
+    tag = soup.find('compName')
+    tag.attrs['value'] = ' '.join(compName)
+    tag = soup.find('compTag')
+    tag.attrs['value'] = ' '.join(compTag)
+    tag = soup.find('compAttr')
+    tag.attrs['value'] = ' '.join(compAttr)
+    tag = soup.find('compValue')
+    tag.attrs['value'] = ' '.join(compValue)
+    return soup
+
+def updateSetupAttributes(currentSet, dbhandler,  soup):
+    # Changes to setup file
+    dataDict = dbhandler.getNewSetInfo(currentSet)
+    dataTuple = [(t, dataDict[t]) for t in dataDict.keys()]
+    setupTag, setupValue = list(zip(*dataTuple))
+    setupSplitTag = [dropAttr(t) for t in setupTag]
+    setupTag, setupAttr = list(zip(*setupSplitTag))
+    tag = soup.find('setupTag')
+    tag.attrs['value'] = ' '.join(setupTag)
+    tag = soup.find('setupAttr')
+    tag.attrs['value'] = ' '.join(setupAttr)
+    tag = soup.find('setupValue')
+    tag.attrs['value'] = ' '.join(setupValue)
+    return soup
+
 def writeAttributeXML(soup,saveDir,setName):
     import os
     # write combined xml file
@@ -53,7 +71,7 @@ def writeAttributeXML(soup,saveDir,setName):
     f.write(soup.prettify())
     f.close()
     return
-#dataframe, integer - > datetime
+
 def integerToTimeIndex(df, i):
     d = pd.to_datetime(df.index[int(i)]).date()
     return d
@@ -73,7 +91,6 @@ def timeStepsToInteger(d1,d2,df):
         return ' '.join([str(v1),str(v2)])
     return 'all'
 
-#->Soup
 def readTemplateAttributeXML():
     from bs4 import BeautifulSoup
     import os
@@ -107,3 +124,4 @@ def readTemplateAttributeXML():
                 soup.component.append(child)
 
     return soup
+

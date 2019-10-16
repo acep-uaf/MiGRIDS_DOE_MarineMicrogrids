@@ -1,7 +1,7 @@
 import unittest
 import os
 from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
-from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.Controller.UIToInputHandler import UIHandler
 class ModelEditorHolderTest(unittest.TestCase):
 
     def setUp(self):
@@ -52,7 +52,7 @@ class ModelEditorHolderTest(unittest.TestCase):
     def readInSetup(self):
         file = os.path.join(os.path.dirname(__file__), '..', '..', 'MiGRIDSProjects', 'SampleProject', 'InputData', 'Setup',
                      'SampleProjectSetup.xml')
-        handler = UIToHandler()
+        handler = UIHandler()
         setup = handler.readInSetupFile(file)
         return setup
 

@@ -1,6 +1,7 @@
 #Form for display model run parameters
 from PyQt5 import QtWidgets, QtCore, QtGui, QtSql
 
+from MiGRIDS.Controller.RunHandler import RunHandler
 from MiGRIDS.UserInterface.XMLEditor import XMLEditor
 from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
@@ -9,16 +10,16 @@ from MiGRIDS.UserInterface.TableHandler import TableHandler
 from MiGRIDS.UserInterface.ModelSetTable import SetTableModel, SetTableView
 from MiGRIDS.UserInterface.ModelRunTable import RunTableModel, RunTableView
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.Pages import Pages
 from MiGRIDS.UserInterface.DialogComponentList import ComponentSetListForm
+from MiGRIDS.UserInterface.qdateFromString import qdateFromString
 import datetime
 import os
-import pandas as pd
+
 
 #main form containing setup and run information for a project
-from MiGRIDS.UserInterface.qdateFromString import qdateFromString
 
 class FormModelRun(QtWidgets.QWidget):
 
@@ -28,16 +29,13 @@ class FormModelRun(QtWidgets.QWidget):
 
     def initUI(self):
         self.dbhandler = ProjectSQLiteHandler()
+        self.handler = RunHandler()
         self.setObjectName("modelDialog")
         #the first page is for set0
-        #self.tabs = SetsPages(self, 'Set0')
+
         self.tabs = Pages(self, 0, SetsAttributeEditorBlock)
         self.tabs.setObjectName('modelPages')
-        #self.setsTable = self.tabs
-
-        #create the run table #TODO should this move to SetsTableBlock?
         self.runTable = self.createRunTable()
-
         self.layout = QtWidgets.QVBoxLayout()
 
         #button to create a new set tab
@@ -53,7 +51,6 @@ class FormModelRun(QtWidgets.QWidget):
         self.layout.addWidget(self.runTable)
         self.setLayout(self.layout)
         self.showMaximized()
-
 
     #the run table shows ??
     def createRunTable(self):
@@ -82,13 +79,6 @@ class FormModelRun(QtWidgets.QWidget):
         widg = SetsAttributeEditorBlock(self, tab_count)
         #widg.fillSetInfo()
         self.tabs.addTab(widg, 'Set' + str(tab_count))
-        #TODO make sure this is done when we go to write to the set folder.
-        #create a folder to hold the relevent set data
-        '''#project folder is from FormSetup model
-        projectFolder = self.dbhandler.getProjectPath()
-        newFolder = os.path.join(projectFolder,'OutputData', 'Set' + str(tab_count))
-        if not os.path.exists(newFolder):
-            os.makedirs(newFolder)'''
 
     # calls the specified function connected to a button onClick event
     @QtCore.pyqtSlot()
@@ -106,6 +96,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     def init(self, set):
         self.componentDefault = []
         self.dbhandler = ProjectSQLiteHandler()
+        self.handler = RunHandler()
         self.set = set #set is an integer
         self.setName = "Set" + str(self.set) #set name is a string with a prefix
         self.tabName = "Set " + str(self.set)
@@ -114,7 +105,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         tableGroup = QtWidgets.QVBoxLayout()
 
         #setup info for a set
-        self.setInfo = self.makeSetInfo() #edits on setup attributes
+        self.setInfo = self.makeSetInfoCollector() #edits on setup attributes
         tableGroup.addWidget(self.infoBox)
 
         #buttons for adding and deleting component attribute edits - edits to descriptor files
@@ -126,13 +117,10 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         tv.setObjectName('sets')
         self.set_componentsModel = SetTableModel(self,self.set)
         self.set_componentsModel.setFilter('set_id = ' + str(self.set + 1) + " and tag != 'None'")
+        tv.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
         self.set_componentsModel.select()
 
         tv.setModel(self.set_componentsModel)
-        '''for r in range(m.rowCount()):
-            item = m.index(r,1)
-            item.flags(~QtCore.Qt.ItemIsEditable)
-            m.setItemData(QtCore.QModelIndex(r,1),item)'''
 
         #hide the id column
         tv.hideColumn(0)
@@ -148,26 +136,42 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         else:
             self.fillSetInfo()
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-
     def updateForm(self):
-
+        '''refreshes data displayed in form based on any changes made in database or xml model files'''
         self.setModel.select() #update the set data inputs
         self.setValidators() #update the validators tied to inputs
         self.mapper.toLast() #make sure the mapper is on the actual record (1 per tab)
         self.setModel.submit() #submit any data that was changed
         self.updateComponentLineEdit(self.dbhandler.getComponentNames()) # update the clickable line edit to show current components
         #self.updateComponentDelegate(self.dbhandler.getComponentNames())
+
         self.set_componentsModel.select()
-        self.xmlEditor.updateWidget()
+
+        self.xmlEditor.updateWidget() #this relies on xml files, not the database
+
+    def loadSetData(self):
+        #load and update from set setup file
+        self.handler.loadExistingProjectSet(self.setName)
+        #load and update from attributeXML
+        #load and update from xml resources
+        self.updateForm()
+        return
+
+    def updateFromAttributeXML(self):
+        #read attribute xml if its found
+        #update the database based on attribute xml contents
+        return
+
+    def submitData(self):
+        self.setModel.submitAll()
+        self.set_componentsModel.submitAll()
 
     def updateComponentLineEdit(self,listNames):
+        '''component line edit is unbound so it gets called manually to update'''
         lineedit = self.infoBox.findChild(ClickableLineEdit,'componentNames')
         lineedit.setText(",".join(listNames))
         return
 
-    #sets the start and end date range based on available dataset.
-    #if no values are provided the values are drawn from the database
-    #tuple(s) -> None
     def getDefaultDates(self):
 
         start,end = self.dbhandler.getSetupDateRange()
@@ -185,10 +189,8 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
             end = datetime.datetime.strptime(end[0], '%Y-%m-%d')
 
         return start, end
-
     def getSetDates(self,setName):
         '''
-
         :param setName:
         :return:
         '''
@@ -200,8 +202,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):
         buttonFunction()
-
-    def makeSetInfo(self):
+    def makeSetInfoCollector(self):
         '''
         Creates the input form for fields needed to create and run a model set
         :param kwargs: String set can be passed as a keyword argument which refers to the setname in the project_manager database tble setup
@@ -255,7 +256,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         p = len(wids)
 
         list(map(lambda w: constrainDateRange(w,qdateFromString(start),qdateFromString(end)), wids))
-
     def mapWidgets(self):
         '''
         create a widget mapper object to tie fields to data in database tables
@@ -278,7 +278,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.mapper.setSubmitPolicy(QtWidgets.QDataWidgetMapper.AutoSubmit)
         self.mapper.toFirst()
         return
-
     def makeSetModel(self):
         # set model
         infoRowModel = QtSql.QSqlRelationalTableModel()
@@ -291,7 +290,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         infoRowModel.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         return infoRowModel
 
-    #->QtWidgets.QLineEdit
     def componentSelector(self):
 
         #if components are not provided use the default list
@@ -305,12 +303,9 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
 
         widg.clicked.connect(lambda: self.componentCellClicked())
         return widg
-    #fills the setup portion of a set tab with either default values or current database values
-    #String -> None
+
     def fillSetInfo(self,setName = '0'):
 
-
-        # dictionary of set info
         setInfo = self.dbhandler.getSetInfo('set' + str(setName))
         if setInfo != None:
             if type(setInfo['componentNames.value']) == str:
@@ -330,14 +325,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
             #self.updateComponentDelegate(self.componentDefault)
 
         return
-
-    '''def updateComponentDelegate(self,components):
-
-        # find the component drop down delegate and reset its list to the selected components
-        tv = self.findChild(QtWidgets.QWidget, 'sets')
-        tableHandler = TableHandler(self)
-        tableHandler.updateComponentDelegate(components,tv,'componentName')'''
-
     @QtCore.pyqtSlot()
     def componentCellClicked(self):
 
@@ -353,7 +340,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.dbhandler.updateSetComponents(self.setName,components)
         #self.updateComponentDelegate(components)
         self.set_componentsModel.select()
-
     #Boolean -> QDateEdit
     def makeDateSelector(self, start=True):
         widg = QtWidgets.QDateEdit()
@@ -364,7 +350,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         widg.setDisplayFormat('yyyy-MM-dd')
         widg.setCalendarPopup(True)
         return widg
-
     #QDateEdit, Boolean -> QDateEdit()
     def setDateSelectorProperties(self, widg, start = True):
         # default is entire dataset
@@ -375,7 +360,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         widg.setDisplayFormat('yyyy-MM-dd')
         widg.setCalendarPopup(True)
         return widg
-
     # string -> QGroupbox
     def dataButtons(self, table):
         handler = TableHandler(self)
@@ -388,7 +372,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         buttonRow.addWidget(makeButtonBlock(self, lambda: handler.functionForDeleteRecord(table),
                                             None, 'SP_TrashIcon',
                                             'Delete a component change'))
-        buttonRow.addWidget(makeButtonBlock(self, lambda: self.runSet(),
+        buttonRow.addWidget(makeButtonBlock(self, lambda: self.runModels(),
                                             'Run', None,
                                             'Run Set'))
         buttonRow.addStretch(3)
@@ -396,14 +380,19 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         buttonBox.setLayout(buttonRow)
         return buttonBox
     def makeSetFolder(self):
-        path = self.dbhandler.getProjectPath
+        path = self.dbhandler.getProjectPath()
         setFolder = getFilePath(self.setName, projectFolder = path)
         if not os.path.exists(setFolder):
-            os.mkdir(setFolder)
+            os.makedirs(setFolder,exist_ok=True)
+        if not os.path.exists(os.path.join(setFolder,'Setup')):
+                os.mkdir(os.path.join(setFolder,'Setup'))
+    def setupSet(self):
+        '''
+        Sets of the direcotory and xml files required for a run. Each set folder has a run folder for each run
+        and a setup folder that contains model xml references and setup xml. Once the setup is complete. runSets can be called.
+        :return:
+        '''
 
-    def runSet(self):
-        # currentSet
-        currentSet = self.set
         xmlHolder = self.findChild(XMLEditorHolder)
         xmls = xmlHolder.findChildren(XMLEditor)
         [x.writeXML() for x in xmls]#write the model xml files
@@ -411,44 +400,60 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         #create a set folder
         #write the attributes xml to the set folder
         self.makeSetFolder()
-        #the attributes xml gets written, but it does not get used (this is a legacy from early model running
-        #strictly from xml files
+        #the attributes xml gets written
+        self.writeAttributeXML()
+
+        # calculate the run combinations and setup directories
+        self.setupRuns()
 
         #write the setup for the set
         self.writeSetup()
         #write the model xmls for the set
-        self.writeXMLs()
-        #calculate the run combinations
-        runs = self.calculateRuns()
-        #write the component descriptors
-        self.writeComponentDescriptors()
-        uihandler = UIToHandler()
-        # component table is the table associated with the button
-        uihandler.runModels(currentSet, componentTable,self.window().findChild(QtWidgets.QWidget,'setupDialog').model)
-
+        self.writeModelXMLs()
     def writeSetup(self):
         '''copies the setup file from the project setup folder to the set folder
         and makes tag modifications where specified in the modelrun form'''
-        setupSoup = self.handler.readSetup() #from the base setup
-        self.handler.writeSetup(setupSoup,self.setName) #written to the set folder
-        self.handler.updateSetup(setupSoup,self.setName) #updated to reflect changes in the database
-
+        self.handler.makeSetSetup(self.setName)
         return
-
-    def writeXMLs(self):
+    def writeModelXMLs(self):
         '''calls each xml editor to write its file to the set folder'''
+        holder = self.findChild(XMLEditorHolder)
+        holder.writeToSetFolder(self.setName)
         return
-
+    def writeAttributeXML(self):
+        self.handler.makeAttributeXML(self.setName)
+    def setupRuns(self):
+        '''Calculates the the run combinations and creates a folder for each run. Necessary xmls are transferred to the run folder'''
+        #make sure all set attribute entries are entered
+        self.set_componentsModel.submitAll()
+        # calculate the run matrix
+        runs = self.calculateRuns()
+        # create a folder for each run
+        [self.handler.createRun(r,i,self.setName) for i,r in enumerate(runs)]
     def calculateRuns(self):
         '''calculates a dictionary of run possibilities. Each key is the name of a run folder from Run0...Run#
         The number of runs is based on the number of possible combination for component tag changes
         :return dictionary of run combinations'''
-        return
 
+        set_id = self.dbhandler.getId('set_','set_name',self.setName)[0][0]
+        #id of tag changes
 
+        #all possible combinations not allowing for repeated use of a component:tag:value combination
+        runs = self.dbhandler.getRuns(set_id)
+        return runs
     def revalidate(self):
         return True
     def functionForNewRecord(self,table):
-
+        self.set_componentsModel.submitAll()
         handler = TableHandler(self)
         handler.functionForNewRecord(table, fields=[1], values=[self.set + 1])
+    def runModels(self):
+        #make sure data is up to date in the database
+        self.submitData()
+        #cretae the required xml files and set directory
+        self.setupSet()
+
+    # close event is triggered when the form is closed
+    def closeEvent(self, event):
+
+         self.setupSet() #write all the xml files required to restart the project later

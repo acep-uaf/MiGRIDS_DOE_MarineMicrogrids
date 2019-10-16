@@ -4,7 +4,7 @@
 import os
 from PyQt5 import QtWidgets
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
-from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from MiGRIDS.UserInterface.XMLEditor import XMLEditor
 
 
@@ -19,7 +19,7 @@ class XMLEditorHolder(QtWidgets.QWidget):
         self.xmls = {} #the list of possible xml files for each resource type and xml type combination (read from resource folder)
         self.xmlDefaults = {} #the value combo boxes for file selectors are originally set to
         self.dbhandler  = ProjectSQLiteHandler()
-        self.controler = UIToHandler()
+        self.controler = UIHandler()
         self.makeWidget()
 
     def updateWidget(self):
@@ -161,5 +161,9 @@ class XMLEditorHolder(QtWidgets.QWidget):
         return setup
 
 
-
-
+    def writeToSetFolder(self,setName):
+        for k in self.xmls.keys():
+            for r in self.xmls[k].keys():
+                editor = self.findChild(XMLEditor,k+r)
+                if editor is not None:
+                    editor.writeXML(self.xmlDefaults[k][r],setName)

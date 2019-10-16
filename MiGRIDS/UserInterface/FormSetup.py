@@ -466,16 +466,17 @@ class FormSetup(QtWidgets.QWidget):
         if self.components is None:
             self.components = self.makeComponentList()
 
-
         if self.inputData:
             self.inputDataLoaded()
         else:
             self.netCdfsLoaded()
         return
+
     def netCdfsLoaded(self):
         # list netcdf files previously generated
         self.currentNetcdfs.setText('Processed Files: ' + ', '.join(self.listNetCDFs()))
         self.updateDependents()
+
     def inputDataLoaded(self):
         # indicate that the data has loaded
         self.dataLoadedOutput.setText('data loaded')
@@ -556,10 +557,11 @@ class FormSetup(QtWidgets.QWidget):
         self.dbhandler.insertFirstSet(values)
         self.dbhandler.insertAllComponents('Set0')
         # Deliver appropriate info to the ModelForm
-        modelForm = self.window().findChild(SetsAttributeEditorBlock)
-        modelForm.updateForm()
+        modelForms = self.window().findChildren(SetsAttributeEditorBlock)
+        [m.loadSetData() for m in modelForms] #load data individually for each set
 
     def updateInputDataDependents(self, data = None):
+        ''':return dictionary of values relevant to a set setup file'''
         # each dataframe needs a datetime index
         if data != None:
             for df in data.fixed:

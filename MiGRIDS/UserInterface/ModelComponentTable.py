@@ -24,16 +24,11 @@ class ComponentFields(Enum):
 class ComponentTableView(QtWidgets.QTableView):
     def __init__(self, *args, **kwargs):
         # column 1 gets autfilled with filedir
-        self.column1 = kwargs.get('column1')
+        self.tabPosition = kwargs.get('position')
         QtWidgets.QTableView.__init__(self, *args)
-        fields = kwargs.get('fields')
-
+        self.dbhandler = ProjectSQLiteHandler()
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
         self.resizeColumnsToContents()
-
-        handler = ProjectSQLiteHandler()
-
-        comps= handler.getAsRefTable('component', '_id', 'componentnamevalue')
 
         fields = []
         #combo columns

@@ -5,7 +5,7 @@ from PyQt5 import QtWidgets, QtCore
 import os
 import re
 
-from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from MiGRIDS.UserInterface.GridFromXML import GridFromXML
 from bs4 import BeautifulSoup
 
@@ -132,22 +132,25 @@ class XMLEditor(QtWidgets.QWidget):
         F.setVisible(False)
         return F
 
-    def writeXML(self):
+    def writeXML(self, setName=None):
         #file to write is based on selected file and project
         path = self.dbhandler.getProjectPath()
         if path is not None:
             projectName = self.dbhandler.getProject()
             selected = self.titleBar.selector.currentText()
             fileName = projectName + selected + self.SUFFIX
-            setupFolder = getFilePath('Setup', projectFolder=path)
-            xmlpath = os.path.join(setupFolder,fileName)
+            if setName == None:
+                folder = getFilePath('Setup', projectFolder=path)
+            else:
+                folder = getFilePath(setName,projectFolder=path)
+            xmlpath = os.path.join(folder,fileName)
             currentForm = self.findChild(XMLForm,selected)
             currentForm.writeXML(xmlpath)
             self.updateSetupFile(selected,self.objectName())
 
     def updateSetupFile(self,selectedFile, tag):
         setupFile = self.dbhandler.getFieldValue('project','setupfile','_id','1')
-        handler = UIToHandler()
+        handler = UIHandler()
         handler.writeTag(setupFile,tag + ".value",selectedFile)
 
 class XMLForm(QtWidgets.QWidget):
@@ -200,7 +203,7 @@ class XMLForm(QtWidgets.QWidget):
 
     def writeXML(self, file):
         # calls the controller to write an xml file of the optimization config file into the project folder
-        handler = UIToHandler()
+        handler = UIHandler()
         myGrid = self.findChildren(GridFromXML)[0]
 
         handler.writeSoup(myGrid.extractValues()[0], file)

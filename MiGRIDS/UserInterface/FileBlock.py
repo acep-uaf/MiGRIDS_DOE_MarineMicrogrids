@@ -11,7 +11,7 @@ import pytz
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.gridLayoutSetup import setupGrid
-from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.TableHandler import TableHandler
 
@@ -357,8 +357,8 @@ class FileBlock(QtWidgets.QGroupBox):
             record.setValue('original_field_name', fieldName)
 
             #make a default descriptor xml file
-            handler = UIToHandler()
-            record = handler.copyDescriptor(descriptorFile[0], self.model.componentFolder, record)
+            handler = UIHandler()
+            handler.copyDescriptor(descriptorFile[0], self.model.componentFolder)
 
             # add a row into the database
             model.insertRowIntoTable(record)
@@ -373,7 +373,7 @@ class FileBlock(QtWidgets.QGroupBox):
         handler = TableHandler(self)
         filedir = self.FileBlock.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
         self.saveInput()
-        id = self.dbhandler.getId('input_files','inputfiledirvalue',filedir)
+        id = self.dbhandler.getId('input_files','inputfiledirvalue',filedir)[0][0]
         handler.functionForNewRecord(table,fields=[1],values=[id])
 
     # delete the selected record from the specified datatable
@@ -398,7 +398,7 @@ class FileBlock(QtWidgets.QGroupBox):
             result = msg.exec()
 
             if result == QtWidgets.QMessageBox.Ok:
-                handler = UIToHandler()
+                handler = UIHandler()
                 removedRows = []
                 for r in selected:
                     if r.row() not in removedRows:
@@ -599,7 +599,7 @@ class FileBlock(QtWidgets.QGroupBox):
                                        setupValues[1:])
             self.saveTables()
             # on leave save the xml files
-            handler = UIToHandler()
+            handler = UIHandler()
             handler.makeSetup()
 
         self.dbhandler.closeDatabase()

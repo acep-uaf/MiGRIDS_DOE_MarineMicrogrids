@@ -16,12 +16,12 @@ class XMLEditorTest(unittest.TestCase):
 
     def test_create(self):
         self.assertFalse(self.F.titleBar.btn_hide.isVisible())
-        self.assertFalse(self.F.form.isVisible())
+        self.assertFalse(self.F.xmlform.isVisible())
 
     def test_showForm(self):
         self.F.showForm()
         self.assertTrue(self.F.titleBar.btn_hide.isVisible())
-        self.assertTrue(self.F.form.isVisible())
+        self.assertTrue(self.F.xmlform.isVisible())
 
 if __name__ == '__main__':
     unittest.main()

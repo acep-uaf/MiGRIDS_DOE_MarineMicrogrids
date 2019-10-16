@@ -14,7 +14,6 @@ from MiGRIDS.InputHandler.fixBadData import fixBadData
 from MiGRIDS.InputHandler.fixDataInterval import fixDataInterval
 from MiGRIDS.InputHandler.dataframe2netcdf import dataframe2netcdf
 from MiGRIDS.InputHandler.mergeInputs import mergeInputs
-from MiGRIDS.Controller.UIToHandler import UIToHandler
 from MiGRIDS.InputHandler.readSetupFile import readSetupFile
 import pickle
 
@@ -27,7 +26,7 @@ inputDictionary = readSetupFile(fileName)
 # read time series data, combine with wind data if files are seperate.
 df, listOfComponents = mergeInputs(inputDictionary)
 
-#view the resulting dataframe
+#view the resulting dataframe -this will print to GUI console if open
 print(df.head())
 
 #save the dataframe and components used
@@ -50,9 +49,9 @@ listOfComponents = pickle.load(inFile)
 inFile.close()
 
 #fix missing or bad data
-df_fixed = fixBadData(df, inputDictionary['setupDir'],listOfComponents,inputDictionary['runTimeSteps'])
+df_fixed = fixBadData(df, inputDictionary['setupDir'],listOfComponents,inputDictionary['runTimeSteps.value'])
 # fix the intervals
-df_fixed_interval = fixDataInterval(df_fixed,inputDictionary['outputInterval'])
+df_fixed_interval = fixDataInterval(df_fixed,inputDictionary['timeSteps.value'])
 
 # pickle df
 os.chdir(inputDictionary['setupDir'])

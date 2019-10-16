@@ -2,17 +2,17 @@
 # Created by: # Created on: 8/16/2019
 # Purpose :  displayComponentXML
 from PyQt5 import QtWidgets
-from MiGRIDS.Controller.UIToInputHandler import UIToHandler
+from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.componentFormFromXML import componentFormFromXML
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 def displayComponentXML(component_name):
     dbHandler = ProjectSQLiteHandler()
-    uihandler = UIToHandler()
+    uihandler = UIHandler()
     projectFolder = dbHandler.getProjectPath()
     componentDir = getFilePath('Components', projectFolder=projectFolder)
-    component_id = dbHandler.getId("component","componentnamevalue",component_name)
+    component_id = dbHandler.getId("component","componentnamevalue",component_name)[0]
     component = dbHandler.getRecordDictionary("component",component_id)
 
     try:
