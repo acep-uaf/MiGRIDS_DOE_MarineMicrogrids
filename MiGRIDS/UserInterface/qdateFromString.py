@@ -18,6 +18,10 @@ def asDate(strDate):
     try:
         realDate = datetime.datetime.strptime(strDate, '%Y-%m-%d')
     except ValueError as v:
-        realDate = datetime.datetime.strptime(strDate, '%Y-%m-%d %H:%M:%S')
+        try:
+            realDate = datetime.datetime.strptime(strDate, '%Y-%m-%d %H:%M:%S')
+        except Exception as e:
+            print(e)
+            return None
 
     return realDate

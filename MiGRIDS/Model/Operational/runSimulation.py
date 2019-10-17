@@ -61,6 +61,7 @@ def runSimulation(projectSetDir = ''):
 
     # get the time steps to run
     runTimeSteps = readXmlTag(projectSetupFile,'runTimeSteps','value')
+
     if len(runTimeSteps) == 1: # if only one value, take out of list. this prevents failures further down.
         runTimeSteps = runTimeSteps[0]
         if not runTimeSteps == 'all':
@@ -69,11 +70,11 @@ def runSimulation(projectSetDir = ''):
         runTimeSteps = [int(x) for x in runTimeSteps]
     try:
         # get the load predicting function
-        predictLoadFile = readXmlTag(projectSetupFile,'predictLoad','value')[0]
+        predictLoadFile = readXmlTag(projectSetupFile,'loadPredict','value')[0]
         predictLoadInputsFile = getFile(predictLoadFile)
 
         # get the wind predicting function
-        predictWindFile = readXmlTag(projectSetupFile,'predictWind','value')[0]
+        predictWindFile = readXmlTag(projectSetupFile,'windPredict','value')[0]
         predictWindInputsFile = getFile(predictWindFile)
 
         # get the ees dispatch

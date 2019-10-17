@@ -35,25 +35,25 @@
         seperated by commas and no spaces .  --></setupValue>
     </setupAttributeValues>
 
-    <predictLoadInputAttributeValues>
-        <!-- 'predictLoadInputAttributeValues' describes the predictLoad inputs that have been varied from
+    <loadPredictInputAttributeValues>
+        <!-- 'loadPredictInputAttributeValues' describes the loadPredict inputs that have been varied from
         the base case . -->
-        <predictLoadInputTag value = "">        <!-- 'predictLoadInputTag' is the tag to change. If more than one level of tags is required enter as
-        a string seperated by periods '.'.   --></predictLoadInputTag>
-        <predictLoadInputAttr value = ""><!-- 'predictLoadInputAttr' is the attribute to change. For example 'value'.  --></predictLoadInputAttr>
-        <predictLoadInputValue value = ""> <!-- 'predictLoadInputValue' value to place in the attribute. If a list is needs to be placed, enter as a string of values,
-        seperated by commas and no spaces .  --></predictLoadInputValue>
-    </predictLoadInputAttributeValues>
+        <loadPredictInputTag value = "">        <!-- 'loadPredictInputTag' is the tag to change. If more than one level of tags is required enter as
+        a string seperated by periods '.'.   --></loadPredictInputTag>
+        <loadPredictInputAttr value = ""><!-- 'loadPredictInputAttr' is the attribute to change. For example 'value'.  --></loadPredictInputAttr>
+        <loadPredictInputValue value = ""> <!-- 'loadPredictInputValue' value to place in the attribute. If a list is needs to be placed, enter as a string of values,
+        seperated by commas and no spaces .  --></loadPredictInputValue>
+    </loadPredictInputAttributeValues>
 
-    <predictWindInputAttributeValues>
-        <!-- 'predictWindInputAttributeValues' describes the predictLoad inputs that have been varied from
+    <windPredictInputAttributeValues>
+        <!-- 'windPredictInputAttributeValues' describes the loadPredict inputs that have been varied from
         the base case . -->
-       <predictWindInputTag value = "">        <!-- 'predictWindInputTag' is the tag to change. If more than one level of tags is required enter as
-        a string seperated by periods '.'.   --></predictWindInputTag>
-        <predictWindInputAttr value = "">       <!-- 'predictWindInputAttr' is the attribute to change. For example 'value'.  --></predictWindInputAttr>
-        <predictWindInputValue value = ""><!-- 'predictWindInputValue' value to place in the attribute. If a list is needs to be placed, enter as a string of values,
-        seperated by commas and no spaces .  --></predictWindInputValue>
-    </predictWindInputAttributeValues>
+       <windPredictInputTag value = "">        <!-- 'windPredictInputTag' is the tag to change. If more than one level of tags is required enter as
+        a string seperated by periods '.'.   --></windPredictInputTag>
+        <windPredictInputAttr value = "">       <!-- 'windPredictInputAttr' is the attribute to change. For example 'value'.  --></windPredictInputAttr>
+        <windPredictInputValue value = ""><!-- 'windPredictInputValue' value to place in the attribute. If a list is needs to be placed, enter as a string of values,
+        seperated by commas and no spaces .  --></windPredictInputValue>
+    </windPredictInputAttributeValues>
 
     <reDispatchInputAttributeValues>
         <!-- 'reDispatchInputAttributeValues' describes the renewable energy dispatch inputs that have been varied from

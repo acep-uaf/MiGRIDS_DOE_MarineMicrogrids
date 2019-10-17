@@ -3,6 +3,8 @@ import os
 import sqlite3 as lite
 from MiGRIDS.InputHandler.Component import Component
 from MiGRIDS.Controller.makeXMLFriendly import xmlToString
+from MiGRIDS.UserInterface.qdateFromString import asDate
+
 
 class ProjectSQLiteHandler:
 
@@ -307,6 +309,34 @@ class ProjectSQLiteHandler:
         :return: dictionary of xml tags and values to be written to a setup.xml file
         '''
         setDict = {}
+        def asSeconds(value):
+            '''
+            Converts a datetime value to seconds since 1970-01-01.
+            The time indice in netcdf input files is seconds since 1970-01-01 so the resulting value corresponds to
+            a value in the netcdf time variable
+            :param value:
+            :return: int Seconds since 1970-01-01
+            '''
+            return
+
+        def asDatasetIndex(value):
+            '''
+            The netcdf record index corresponding to a time in seconds since 1970-01-01.
+            The index position is calculated based on the dateset start point as specified in the setup table.
+            :param value:
+            :return:
+            '''
+            if value == None:
+                return value
+
+            startPoint = asDate(self.getFieldValue('setup','date_start','_id','1'))
+            if startPoint == None:
+                #if there is not start date information we can't identify the position so None is returned
+                return None
+            dateDiff = pd.to_timedelta(asDate(startPoint) - asDate(value),unit='s')
+            interval = self.getFieldValue('setup','timestepvalue','_id',1)
+            record_position = dateDiff / interval
+            return record_position
 
         #get tuple for basic set info
         values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end from set_ join project on set_.project_id = project._id WHERE LOWER(set_name) = '" + setName.lower() + "'").fetchone()
@@ -316,7 +346,11 @@ class ProjectSQLiteHandler:
             setDict['timeStep.unit']=values[2]
             setDict['date_start'] = values[3]
             setDict['date_end'] = values[4]
-            setDict['runTimeSteps.value'] = str(values[3]) + " " + str(values[4])
+            start = asDatasetIndex(str(values[3]))
+            if start != None:
+                setDict['runTimeSteps.value'] = asDatasetIndex(str(values[3])) + " " + asDatasetIndex(str(values[4]))
+            else:
+                setDict['runTimeSteps.value'] = 'all'
             #as long as there was basic set up info look for component setup info
             #componentNames is a list of distinct components, order does not matter
             compTuple =  self.cursor.execute("SELECT group_concat(componentnamevalue,' ') FROM "
@@ -399,26 +433,32 @@ class ProjectSQLiteHandler:
     def updateSetSetup(self, setName, setupDict):
         '''Update the set_ table for a specific set and make sure all set components are in the set_component table'''
 
-
-        def dateOnly(value):
-            '''determins if a string contains both date and time or just date values'''
-            return ":" not in value
+        def asDatasetDateTime(value):
+            '''values from set setup xml files are integer positions for records in netcdf files
+            To convert to datetime we need to know where the set dataset starts in relation to the start
+            in the setup file and the timestep interval
+            :param value is a integer index position'''
+            startPoint = asDate(self.getFieldValue('setup', 'date_start', '_id', '1')) #the start date of all generated netcdf files
+            try:
+                intervals = int(value)/int(self.getFieldValue('setup', 'timestepvalue', '_id', '1'))
+            except ValueError as e:
+                return startPoint
+            currentDateTime = asDate(startPoint) + pd.to_timedelta(intervals, unit='s') #seconds between the start position and value
+            return currentDateTime
 
         # update fields that are in the set table
         try:
-            if dateOnly(setupDict['runTimeSteps.value']):
-                startdate = setupDict['runTimeSteps.value'].split(" ")[0]
-                enddate = setupDict['runTimeSteps.value'].split(" ")[1]
-            else:
-                startdate = setupDict['runTimeSteps.value'].split(" ")[0] + " " + \
-                            setupDict['runTimeSteps.value'].split(" ")[1]
-                enddate = setupDict['runTimeSteps.value'].split(" ")[2] + " " + \
-                          setupDict['runTimeSteps.value'].split(" ")[3]
+            #set setup files only store record positions for runTimeSteps.
+            #these need to be converted to datetimes for display and storing in datatable
+
+            startdate = asDatasetDateTime(setupDict['runTimeSteps.value'].split(" ")[0])
+            enddate = asDatasetDateTime(setupDict['runTimeSteps.value'].split(" ")[1])
+
 
         except IndexError as i:
             print("runtimesteps not start stop indices")
-            startdate = None
-            enddate = None
+            startdate = asDatasetDateTime(setupDict['runTimeSteps.value'])
+            enddate = asDatasetDateTime(setupDict['runTimeSteps.value'])
         #if the record already exists a -1 will be returned and updateRecord is run
         setId = self.insertRecord('set_',
                                   ['timestepunit', 'timestepvalue', 'runtimestepsvalue', 'date_start', 'date_end',
@@ -718,12 +758,22 @@ class ProjectSQLiteHandler:
         #update actual setup fields - these have a single value and are used in models
         #update project table
         pid = self.insertRecord('project',['project_name','project_path','setupfile'],[setupDict['project'],setupDict['projectPath'],setupFile])
-        def dateOnly(value):
-            '''determins if a string contains both date and time or just date values'''
+
+        def isInteger(value):
+            ''':returns True if value can be interpreted as an integer'''
+            try:
+                int(value)
+                return True
+            except ValueError:
+                return False
+
+        def isdateOnly(value):
+            '''determines if a string contains both date and time or just date values
+            :returns True if the value only contains a date (no time)'''
             return ":" not in value
         #update fields that are in the setup table
         try:
-            if dateOnly(setupDict['runTimeSteps.value']):
+            if isdateOnly(setupDict['runTimeSteps.value']):
                 startdate = setupDict['runTimeSteps.value'].split(" ")[0]
                 enddate = setupDict['runTimeSteps.value'].split(" ")[1]
             else:

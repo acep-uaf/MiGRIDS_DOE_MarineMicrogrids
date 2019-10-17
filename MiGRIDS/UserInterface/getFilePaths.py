@@ -9,24 +9,24 @@ def getFilePath(designator,**kwargs):
     if kwargs.get("projectFolder") != None:
         setupFolder = os.path.join(kwargs.get("projectFolder"),*['InputData','Setup'])
     elif kwargs.get('set') != None:
-        setupFolder = os.path.join(kwargs.get('set'),*['../..','InputData','Setup'])
+        setupFolder = os.path.realpath(os.path.join(kwargs.get('set'),*['../..','InputData','Setup']))
     else:
         setupFolder = kwargs.get('setupFolder')
 
     if designator == 'Processed':
-        return os.path.join(setupFolder,*['..','TimeSeriesData','ProcessedData'])
+        return os.path.realpath(os.path.join(setupFolder,*['..','TimeSeriesData','ProcessedData']))
     if designator == 'TimeSeriesData':
-        return os.path.join(setupFolder,*['..','TimeSeriesData'])
+        return os.path.realpath(os.path.join(setupFolder,*['..','TimeSeriesData']))
     elif designator == 'Components':
-        return os.path.join(setupFolder, *['..', 'Components'])
+        return os.path.realpath(os.path.join(setupFolder, *['..', 'Components']))
     elif designator == 'OutputData':
-        return os.path.join(setupFolder, *['..', '..','OutputData'])
+        return os.path.realpath(os.path.join(setupFolder, *['..', '..','OutputData']))
     elif (designator[0:3] == 'Set') & (designator[-2:] != 'up') :
-        return os.path.join(setupFolder, *['..', '..','OutputData', designator])
+        return os.path.realpath(os.path.join(setupFolder, *['..', '..','OutputData', designator]))
     elif designator[0:3] == 'Run':
-        return os.path.join(setupFolder, *['..', '..','OutputData', kwargs.get('Set'), designator])
+        return os.path.realpath(os.path.join(setupFolder, *['..', '..','OutputData', kwargs.get('Set'), designator]))
     elif designator == 'Project':
-        return os.path.join(setupFolder,*['..','..'])
+        return os.path.realpath(os.path.join(setupFolder,*['..','..']))
     elif designator == 'Setup':
         return setupFolder
     else:
