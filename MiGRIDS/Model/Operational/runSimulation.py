@@ -212,109 +212,52 @@ def runSimulation(projectSetDir = ''):
         # pr1.print_stats(sort="calls")
 
         # save data
-        os.chdir(outputDataDir)
+        #os.chdir(outputDataDir)
 
         start_file_write = time.time()
+        def ncOutFileName(prefix):
+            return '{}Set{}Run{}.nc'.format([prefix,str(setNum),str(runNum)])
+        def getStandardUnit(prefix):
+            #a prefix is formatted as nameAttribute
+            attrList = re.findall('[A-Z][^A-Z]*', prefix)
+            if (attrList[len(attrList) -1]) == 'List':
+                attr = attrList[-2] + attrList[-1]
+            else:
+                attr = attrList[-1]
+            #each attribute has a standard unit
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            unitConventionDir = os.path.join(dir_path, *['..', 'Analyzer', 'UnitConverters'])
+            # get the default unit for the data type
+            units = readXmlTag('internalUnitDefault.xml', ['unitDefaults', attr], 'units',
+                       unitConventionDir)[0]
+            return units
 
-        # Stitch powerhouseP
-        powerhouseP = SO.stitchVariable('powerhouseP')
-        writeNCFile(SO.DM.realTime, powerhouseP,1,0,'kW','powerhousePSet' + str(setNum) + 'Run'+str(runNum)+'.nc') # gen P
-        powerhouseP = None
+        def stitchAndWrite(prefix):
+            stitched = SO.stitchVariable(prefix)
+            #scale is always 1, offset is always 0
+            writeNCFile(SO.DM.realTime,stitched,1,0,getStandardUnit(prefix),ncOutFileName(prefix))
+            stitched = None
+            return
 
-        # Stitch powerhousePch
-        powerhousePch = SO.stitchVariable('powerhousePch')
-        writeNCFile(SO.DM.realTime, powerhousePch, 1, 0, 'kW',
-                    'powerhousePchSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # gen Pch
-        powerhousePch = None
 
-        # Stitch rePlimit
-        rePlimit = SO.stitchVariable('rePlimit')
-        writeNCFile(SO.DM.realTime, rePlimit, 1, 0, 'kW', 'rePlimitSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # rePlimit
-        rePlimit = None
+        toStitch = ['powerhouseP','powerhousePch','rePlimit','wfPAvail','wfPImport','wfPch',
+                    'wfPTot','srcMin','eessDis','eessP','tesP','genPAvail','onlineCombinationID','underSRC',
+                    'outOfNormalBounds','outOfEfficientBounds','wfSpilledWindFlag','futureLoadList',
+                    'futureSRC']
 
-        # Stitch wfPAvail
-        wfPAvail = SO.stitchVariable('wfPAvail')
-        writeNCFile(SO.DM.realTime, wfPAvail, 1, 0, 'kW', 'wtgPAvailSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # wfPAvail
-        wfPAvail = None
+        [stitchAndWrite(p) for p in toStitch]
 
-        # Stitch wfPImport
-        wfPImport = SO.stitchVariable('wfPImport')
-        writeNCFile(SO.DM.realTime, wfPImport, 1, 0, 'kW', 'wtgPImportSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # wtgPImport
-        wfPImport = None
 
-        # Stitch wfPch
-        wfPch = SO.stitchVariable('wfPch')
-        writeNCFile(SO.DM.realTime, wfPch, 1, 0, 'kW', 'wtgPchSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # wtgPch
-        wfPch = None
-
-        # Stitch wfPTot
-        wfPTot = SO.stitchVariable('wfPTot')
-        writeNCFile(SO.DM.realTime, wfPTot, 1, 0, 'kW', 'wtgPTotSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # wtgPTot
-        wfPTot = None
-
-        # Stitch srcMin
-        srcMin = SO.stitchVariable('srcMin')
-        writeNCFile(SO.DM.realTime, srcMin, 1, 0, 'kW', 'srcMinSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # srcMin
-        srcMin = None
-
-        # Stitch eessDis and write to disk
-        eessDis = SO.stitchVariable('eessDis')
-        writeNCFile(SO.DM.realTime, eessDis, 1, 0, 'kW', 'eessDisSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # eesDis
-        eessDis = None
-
-        # Stitch eessP  and write to disk
-        eessP = SO.stitchVariable('eessP')
-        writeNCFile(SO.DM.realTime, eessP, 1, 0, 'kW', 'eessPSet' + str(setNum) + 'Run' + str(runNum) + '.nc')
-        eessP = None
-
-        # Stitch tesP and write to disk
-        tesP = SO.stitchVariable('tesP')
-        writeNCFile(SO.DM.realTime, tesP, 1, 0, 'kW', 'tessP' + str(setNum) + 'Run' + str(runNum) + '.nc') # tessP
-        tesP = None
-
-        # Stitch genPAvail and write to disk
-        genPAvail = SO.stitchVariable('genPAvail')
-        writeNCFile(SO.DM.realTime, genPAvail, 1, 0, 'kW', 'genPAvailSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # genPAvail
-        genPAvail = None
-
-        # Stitch onlineCombinationID and write to disk
-        onlineCombinationID = SO.stitchVariable('onlineCombinationID')
-        writeNCFile(SO.DM.realTime, onlineCombinationID, 1, 0, 'NA', 'onlineCombinationIDSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # onlineCombinationID
-        onlineCombinationID = None
-
-        # Stitch underSRC and write to disk
-        underSRC = SO.stitchVariable('underSRC')
-        writeNCFile(SO.DM.realTime, underSRC, 1, 0, 'kW', 'underSRCSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # underSRC
-        underSRC = None
-
-        # Stitch outOfNormalBounds and write to disk
-        outOfNormalBounds = SO.stitchVariable('outOfNormalBounds')
-        writeNCFile(SO.DM.realTime, outOfNormalBounds, 1, 0, 'bool', 'outOfNormalBoundsSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # outOfNormalBounds
-        outOfNormalBounds = None
-
-        # Stitch outOfEfficientBounds and write to disk
-        outOfEfficientBounds = SO.stitchVariable('outOfEfficientBounds')
-        writeNCFile(SO.DM.realTime, outOfEfficientBounds, 1, 0, 'bool',
-                    'outOfEfficientBoundsSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # outOfEfficientBounds
-        outOfEfficientBounds = None
-
-        # Stitch wfSpilledWindFlag and write to disk
-        wfSpilledWindFlag = SO.stitchVariable('wfSpilledWindFlag')
-        writeNCFile(SO.DM.realTime, wfSpilledWindFlag, 1, 0, 'bool',
-                    'wfSpilledWindFlagSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # wfSpilledWindFlag
-
+        #future load list was named differently form the rest - why?
         # Stitch futureLoadList and write to disk
-        futureLoadList = SO.stitchVariable('futureLoadList')
-        writeNCFile(SO.DM.realTime, futureLoadList, 1, 0, 'kW',
-                    'futureLoad' + str(setNum) + 'Run' + str(runNum) + '.nc')  # future Load predicted
-        futureLoadList = None
+        #futureLoadList = SO.stitchVariable('futureLoadList')
+        #writeNCFile(SO.DM.realTime, futureLoadList, 1, 0, 'kW',
+          #          'futureLoad' + str(setNum) + 'Run' + str(runNum) + '.nc')  # future Load predicted
+        #futureLoadList = None
 
-        # Stitch futureSRC and write to disk
-        futureSRC = SO.stitchVariable('futureSRC')
-        writeNCFile(SO.DM.realTime, futureSRC, 1, 0, 'kW',
-                    'futureSRC' + str(setNum) + 'Run' + str(runNum) + '.nc')  # future SRC predicted
-        futureSRC = None
+        # Stitch futureSRC did not include 'set' in the name
 
+        #TODO these should call a function to stitch, zip and write
         # power each generators
         genP = SO.stitchVariable('genP')
         for idx, genP in enumerate(zip(*genP)):  # for each generator in the powerhouse
