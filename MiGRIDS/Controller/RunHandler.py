@@ -4,9 +4,11 @@
 import os
 
 import shutil
+from PyQt5 import QtWidgets
 
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
 from MiGRIDS.Controller.UIToInputHandler import UIHandler
+from MiGRIDS.Model.Operational.runSimulation import runSimulation
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.makeAttributeXML import makeAttributeXML, writeAttributeXML
 
@@ -126,7 +128,7 @@ class RunHandler(UIHandler):
         msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
         msg.exec()
 
-        setDir = getFilePath(currentSet,projectFolder=dbhandler.getProjectPath())
+        setDir = getFilePath(currentSet,projectFolder=self.dbhandler.getProjectPath())
 
         #this is silly to have more than 1 database in a single program
         # Check if a set component attribute database already exists

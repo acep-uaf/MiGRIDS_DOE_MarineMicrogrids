@@ -455,6 +455,8 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.startModeling()
     def startModeling(self):
         #starts running models based on xml files that were genereted in a set directory
+        self.handler.runModels(self.setName)
+        return
     # close event is triggered when the form is closed
     def closeEvent(self, event):
 
