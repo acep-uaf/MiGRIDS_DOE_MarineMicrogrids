@@ -5,43 +5,55 @@
 
 import os
 import sys
-here = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(here,".."))
+#here = os.path.dirname(os.path.realpath(__file__))
+#sys.path.append(os.path.join(here,".."))
 import sqlite3
 import time
 # add to sys path
 
-from tkinter import filedialog
-
 import pandas as pd
-
+import re
+import os
 from MiGRIDS.Model.Operational.SystemOperations import SystemOperations
 
-here = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(here, '../'))
-sys.path.append(here)
+#here = os.path.dirname(os.path.realpath(__file__))
+#sys.path.append(os.path.join(here, '../'))
+#sys.path.append(here)
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
 from MiGRIDS.Analyzer.DataWriters.writeNCFile import writeNCFile
 from MiGRIDS.Model.Exceptions.NoDirectoryException import NoDirectoryException
+from MiGRIDS.Model.Exceptions.MissingInputFile import MissingInputFileException
+from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 def runSimulation(projectSetDir = ''):
-
     if projectSetDir == '':
-         #throw an error
-         raise NoDirectoryException("Specify a valid directory")
-    
-    # get set number
-    dir_path = os.path.basename(projectSetDir)
-    setNum = str(dir_path[3:])
-    # get the project name
-    os.chdir(projectSetDir)
-    os.chdir('../..')
-    projectDir = os.getcwd()
-    projectName = os.path.basename(projectDir)
-    # timeseries directory
-    timeSeriesDir = os.path.join(projectDir,'InputData','TimeSeriesData','ProcessedData')
+       #throw an error
+       raise NoDirectoryException("Specify a valid directory")
 
-    # get project name, from the directory name
+    def getFile(inputfile):
+       filePath = os.path.join(projectSetDir, 'Setup',
+                               projectName + 'Set' + str(setNum) + inputfile[
+                                   0].upper() + inputfile[
+                                                1:] + 'Inputs.xml')
+       if not os.path.exists(filePath):
+           raise MissingInputFileException(inputfile)
+       return filePath
+
+       # get set number
+    dir_path = os.path.basename(projectSetDir)
+    #extract the numerical part of the set folder name
+    setNum = re.findall(r'\d+', dir_path)[len(re.findall(r'\d+', dir_path)) -1]
+    #setNum = str(dir_path[3:])
+    # get the project name
+    #os.chdir(projectSetDir)
+    #os.chdir('../..')
+    #projectDir = os.getcwd()
+    projectName = os.path.basename(getFilePath('Project',set=projectSetDir))
+
+    # timeseries directory
+    timeSeriesDir = getFilePath('TimeSeriesData',set=projectSetDir)
+
+    # get the set setup file
     projectSetupFile = os.path.join(projectSetDir,'Setup',projectName+'Set'+str(setNum)+'Setup.xml')
 
     # get the time step
@@ -55,75 +67,57 @@ def runSimulation(projectSetDir = ''):
             runTimeSteps = int(runTimeSteps)
     else: # convert to int
         runTimeSteps = [int(x) for x in runTimeSteps]
+    try:
+        # get the load predicting function
+        predictLoadFile = readXmlTag(projectSetupFile,'predictLoad','value')[0]
+        predictLoadInputsFile = getFile(predictLoadFile)
 
-    # get the load predicting function
-    predictLoadFile = readXmlTag(projectSetupFile,'predictLoad','value')[0]
-    predictLoadInputsFile = os.path.join(projectSetDir, 'Setup',
-                                        projectName + 'Set' + str(setNum) + predictLoadFile[
-                                            0].upper() + predictLoadFile[
-                                                         1:] + 'Inputs.xml')
+        # get the wind predicting function
+        predictWindFile = readXmlTag(projectSetupFile,'predictWind','value')[0]
+        predictWindInputsFile = getFile(predictWindFile)
 
-    # get the wind predicting function
-    predictWindFile = readXmlTag(projectSetupFile,'predictWind','value')[0]
-    predictWindInputsFile = os.path.join(projectSetDir, 'Setup',
-                                         projectName + 'Set' + str(setNum) + predictWindFile[
-                                             0].upper() + predictWindFile[
-                                                          1:] + 'Inputs.xml')
+        # get the ees dispatch
+        eesDispatchFile = readXmlTag(projectSetupFile,'eesDispatch','value')[0]
+        eesDispatchInputFile = getFile(eesDispatchFile)
 
-    # get the ees dispatch
-    eesDispatchFile = readXmlTag(projectSetupFile,'eesDispatch','value')[0]
-    eesDispatchInputFile = os.path.join(projectSetDir, 'Setup',
-                                        projectName + 'Set' + str(setNum) + eesDispatchFile[
-                                            0].upper() + eesDispatchFile[
-                                                         1:] + 'Inputs.xml')
+        # get the tes dispatch
+        tesDispatchFile = readXmlTag(projectSetupFile, 'tesDispatch', 'value')[0]
+        tesDispatchInputFile = getFile(tesDispatchFile)
 
-    # get the tes dispatch
-    tesDispatchFile = readXmlTag(projectSetupFile, 'tesDispatch', 'value')[0]
-    tesDispatchInputFile = os.path.join(projectSetDir, 'Setup',
-                                        projectName + 'Set' + str(setNum) + tesDispatchFile[
-                                            0].upper() + tesDispatchFile[
-                                                         1:] + 'Inputs.xml')
+        # get the minimum required SRC calculation
+        getMinSrcFile = readXmlTag(projectSetupFile, 'getMinSrc', 'value')[0]
 
-    # get the minimum required SRC calculation
-    getMinSrcFile = readXmlTag(projectSetupFile, 'getMinSrc', 'value')[0]
+        getMinSrcInputFile = getFile(getMinSrcFile)
 
-    getMinSrcInputFile = os.path.join(projectSetDir, 'Setup',
-                                       projectName + 'Set' + str(setNum) + getMinSrcFile[0].upper() + getMinSrcFile[
-                                                                                                       1:] + 'Inputs.xml')
+        # get the components to run
+        componentNames = readXmlTag(projectSetupFile, 'componentNames', 'value')
 
-    # get the components to run
-    componentNames = readXmlTag(projectSetupFile, 'componentNames', 'value')
+        # get the load profile to run
+        loadProfileFile = readXmlTag(projectSetupFile, 'loadProfileFile', 'value')[0]
+        loadProfileFile = os.path.join(timeSeriesDir,loadProfileFile)
 
-    # get the load profile to run
-    loadProfileFile = readXmlTag(projectSetupFile, 'loadProfileFile', 'value')[0]
-    loadProfileFile = os.path.join(timeSeriesDir,loadProfileFile)
+        # get the RE dispatch
+        reDispatchFile = readXmlTag(projectSetupFile, 'reDispatch', 'value')[0]
 
-    # get the RE dispatch
-    reDispatchFile = readXmlTag(projectSetupFile, 'reDispatch', 'value')[0]
+        reDispatchInputFile = getFile(reDispatchFile)
 
-    reDispatchInputFile = os.path.join(projectSetDir, 'Setup', projectName + 'Set' + str(setNum) + reDispatchFile[0].upper() + reDispatchFile[1:] + 'Inputs.xml')
+        # get the gen dispatch
+        genDispatchFile = readXmlTag(projectSetupFile, 'genDispatch', 'value')[0]
 
-    # get the gen dispatch
-    genDispatchFile = readXmlTag(projectSetupFile, 'genDispatch', 'value')[0]
+        genDispatchInputFile = getFile(genDispatchFile)
+        # get the gen schedule
+        genScheduleFile = readXmlTag(projectSetupFile, 'genSchedule', 'value')[0]
 
-    genDispatchInputFile = os.path.join(projectSetDir, 'Setup',
-                                       projectName + 'Set' + str(setNum) + genDispatchFile[0].upper() + genDispatchFile[
-                                                                                                       1:] + 'Inputs.xml')
-    # get the gen schedule
-    genScheduleFile = readXmlTag(projectSetupFile, 'genSchedule', 'value')[0]
+        genScheduleInputFile = getFile(genScheduleFile)
 
-    genScheduleInputFile = os.path.join(projectSetDir, 'Setup',
-                                        projectName + 'Set' + str(setNum) + genScheduleFile[
-                                            0].upper() + genScheduleFile[
-                                                         1:] + 'Inputs.xml')
+        # get the wtg dispatch
+        wtgDispatchFile = readXmlTag(projectSetupFile, 'wtgDispatch', 'value')[0]
 
-    # get the wtg dispatch
-    wtgDispatchFile = readXmlTag(projectSetupFile, 'wtgDispatch', 'value')[0]
+        wtgDispatchInputFile = getFile(wtgDispatchFile)
 
-    wtgDispatchInputFile = os.path.join(projectSetDir, 'Setup',
-                                        projectName + 'Set' + str(setNum) + wtgDispatchFile[
-                                            0].upper() + wtgDispatchFile[
-                                                         1:] + 'Inputs.xml')
+    except MissingInputFileException as e:
+        print(e)
+        print('Cannot proceed without file')
 
     while 1:
         # read the SQL table of runs in this set and look for the next run that has not been started yet.
