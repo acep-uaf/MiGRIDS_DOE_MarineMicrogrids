@@ -72,11 +72,11 @@ class SystemOperations:
         self.outputDataDir = outputDataDir
 
         # import the load predictor
-        self.predictLoad = loadControlModule(predictLoadFile, predictLoadInputsFile, 'predictLoad')
+        self.predictLoad = loadControlModule(predictLoadFile, predictLoadInputsFile, 'loadPredict')
 
         # import the wind predictor
         # split into path and filename
-        self.predictWind = loadControlModule(predictWindFile, predictWindInputsFile, 'predictWind')
+        self.predictWind = loadControlModule(predictWindFile, predictWindInputsFile, 'windPredict')
 
         # import min src calculator
         # import renewable energy dispatch
