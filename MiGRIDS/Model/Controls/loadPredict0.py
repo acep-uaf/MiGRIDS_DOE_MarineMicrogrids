@@ -7,12 +7,12 @@
 import numpy as np
 
 # calculate a short term future load
-class predictLoad:
+class loadPredict:
 
     def __init__(self):
         self.futureLoad = 0
 
-    def predictLoad(self, SO):
+    def loadPredict(self, SO):
         # simple calculation, return the mean of the last 1 hour load
         #startIdx = max(SO.idx - int(3600/SO.timeStep), 0)
         #stopIdx = SO.idx+1

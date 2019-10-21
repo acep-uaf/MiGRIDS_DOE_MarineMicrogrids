@@ -7,12 +7,12 @@
 import numpy as np
 
 # calculate a short term future Wind power
-class predictWind:
+class windPredict:
 
     def __init__(self):
         self.futureWind = [0]
 
-    def predictWind(self, SO):
+    def windPredict(self, SO):
         # prevWindProfile is a list of lists of previous wind power profiles, or a list of estimates of previous wind power
         # simple calculation, return the mean of the last 5 min load
         self.futureWind = []
