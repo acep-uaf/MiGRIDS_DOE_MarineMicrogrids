@@ -395,7 +395,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
 
         xmlHolder = self.findChild(XMLEditorHolder)
         xmls = xmlHolder.findChildren(XMLEditor)
-        [x.writeXML() for x in xmls]#write the model xml files
+        [x.writeXML(self.setName) for x in xmls]#write the model xml files
 
         #create a set folder
         #write the attributes xml to the set folder
@@ -412,7 +412,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.writeModelXMLs()
     def writeSetup(self):
         '''copies the setup file from the project setup folder to the set folder
-        and makes tag modifications where specified in the modelrun form'''
+        and makes tag modifications where specified in the model run form'''
         self.handler.makeSetSetup(self.setName)
         return
     def writeModelXMLs(self):

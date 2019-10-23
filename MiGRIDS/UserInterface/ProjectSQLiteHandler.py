@@ -252,9 +252,19 @@ class ProjectSQLiteHandler:
         self.cursor.executescript("""
                 CREATE TABLE IF NOT EXISTS run
                 (_id integer primary key,
-                set_id text,
-                run_name text,
-                set_component_id);""")
+                set_id integer NOT NULL ,
+                run_num text NOT NULL,
+                started text,
+                finished text,
+                UNIQUE (set_id, run_num));""")
+
+        self.cursor.execute("DROP TABLE IF EXISTS run_attributes")
+        self.cursor.executescript("""
+                        CREATE TABLE IF NOT EXISTS run_attributes
+                        (_id integer primary key,
+                        run_id integer NOT NULL ,
+                        set_component_id text NOT NULL,
+                        UNIQUE (run_id, set_component_id));""")
 
         #The setup table contains information used for reading in data files
         #setup should only ever have 1 record with an _id = 1
@@ -309,15 +319,7 @@ class ProjectSQLiteHandler:
         :return: dictionary of xml tags and values to be written to a setup.xml file
         '''
         setDict = {}
-        def asSeconds(value):
-            '''
-            Converts a datetime value to seconds since 1970-01-01.
-            The time indice in netcdf input files is seconds since 1970-01-01 so the resulting value corresponds to
-            a value in the netcdf time variable
-            :param value:
-            :return: int Seconds since 1970-01-01
-            '''
-            return
+
 
         def asDatasetIndex(value):
             '''
@@ -339,25 +341,25 @@ class ProjectSQLiteHandler:
             return record_position
 
         #get tuple for basic set info
-        values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end from set_ join project on set_.project_id = project._id WHERE LOWER(set_name) = '" + setName.lower() + "'").fetchone()
+        values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end,runtimestepsvalue from set_ join project on set_.project_id = project._id WHERE LOWER(set_name) = '" + setName.lower() + "'").fetchone()
         if values is not None:
             setDict['project name'] = values[0]
-            setDict['timeStep.value'] = values[1]
+            setDict['timeStep.value'] = str(values[1])
             setDict['timeStep.unit']=values[2]
             setDict['date_start'] = values[3]
             setDict['date_end'] = values[4]
             start = asDatasetIndex(str(values[3]))
             if start != None:
-                setDict['runTimeSteps.value'] = asDatasetIndex(str(values[3])) + " " + asDatasetIndex(str(values[4]))
+                setDict['runTimeSteps.value'] = ",".join([asDatasetIndex(str(values[3])),asDatasetIndex(str(values[4]))])
             else:
-                setDict['runTimeSteps.value'] = 'all'
+                setDict['runTimeSteps.value'] = str(values[5])
             #as long as there was basic set up info look for component setup info
             #componentNames is a list of distinct components, order does not matter
-            compTuple =  self.cursor.execute("SELECT group_concat(componentnamevalue,' ') FROM "
+            compTuple =  self.cursor.execute("SELECT group_concat(componentnamevalue,',') FROM "
                                                                    "(SELECT DISTINCT componentnamevalue as componentnamevalue FROM component "
                                                                    "JOIN set_components on component._id = set_components.component_id JOIN set_ "
                                                                    "on set_components.set_id = set_._id WHERE lower(set_name) = ? )", [setName.lower()]).fetchall()[0]
-            setDict['componentNames.value'] = " ".join(compTuple)
+            setDict['componentNames.value'] = compTuple[0]
         else:
             return None
 
@@ -429,6 +431,10 @@ class ProjectSQLiteHandler:
         for k in list(set.keys()):
             if set[k] == setup[k]:
                 del set[k]
+        if 'date_start' in set.keys():
+            del set['date_start']
+        if 'date_end' in set.keys():
+            del set['date_end']
         return set
     def updateSetSetup(self, setName, setupDict):
         '''Update the set_ table for a specific set and make sure all set components are in the set_component table'''
@@ -439,6 +445,8 @@ class ProjectSQLiteHandler:
             in the setup file and the timestep interval
             :param value is a integer index position'''
             startPoint = asDate(self.getFieldValue('setup', 'date_start', '_id', '1')) #the start date of all generated netcdf files
+            if startPoint is None:
+                return None
             try:
                 intervals = int(value)/int(self.getFieldValue('setup', 'timestepvalue', '_id', '1'))
             except ValueError as e:
@@ -450,11 +458,8 @@ class ProjectSQLiteHandler:
         try:
             #set setup files only store record positions for runTimeSteps.
             #these need to be converted to datetimes for display and storing in datatable
-
-            startdate = asDatasetDateTime(setupDict['runTimeSteps.value'].split(" ")[0])
-            enddate = asDatasetDateTime(setupDict['runTimeSteps.value'].split(" ")[1])
-
-
+           startdate = asDatasetDateTime(setupDict['runTimeSteps.value'].split(" ")[0])
+           enddate = asDatasetDateTime(setupDict['runTimeSteps.value'].split(" ")[1])
         except IndexError as i:
             print("runtimesteps not start stop indices")
             startdate = asDatasetDateTime(setupDict['runTimeSteps.value'])
@@ -988,3 +993,14 @@ class ProjectSQLiteHandler:
                                    "set_components JOIN "
                                    "component on set_components.component_id = component._id "
                                     "where set_id = ? AND tag != 'None' GROUP BY componentnamevalue",[set_id]).fetchall()
+    def getNextRun(self,setName):
+        set_id = self.getId('set_','set_name',setName)
+        if set_id != (None,):
+            nextRun = self.cursor.execute("SELECT run_num from run where set_id = ? and started is null ORDER BY run_num LIMIT 1",[set_id[0][0]]).fetchall()
+            try:
+                runName = nextRun[0][0]
+                return runName
+            except IndexError:
+                return None
+
+        return None

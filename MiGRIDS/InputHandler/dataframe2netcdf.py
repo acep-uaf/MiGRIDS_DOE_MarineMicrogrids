@@ -20,9 +20,8 @@ def dataframe2netcdf(df,components,saveLocation=''):
     # go to save directory
     here = os.getcwd()
     if saveLocation == '':
-        print('savelocation not specified')
+        print('save location not specified')
         return
-    os.chdir(saveLocation)
         
     netCDFList = []
     def get(attr,default):
@@ -37,11 +36,11 @@ def dataframe2netcdf(df,components,saveLocation=''):
             if len(column) >0:
                 column = column[0]
             ncName = component + '.nc'
-            rootgrp = Dataset(ncName, 'w', format='NETCDF4') # create netCDF object
+            rootgrp = Dataset(os.path.join(saveLocation,ncName), 'w', format='NETCDF4') # create netCDF object
             rootgrp.createDimension('time', None)  # create dimension for all called time
             # create the time variable
             rootgrp.createVariable('time', df.dtypes[column], 'time')  # create a var using the varnames
-            rootgrp.variables['time'][:] = np.array(df.index.astype(np.int64)//10**9)  # fill with values
+            rootgrp.variables['time'][:] = np.array(df.index.astype(np.int64)//10**9)  # fill with values This is seconds since 1970-01-1
             # create the value variable
             rootgrp.createVariable('value', df.dtypes[column], 'time')  # create a var using the varnames
             rootgrp.variables['value'][:] = np.array(df[component])  # fill with values
@@ -59,7 +58,6 @@ def dataframe2netcdf(df,components,saveLocation=''):
 
             #if a netcdf file wasn't created successfully, move on to the next one
             continue
-    # return to the starting directory
-    os.chdir(here)
+
     return netCDFList
 

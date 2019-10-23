@@ -864,7 +864,7 @@ class TwoDatesDialog(WizardPage):
             #if the setup info has already been set dates will be in the database table set
             print(handler.getFieldValue('setup', 'date_start', '_id',1))
             self.startDate.setDate(QtCore.QDate.fromString(handler.getFieldValue('setup', 'date_start', '_id', 1),"yyyy-MM-dd"))
-            self.endDate.setDate(QtCore.QDate.fromString(handler.getFieldValue('setup', 'date_end',  '-id', 1),"yyyy-MM-dd"))
+            self.endDate.setDate(QtCore.QDate.fromString(handler.getFieldValue('setup', 'date_end',  '_id', 1),"yyyy-MM-dd"))
         except AttributeError as a:
             print(a)
         except TypeError as a:

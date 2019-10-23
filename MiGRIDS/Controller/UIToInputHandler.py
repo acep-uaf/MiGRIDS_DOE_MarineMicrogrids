@@ -32,9 +32,14 @@ class UIHandler():
         tag = tag.split(".")[len(tag.split(".")) - 2]
         return tag, a
     def writeSoup(self,soup,file):
-        f = open(file, "w")
+
+        if not os.path.exists(os.path.dirname(file)):
+            os.makedirs(os.path.dirname(file))
+
+        f = open(file, "w+")
         f.write(soup.prettify())
         f.close()
+
     def writeTag(self,file,tag,value):
         def splitAttribute(tag):
             a = tag.split(".")[len(tag.split(".")) -1]
@@ -124,6 +129,8 @@ class UIHandler():
         setupSoup = self.readSetup(setupFile)  # from the base setup
 
         setRecord = self.dbhandler.getSetInfo(setName) #dictionary of tags and values
+        #setRecord component value needs to have commas removed
+        setRecord['componentNames.value'] = " ".join(setRecord['componentNames.value'].split(","))
         for k in setRecord.keys():
             setupSoup = self.updateSoup(setupSoup,k,setRecord[k])
 

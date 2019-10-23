@@ -39,7 +39,6 @@ class XMLEditor(QtWidgets.QWidget):
         self.titleBar.btn_show.setVisible(True)
         self.titleBar.btn_hide.setVisible(False)
         return
-
     def showForm(self):
         '''
         expands the widget so inputs are visible
@@ -52,7 +51,6 @@ class XMLEditor(QtWidgets.QWidget):
     def newXML(self,position):
 
         self.formStack.setCurrentIndex(position)
-
     def update(self,selected):
         '''remove existing xml forms and create new project specific ones if they are available'''
         cb = self.findChildren(FileSelector)[0]
@@ -66,27 +64,21 @@ class XMLEditor(QtWidgets.QWidget):
 
         #self.xmlform.setLayout(self.formStack)
         return
-
-
-
     def getResourceFromFileName(self):
         #resource comes after the prefix, but before the number xmltype
         resourceType =self.pattern.search(self.default).group(1)
         if resourceType == "get":
             resourceType =""
         return resourceType
-
     def getXMLTypeFromFileName(self):
         x = self.pattern.search(self.default).group(2)
         return x
-
     def makeTitleBar(self):
         T = TitleBar(self,self.xmlOptions,self.resourcetype,self.default)
         T.btn_hide.clicked.connect(self.hideForm)
         T.btn_show.clicked.connect(self.showForm)
         T.selector.changeFile.connect(self.newXML)
         return T
-
     def makeLayout(self):
         '''The layout contains a title heading with buttons to expand/reduce and a
         form area derived from the xml it is linked to'''
@@ -106,7 +98,6 @@ class XMLEditor(QtWidgets.QWidget):
         self.formStack.setCurrentWidget(self.formStack.findChild(XMLForm,self.default))
         self.xmlform.setVisible(False)
         return mainLayout
-
     def makeStack(self):
         '''
         Creates a widget with a a stacked layout containing a xml editing form from all possible xml files
@@ -117,36 +108,34 @@ class XMLEditor(QtWidgets.QWidget):
         self.formStack = self.makeFormStackLayout()
         form.setLayout(self.formStack)
         return form
-
     def makeFormStackLayout(self):
         '''returns a stacked layout of forms generated from all the xml options'''
         formStack = QtWidgets.QStackedLayout()
         for x in self.xmlOptions:
             formStack.addWidget(self.makeForm(x))
         return formStack
-
     def makeForm(self,selectedXML):
         ''' Makes an editable xml form based on a designated file'''
         F = XMLForm(selectedXML)
         F.setObjectName(selectedXML)
         F.setVisible(False)
         return F
-
     def writeXML(self, setName=None):
         #file to write is based on selected file and project
         path = self.dbhandler.getProjectPath()
         if path is not None:
             projectName = self.dbhandler.getProject()
             selected = self.titleBar.selector.currentText()
-            fileName = projectName + selected + self.SUFFIX
+
+            fileName = projectName + setName + selected + self.SUFFIX
             if setName == None:
                 folder = getFilePath('Setup', projectFolder=path)
             else:
-                folder = getFilePath(setName,projectFolder=path)
+                folder = os.path.join(getFilePath(setName,projectFolder=path),'Setup')
             xmlpath = os.path.join(folder,fileName)
             currentForm = self.findChild(XMLForm,selected)
             currentForm.writeXML(xmlpath)
-            self.updateSetupFile(selected,self.objectName())
+            self.updateSetupFile(selected[0].lower() + selected[1:],self.objectName())
 
     def updateSetupFile(self,selectedFile, tag):
         setupFile = self.dbhandler.getFieldValue('project','setupfile','_id','1')

@@ -42,10 +42,12 @@ class RunHandler(UIHandler):
         allComponents = self.dbhandler.getSetComponents(self.dbhandler.getId('set_','set_name',setName)[0][0])
         for i in allComponents:
             runFolder = getFilePath(runName,projectFolder = self.dbhandler.getProjectPath(),Set=setName)
-            descFile = os.path.join(runFolder,
-                                    self.dbhandler.getFieldValue('component','componentnamevalue','_id',str(i[0])) + setName + runName + 'Descriptor.xml')
+            descFile = os.path.join(*[runFolder,'Components',
+                                    self.dbhandler.getFieldValue('component','componentnamevalue','_id',str(i[0])) + setName + runName + 'Descriptor.xml'])
             inFile = os.path.join(getFilePath('Components',projectFolder = self.dbhandler.getProjectPath()),
                                   self.dbhandler.getFieldValue('component','componentnamevalue','_id',str(i[0])) + 'Descriptor.xml')
+            if not os.path.exists(os.path.dirname(descFile)):
+                os.makedirs(os.path.dirname(descFile))
             shutil.copy2(inFile, descFile)
         holdRecord = []
         for sc in setCompId:
@@ -55,16 +57,16 @@ class RunHandler(UIHandler):
                 #keep the record for later
                 holdRecord.append(setCompRecord)
                 pass
-            descFile=os.path.join(getFilePath(runName, projectFolder=self.dbhandler.getProjectPath(), Set=setName),
+            descFile=os.path.join(*[getFilePath(runName, projectFolder=self.dbhandler.getProjectPath(), Set=setName),'Components',
                          self.dbhandler.getFieldValue('component', 'componentnamevalue', '_id',
-                                                      setCompRecord['component_id']) + setName + runName + 'Descriptor.xml')
+                                                      setCompRecord['component_id']) + setName + runName + 'Descriptor.xml'])
             self.writeTag(descFile,setCompRecord['tag'],setCompRecord['tag_value'])
 
         for r in holdRecord:
-            descFile = os.path.join(getFilePath(runName, projectFolder=self.dbhandler.getProjectPath(), Set=setName),
+            descFile = os.path.join(*[getFilePath(runName, projectFolder=self.dbhandler.getProjectPath(), Set=setName),'Components',
                                     self.dbhandler.getFieldValue('component', 'componentnamevalue', '_id',
                                                                  r[
-                                                                     'component_id']) + setName + runName + 'Descriptor.xml')
+                                                                     'component_id']) + setName + runName + 'Descriptor.xml'])
 
             self.writeTag(descFile, r['tag'], self.getReferencedValue(r['tag_value'],runFolder))
 
@@ -72,7 +74,7 @@ class RunHandler(UIHandler):
     def getReferencedValue(self, tag, runFolder):
         '''looks for a file and tag within a specified folder. Returns the value of the tag if found
         tag uses the format [component].[tag].[attribute]'''
-        sourceFile = [os.path.join(runFolder, xml) for xml in os.listdir(runFolder) if tag.split(".")[0] in xml]
+        sourceFile = [os.path.join(*[runFolder,'Components', xml]) for xml in os.listdir(os.path.join(runFolder,'Components')) if tag.split(".")[0] in xml]
         if len(sourceFile) >= 1:
             sourceFile = sourceFile[0]
             t, a = self.splitAttribute(tag)
@@ -83,14 +85,15 @@ class RunHandler(UIHandler):
         pieces = tag.split(".")
         return len([p for p in pieces if not p.isnumeric()]) > 0
     def loadExistingProjectSet(self,setName):
-       #get a setup dictionary
+       #get a setup dictionary - None if setup file not found
        setSetup = self.readInSetupFile(self.findSetupFile(setName))
-       #update the database based on info in the set setup file, this includes adding components to set_components if not already there
-       self.dbhandler.updateSetSetup(setName, setSetup)
-       #get the list of components associated with this project
-       compList = setSetup['componentNames.value'].split(" ")
-       #add components to the set_component table (base case, tag set to None)
-       self.dbhandler.updateSetComponents(setName, compList)
+       if setSetup != None:
+           #update the database based on info in the set setup file, this includes adding components to set_components if not already there
+           self.dbhandler.updateSetSetup(setName, setSetup)
+           #get the list of components associated with this project
+           compList = setSetup['componentNames.value'].split(" ")
+           #add components to the set_component table (base case, tag set to None)
+           self.dbhandler.updateSetComponents(setName, compList)
        #read attribute xml and put new tags in set_component table
        self.updateFromAttributeXML(setName)
 
@@ -151,5 +154,12 @@ class RunHandler(UIHandler):
     def createRun(self, setComponentIds, run,setName):
         # make the run directory
         os.makedirs(getFilePath("Run" + str(run), Set=setName, projectFolder=self.dbhandler.getProjectPath()),exist_ok=True)
+
         # move Descriptors with eddited attributes to the correct run folders
         self.makeRunDescriptors(setComponentIds, "Run" + str(run), setName)
+
+        #insert the run into the run table
+        run_id = self.dbhandler.insertRecord('run',['run_num','set_id'],[run,self.dbhandler.getId('set_','set_name',setName)[0][0]])
+        #and the run_attributes table
+        loi = list(setComponentIds)
+        [self.dbhandler.insertRecord('run_attributes', ['run_id', 'set_component_id'],[run_id, x]) for x in loi]

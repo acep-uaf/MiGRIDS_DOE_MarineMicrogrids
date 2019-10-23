@@ -33,7 +33,7 @@ class Demand:
         self.realTime, self.realLoad = self.loadLoadFiles(loadRealFiles)
         # Get 10-min trend for getMinSrc0.py
         self.realLoad10minTrend = np.asarray(pd.Series(self.realLoad).rolling(int(600/self.timeStep), min_periods=1).mean())
-        # Get 1-hr trend for predictLoad0.py
+        # Get 1-hr trend for loadPredict0.py
         self.realLoad1hrTrend = np.asarray(
             pd.Series(self.realLoad).rolling(int(3600 / self.timeStep), min_periods=1).mean())
         # if loadReactiveFiles is not empty, load reactive files
