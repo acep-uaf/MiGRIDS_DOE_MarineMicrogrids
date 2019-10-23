@@ -23,6 +23,7 @@ from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
 from MiGRIDS.Analyzer.DataWriters.writeNCFile import writeNCFile
 from MiGRIDS.Model.Exceptions.NoDirectoryException import NoDirectoryException
 from MiGRIDS.Model.Exceptions.MissingInputFile import MissingInputFileException
+from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 def runSimulation(projectSetDir = ''):
@@ -51,7 +52,7 @@ def runSimulation(projectSetDir = ''):
     projectName = os.path.basename(getFilePath('Project',set=projectSetDir))
 
     # timeseries directory
-    timeSeriesDir = getFilePath('TimeSeriesData',set=projectSetDir)
+    timeSeriesDir = getFilePath('Processed',set=projectSetDir)
 
     # get the set setup file
     projectSetupFile = os.path.join(projectSetDir,'Setup',projectName+'Set'+str(setNum)+'Setup.xml')
@@ -119,20 +120,27 @@ def runSimulation(projectSetDir = ''):
     except MissingInputFileException as e:
         print(e)
         print('Cannot proceed without file')
-
+    dbhandler = ProjectSQLiteHandler()
     while 1:
         # read the SQL table of runs in this set and look for the next run that has not been started yet.
-        conn = sqlite3.connect(os.path.join(projectSetDir,'set' + str(setNum) + 'ComponentAttributes.db') )# create sql database
-        df = pd.read_sql_query('select * from compAttributes',conn)
+        #conn = sqlite3.connect(os.path.join(projectSetDir,'set' + str(setNum) + 'ComponentAttributes.db') )# create sql database
+        #df = pd.read_sql_query('select * from compAttributes',conn)
         # try to find the first 0 value in started column
-        try:
-            runNum = list(df['started']).index(0)
-        except: # there are no more simulations left to run
+
+        runNum = dbhandler.getNextRun('Set' + setNum)
+        if runNum == None:
             break
+        #try:
+        #   runNum = list(df['started']).index(0)
+        #except: # there are no more simulations left to run
+            #break
         # set started value to 1 to indicate starting the simulations
-        df.at[runNum, 'started'] = 1
-        df.to_sql('compAttributes', conn, if_exists="replace", index=False)  # write to table compAttributes in db
-        conn.close()
+        #df.at[runNum, 'started'] = 1
+        dbhandler.updateRecord('run', ['run_num'], [runNum],
+                          ['started'],
+                          [1])
+        #df.to_sql('compAttributes', conn, if_exists="replace", index=False)  # write to table compAttributes in db
+        #conn.close()
         # Go to run directory and run
         runDir = os.path.join(projectSetDir,'Run'+ str(runNum))
         runCompDir = os.path.join(runDir,'Components') # component directory for this run

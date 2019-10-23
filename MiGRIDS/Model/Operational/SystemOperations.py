@@ -25,8 +25,8 @@ class SystemOperations:
     # System Variables
     # Generation and dispatch resources
     # FUTUREFEATURE: add genDispatch, genSchedule and wtgDispatch
-    def __init__(self, outputDataDir, timeStep = 1, runTimeSteps = 'all', loadRealFiles = [], loadReactiveFiles = [], predictLoadFile = 'predictLoad1', predictLoadInputsFile = 'predictLoad1Inputs', loadDescriptor = [],
-                 predictWindFile = 'predictWind0', predictWindInputsFile = 'predictWind0Inputs', getMinSrcFile = 'getMinSrc0', getMinSrcInputFile = 'getMinSrc0Inputs', reDispatchFile = 'reDispatch0', reDispatchInputsFile = 'reDispatchInputs0',
+    def __init__(self, outputDataDir, timeStep = 1, runTimeSteps = 'all', loadRealFiles = [], loadReactiveFiles = [], predictLoadFile = 'loadPredict1', predictLoadInputsFile = 'loadPredictInputs1', loadDescriptor = [],
+                 predictWindFile = 'windPredict0', predictWindInputsFile = 'windPredictInputs0', getMinSrcFile = 'getMinSrc0', getMinSrcInputFile = 'getMinSrc0Inputs', reDispatchFile = 'reDispatch0', reDispatchInputsFile = 'reDispatchInputs0',
                  genIDs = [], genStates = [], genDescriptors = [], genDispatchFile = [],
                  genScheduleFile = [], genDispatchInputsFile = [], genScheduleInputsFile = [],
                  wtgIDs = [], wtgStates = [], wtgDescriptors = [], windSpeedDir = [], wtgDispatchFile = [], wtgDispatchInputsFile = [],
@@ -202,101 +202,21 @@ class SystemOperations:
         pickle.dump(var, pFile, pickle.HIGHEST_PROTOCOL)
         pFile.close()
 
+    def getAllTSVars(self):
+        '''
+        Returns a list of all timeseries variables.
+        :return:
+        '''
+        ol = dir(self)
+        tsvars = [a for a in dir(self) if isinstance(a, TSVar)]
+
+        return tsvars
+
     def dumpAllTSVars(self, snippetIdx, resultLength):
         '''Sequential code for dumping all long TS vars in the major for-loop in runSimulation when conditions as met.'''
 
-        # Dump wtgPImport
-        self.dumpVariable(self.wtgPImport, 'wtgPImport', snippetIdx)
-
-        # Dump wfPImport
-        self.dumpVariable(self.wfPImport, 'wfPImport', snippetIdx)
-
-        # Dump wtgP
-        self.dumpVariable(self.wtgP, 'wtgP', snippetIdx)
-
-        # Dump wfPch
-        self.dumpVariable(self.wfPch, 'wfPch', snippetIdx)
-
-        # Dump wfPTot
-        self.dumpVariable(self.wfPTot, 'wfPTot', snippetIdx)
-
-        # Dump srcMin
-        self.dumpVariable(self.srcMin, 'srcMin', snippetIdx)
-
-        # Dump eessDis
-        self.dumpVariable(self.eessDis, 'eessDis', snippetIdx)
-
-        # Dump eessP
-        self.dumpVariable(self.eessP, 'eessP', snippetIdx)
-
-        # Dump eesPLoss
-        self.dumpVariable(self.eesPLoss, 'eesPLoss', snippetIdx)
-
-        # Dump powerhouseP
-        self.dumpVariable(self.powerhouseP, 'powerhouseP', snippetIdx)
-
-        # Dump powerhousePch
-        self.dumpVariable(self.powerhousePch, 'powerhousePch', snippetIdx)
-
-        # Dump genP
-        self.dumpVariable(self.genP, 'genP', snippetIdx)
-
-        # Dump genPAvail
-        self.dumpVariable(self.genPAvail, 'genPAvail', snippetIdx)
-
-        # Dump genFuelCons
-        self.dumpVariable(self.genFuelCons, 'genFuelCons', snippetIdx)
-
-        # Dump eessSrc
-        self.dumpVariable(self.eessSrc, 'eessSrc', snippetIdx)
-
-        # Dump eessSoc
-        self.dumpVariable(self.eessSoc, 'eessSoc', snippetIdx)
-
-        # Dump wfPAvail
-        self.dumpVariable(self.wfPAvail, 'wfPAvail', snippetIdx)
-
-        # Dump wtgPAvail
-        self.dumpVariable(self.wtgPAvail, 'wtgPAvail', snippetIdx)
-
-        # Dump rePlimit
-        self.dumpVariable(self.rePlimit, 'rePlimit', snippetIdx)
-
-        # Dump tesP
-        self.dumpVariable(self.tesP, 'tesP', snippetIdx)
-
-        # Dump wfPset
-        self.dumpVariable(self.wfPset, 'wfPset', snippetIdx)
-
-        # Dump futureLoadList
-        self.dumpVariable(self.futureLoadList, 'futureLoadList', snippetIdx)
-
-        # Dump futureWindList
-        self.dumpVariable(self.futureWindList, 'futureWindList', snippetIdx)
-
-        # Dump futureSRC
-        self.dumpVariable(self.futureSRC, 'futureSRC', snippetIdx)
-
-        # Dump underSRC
-        self.dumpVariable(self.underSRC, 'underSRC', snippetIdx)
-
-        # Dump outOfNormalBounds
-        self.dumpVariable(self.outOfNormalBounds, 'outOfNormalBounds', snippetIdx)
-
-        # Dump outOfEfficientBounds
-        self.dumpVariable(self.outOfEfficientBounds, 'outOfEfficientBounds', snippetIdx)
-
-        # Dump wfSpilledWindFlag
-        self.dumpVariable(self.wfSpilledWindFlag, 'wfSpilledWindFlag', snippetIdx)
-
-        # Dump genStartTime
-        self.dumpVariable(self.genStartTime, 'genStartTime', snippetIdx)
-
-        # Dump genRunTime
-        self.dumpVariable(self.genRunTime, 'genRunTime', snippetIdx)
-
-        # Dump onlineCombinationID
-        self.dumpVariable(self.onlineCombinationID, 'onlineCombinationID', snippetIdx)
+        tsVars = self.getAllTSVars()
+        [self.dumpVariable(t.var,t.name,snippetIdx) for t in tsVars]
 
         # Re-initialize
         self.initDataChannels(resultLength)
@@ -326,7 +246,8 @@ class SystemOperations:
                 pFile.close()
                 os.remove(fileName)
         else:
-            variable = getattr(self, varName)
+            attr = getattr(self, varName)
+            variable = attr.var
 
         return variable
     
@@ -338,39 +259,30 @@ class SystemOperations:
         :param varLength: [int] length for the data channels
         :return: 
         '''
+        channels_with_varLength = ['wtgPImport','wfPImport','wfPch','wfPTot','srcMin','eessDis','eessP',
+                                   'powerhousePch','powerhouseP','genPAvail','wfPAvail','wtgPAvail','rePlimit','tesP','wfPset']
+        [setattr(self, c, TSVar([None],varLength,c)) for c in channels_with_varLength]
 
-        self.wtgPImport = [None] * varLength  # Is this var used anywhere?
-        self.wfPImport = [None] * varLength  
-        self.wtgP = [[None] * len(self.WF.windTurbines)] * varLength  
-        self.wfPch = [None] * varLength  
-        self.wfPTot = [None] * varLength  
-        self.srcMin = [None] * varLength  
-        self.eessDis = [None] * varLength  
-        self.eessP = [None] * varLength  
-        self.eesPLoss = [[None] * len(self.EESS.electricalEnergyStorageUnits)] * varLength  
-        self.powerhouseP = [None] * varLength  
-        self.powerhousePch = [None] * varLength  
-        self.genP = [[None] * len(self.PH.generators)] * varLength
-        self.genPAvail = [None] * varLength
-        self.genFuelCons = [[None] * len(self.PH.generators)] * varLength
-        self.eessSrc = [[None] * len(self.EESS.electricalEnergyStorageUnits)] * varLength
-        self.eessSoc = [[None] * len(self.EESS.electricalEnergyStorageUnits)] * varLength
-        self.wfPAvail = [None] * varLength  
-        self.wtgPAvail = [None] * varLength  
-        self.rePlimit = [None] * varLength  
-        self.tesP = [None] * varLength  
-        self.wfPset = [None] * varLength  # Is this var used anywhere?
+        #TS vars with lengths greater than varLength and holders other than [None]
+        self.wtgP = TSVar([[None] * len(self.WF.windTurbines)],varLength,'wtgP')
+        self.eesPLoss = TSVar([[None] * len(self.EESS.electricalEnergyStorageUnits)],varLength,'eesPLoss')
+        self.genP = TSVar([[None] * len(self.PH.generators)],varLength,'genP')
+        self.genFuelCons = TSVar([[None] * len(self.PH.generators)],varLength,'genFuelCons')
+        self.eessSrc = TSVar([[None] * len(self.EESS.electricalEnergyStorageUnits)],varLength,'eessSrc')
+        self.eessSoc = TSVar([[None] * len(self.EESS.electricalEnergyStorageUnits)],varLength,'eessSoc')
+
+        # TS vars with lengths greater than varLength and holders [0]
         # record for trouble shooting purposes
-        self.futureLoadList = [0] * varLength
-        self.futureWindList = [[0] * len(self.WF.windTurbines)] * varLength
-        self.futureSRC = [0] * varLength
-        self.underSRC = [0] * varLength
-        self.outOfNormalBounds = [0] * varLength
-        self.outOfEfficientBounds = [0] * varLength
-        self.wfSpilledWindFlag = [0] * varLength
-        self.genStartTime = [[None] * len(self.PH.generators)] * varLength
-        self.genRunTime = [[None] * len(self.PH.generators)] * varLength
-        self.onlineCombinationID = [None] * varLength
+        self.futureLoadList = TSVar([0],varLength,'futureLoadList')
+        self.futureWindList = TSVar([[0] * len(self.WF.windTurbines)], varLength,'futureWindList')
+        self.futureSRC = TSVar([0],varLength,'futureSRC')
+        self.underSRC = TSVar([0],varLength, 'underSRC')
+        self.outOfNormalBounds =TSVar([0],varLength, 'outOfNormalBounds')
+        self.outOfEfficientBounds = TSVar([0],varLength, 'outOfEfficeintBounds')
+        self.wfSpilledWindFlag = TSVar([0],varLength,'wfSpilledWindFlag')
+        self.genStartTime = TSVar([[None] * len(self.PH.generators)], varLength,'genStartTime')
+        self.genRunTime = TSVar([[None] * len(self.PH.generators)],varLength,'getRunTime')
+        self.onlineCombinationID = TSVar([None],varLength,'onlineCombinationID')
 
     def runSimMainLoop(self):
         '''
@@ -436,36 +348,36 @@ class SystemOperations:
 
         # record values
         if hasattr(self, 'TESS'):  # check if thermal energy storage in the simulation
-            self.tesP[self.idx] = sum(self.TESS.tesP)  # thermal energy storage power
+            self.tesP.var[self.idx] = sum(self.TESS.tesP)  # thermal energy storage power
         else:
-            self.tesP[self.idx] = 0
-        self.rePlimit[self.idx] = self.reDispatch.rePlimit
-        self.wfPAvail[self.idx] = sum(self.WF.wtgPAvail[:])  # wind farm p avail
-        self.wtgPAvail[self.idx] = self.WF.wtgPAvail[:]  # list of wind turbines  p avail
-        self.wfPImport[self.idx] = self.reDispatch.wfPimport  # removed append usind self.idx
-        self.wtgP[self.idx] = self.WF.wtgP[:]  # removed append, use ind self.idx
-        self.wfPch[self.idx] = self.reDispatch.wfPch  # removed append, use ind self.idx
-        self.wfPTot[self.idx] = self.reDispatch.wfPch + self.reDispatch.wfPimport
-        self.srcMin[self.idx] = srcMin[0]
-        self.eessDis[self.idx] = eessDis
-        self.eessP[self.idx] = eessP
-        self.eesPLoss[self.idx] = self.EESS.eesPloss[:]
-        self.powerhouseP[self.idx] = phP
-        self.powerhousePch[self.idx] = phPch
-        self.genP[self.idx] = self.PH.genP[:]  # .append(self.PH.genP[:])
-        self.genPAvail[self.idx] = sumPHgenPAvail  # sum(self.PH.genPAvail)
-        self.genFuelCons[self.idx] = self.PH.genFuelCons[:]
-        self.eessSrc[self.idx] = self.EESS.eesSRC[:]  # .append(self.EESS.eesSRC[:])
-        self.eessSoc[self.idx] = self.EESS.eesSOC[:]  # .append(self.EESS.eesSOC[:])
-        self.onlineCombinationID[self.idx] = self.PH.onlineCombinationID
+            self.tesP.var[self.idx] = 0
+        self.rePlimit.var[self.idx] = self.reDispatch.rePlimit
+        self.wfPAvail.var[self.idx] = sum(self.WF.wtgPAvail[:])  # wind farm p avail
+        self.wtgPAvail.var[self.idx] = self.WF.wtgPAvail[:]  # list of wind turbines  p avail
+        self.wfPImport.var[self.idx] = self.reDispatch.wfPimport  # removed append usind self.idx
+        self.wtgP.var[self.idx] = self.WF.wtgP[:]  # removed append, use ind self.idx
+        self.wfPch.var[self.idx] = self.reDispatch.wfPch  # removed append, use ind self.idx
+        self.wfPTot.var[self.idx] = self.reDispatch.wfPch + self.reDispatch.wfPimport
+        self.srcMin.var[self.idx] = srcMin[0]
+        self.eessDis.var[self.idx] = eessDis
+        self.eessP.var[self.idx] = eessP
+        self.eesPLoss.var[self.idx] = self.EESS.eesPloss[:]
+        self.powerhouseP.var[self.idx] = phP
+        self.powerhousePch.var[self.idx] = phPch
+        self.genP.var[self.idx] = self.PH.genP[:]  # .append(self.PH.genP[:])
+        self.genPAvail.var[self.idx] = sumPHgenPAvail  # sum(self.PH.genPAvail)
+        self.genFuelCons.var[self.idx] = self.PH.genFuelCons[:]
+        self.eessSrc.var[self.idx] = self.EESS.eesSRC[:]  # .append(self.EESS.eesSRC[:])
+        self.eessSoc.var[self.idx] = self.EESS.eesSOC[:]  # .append(self.EESS.eesSOC[:])
+        self.onlineCombinationID.var[self.idx] = self.PH.onlineCombinationID
         # record for troubleshooting
         genStartTime = []
         genRunTime = []
         for gen in self.PH.generators:
             genStartTime.append(gen.genStartTimeAct)
             genRunTime.append(gen.genRunTimeAct)
-        self.genStartTime[self.idx] = genStartTime[:]  # .append(genStartTime[:])
-        self.genRunTime[self.idx] = genRunTime[:]  # .append(genRunTime[:])
+        self.genStartTime.var[self.idx] = genStartTime[:]  # .append(genStartTime[:])
+        self.genRunTime.var[self.idx] = genRunTime[:]  # .append(genRunTime[:])
 
         ## If conditions met, schedule units
         # check if out of bounds opperation
@@ -473,11 +385,11 @@ class SystemOperations:
                 True in self.PH.outOfEfficientBounds or True in self.WF.wtgSpilledWindFlag:
             # predict what load will be
             # the previous 24 hours. 24hr * 60min/hr * 60sec/min = 86400 sec.
-            self.predictLoad.predictLoad(self)
+            self.predictLoad.loadPredict(self)
             self.futureLoad = self.predictLoad.futureLoad
 
             # predict what the wind will be
-            self.predictWind.predictWind(self)
+            self.predictWind.windPredict(self)
             self.futureWind = self.predictWind.futureWind
             # Sum of futureWind is used three times, calc once here
             sumFutureWind = sum(self.futureWind)
@@ -544,17 +456,27 @@ class SystemOperations:
             # power that can be covered by ESS (likely some scaling needed to avoid switching too much)
 
             # record for trouble shooting purposes
-            if True in self.WF.wtgSpilledWindFlag:
-                self.wfSpilledWindFlag[self.idx] = 1
-            self.futureLoadList[self.idx] = self.futureLoad
-            self.futureWindList[self.idx] = self.futureWind
-            self.futureSRC[self.idx] = futureSRC[0]
+            if True in self.WF.wtgSpilledWindFlag.var:
+                self.wfSpilledWindFlag.var[self.idx] = 1
+            self.futureLoadList.var[self.idx] = self.futureLoad
+            self.futureWindList.var[self.idx] = self.futureWind
+            self.futureSRC.var[self.idx] = futureSRC[0]
             if True in self.EESS.underSRC:
-                self.underSRC[self.idx] = 1
+                self.underSRC.var[self.idx] = 1
             if True in self.PH.outOfNormalBounds:
-                self.outOfNormalBounds[self.idx] = 1
+                self.outOfNormalBounds.var[self.idx] = 1
             if True in self.PH.outOfEfficientBounds:
-                self.outOfEfficientBounds[self.idx] = 1
+                self.outOfEfficientBounds.var[self.idx] = 1
 
         # Last step in the regular for-loop [this is reset if the data is being saved - see below]
         self.idx = self.idx + 1
+
+class TSVar:
+    '''
+    Class for holding timeseries variables and the name of the variable
+    self.var =
+    '''
+
+    def __init__(self,spaceHolder,varLength,name):
+        self.var = spaceHolder * varLength
+        self.name = name
