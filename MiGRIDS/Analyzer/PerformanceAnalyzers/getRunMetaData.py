@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import pickle
 
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
+
 here = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(here, '../../'))
 sys.path.append(here)
@@ -22,32 +24,35 @@ from MiGRIDS.Analyzer.PerformanceAnalyzers.getRunFuelUse import getRunFuelUse
 
 
 def getRunMetaData(projectSetDir,runs):
+    '''Fills results into the database to be displayed graphically or passed to other analysis
+    :param projectSetDir String path to directory for a specified set
+    :param runs list of integers indicating the run numbers to process. If empty will process all runs within a set'''
     # get the set number
     dir_path = os.path.basename(projectSetDir)
     setNum = str(dir_path[3:])
-
+    dbhandler = ProjectSQLiteHandler()
     # read the input parameter sql database
-    os.chdir(projectSetDir)
-    conn = sqlite3.connect('set' + str(setNum) + 'ComponentAttributes.db')
+    #os.chdir(projectSetDir)
+    #conn = sqlite3.connect('set' + str(setNum) + 'ComponentAttributes.db')
     # get the attributes
-    dfAttr = pd.read_sql_query('select * from compAttributes', conn)
-    conn.close()
+    #dfAttr = pd.read_sql_query('select * from compAttributes', conn)
+    #conn.close()
 
-    # add columns for results
-    df = pd.DataFrame(
-        columns=['Generator Import kWh', 'Generator Charging kWh', 'Generator Switching', 'Generator Loading', 'Generator Online Capacity',
-                 'Generator Fuel Consumption kg', 'Diesel-off time h', 'Generator Cumulative Run time h', 'Generator Cumulative Capacity Run Time kWh', 'Generator Overloading Time h','Generator Overloading kWh',
-                 'Wind Power Import kWh', 'Wind Power Spill kWh',
-                 'Wind Power Charging kWh', 'Energy Storage Discharge kWh', 'Energy Storage Charge kWh',
-                 'Energy Storage SRC kWh', 'Energy Storage Overloading Time h','Energy Storage Overloading kWh','Thermal Energy Storage Throughput kWh'])
+    # add columns for results - don't need if writing directly to run table
+    # df = pd.DataFrame(
+    #     columns=['Generator Import kWh', 'Generator Charging kWh', 'Generator Switching', 'Generator Loading', 'Generator Online Capacity',
+    #              'Generator Fuel Consumption kg', 'Diesel-off time h', 'Generator Cumulative Run time h', 'Generator Cumulative Capacity Run Time kWh', 'Generator Overloading Time h','Generator Overloading kWh',
+    #              'Wind Power Import kWh', 'Wind Power Spill kWh',
+    #              'Wind Power Charging kWh', 'Energy Storage Discharge kWh', 'Energy Storage Charge kWh',
+    #              'Energy Storage SRC kWh', 'Energy Storage Overloading Time h','Energy Storage Overloading kWh','Thermal Energy Storage Throughput kWh'])
 
     genOverLoading = []
     eessOverLoading = []
 
     # check which runs to analyze
-    if runs == 'all':
-        os.chdir(projectSetDir)
-        runDirs = glob.glob('Run*/')
+    if not runs:
+        #os.chdir(projectSetDir)
+        runDirs = glob.glob(projectSetDir,'Run*/')
         runs = [int(x[3:-1]) for x in runDirs]
 
     for runNum in runs:
@@ -55,24 +60,24 @@ def getRunMetaData(projectSetDir,runs):
         projectRunDir = os.path.join(projectSetDir,'Run'+str(runNum))
 
         # go to dir where output files are saved
-        os.chdir(os.path.join(projectRunDir, 'OutputData'))
-
+        #os.chdir(os.path.join(projectRunDir, 'OutputData'))
+        runOutputDir = os.path.join(projectRunDir, 'OutputData')
         # load the total powerhouse output
-        genPStats, genP, ts = loadResults('powerhousePSet'+str(setNum)+'Run'+str(runNum)+'.nc')
+        genPStats, genP, ts = loadResults('powerhousePSet'+str(setNum)+'Run'+str(runNum)+'.nc',runOutputDir)
         # load the total powerhouse charging of eess
-        genPchStats, genPch, ts = loadResults('powerhousePchSet' + str(setNum) + 'Run' + str(runNum) + '.nc')
+        genPchStats, genPch, ts = loadResults('powerhousePchSet' + str(setNum) + 'Run' + str(runNum) + '.nc',runOutputDir)
         # get generator power available stats
-        genPAvailStats, genPAvail, tsGenPAvail = loadResults('genPAvailSet'+str(setNum)+'Run' + str(runNum) + '.nc')
+        genPAvailStats, genPAvail, tsGenPAvail = loadResults('genPAvailSet'+str(setNum)+'Run' + str(runNum) + '.nc',runOutputDir)
         # check to see if fuel consumption has been calculated
         genFuelConsFileNames = glob.glob('gen*FuelConsSet*Run*.nc')
         # if the fuel cons has not been calculated, calculate
         if len(genFuelConsFileNames) == 0:
             getRunFuelUse(projectSetDir, [runNum])
-            genFuelConsFileNames = glob.glob('gen*FuelConsSet*Run*.nc')
+            genFuelConsFileNames = glob.glob(runOutputDir,'gen*FuelConsSet*Run*.nc')
        # iterate through all generators and sum their fuel consumption.
         genFuelCons = 0
         for genFuelConsFileName in genFuelConsFileNames:
-            genFuelConsStats0, genFuelCons0, ts = loadResults(genFuelConsFileName)
+            genFuelConsStats0, genFuelCons0, ts = loadResults(genFuelConsFileName,runOutputDir)
             # genFuelCons
             genFuelCons = genFuelCons + genFuelConsStats0[4]
 
@@ -109,8 +114,8 @@ def getRunMetaData(projectSetDir,runs):
         # get the total diesel run time
         genTimeRunTot = 0.
         genRunTimeRunTotkWh = 0.
-        for genRunTimeFile in glob.glob('gen*RunTime*.nc'):
-            genRunTimeStats, genRunTime, ts = loadResults(genRunTimeFile)
+        for genRunTimeFile in glob.glob(runOutputDir,'gen*RunTime*.nc'):
+            genRunTimeStats, genRunTime, ts = loadResults(genRunTimeFile,runOutputDir)
             genTimeRunTot += np.count_nonzero(genRunTime != 0)* ts / 3600
             # get the capcity of this generator
             # first get the gen ID
@@ -129,14 +134,14 @@ def getRunMetaData(projectSetDir,runs):
         genSw = np.count_nonzero(np.diff(genPAvail))
 
         # load the wind data
-        wtgPImportStats, wtgPImport, ts = loadResults('wtgPImportSet'+str(setNum)+'Run' + str(runNum) + '.nc')
-        wtgPAvailStats, wtgPAvail, ts = loadResults('wtgPAvailSet'+str(setNum)+'Run' + str(runNum) + '.nc')
-        wtgPchStats, wtgPch, ts = loadResults('wtgPchSet'+str(setNum)+'Run' + str(runNum) + '.nc')
+        wtgPImportStats, wtgPImport, ts = loadResults('wtgPImportSet'+str(setNum)+'Run' + str(runNum) + '.nc',runOutputDir)
+        wtgPAvailStats, wtgPAvail, ts = loadResults('wtgPAvailSet'+str(setNum)+'Run' + str(runNum) + '.nc',runOutputDir)
+        wtgPchStats, wtgPch, ts = loadResults('wtgPchSet'+str(setNum)+'Run' + str(runNum) + '.nc',runOutputDir)
 
         # tes
         # get tess power, if included in simulations
         if len(glob.glob('ees*SRC*.nc')) > 0:
-            tessPStats, tessP, ts = loadResults('tessP' + str(setNum) + 'Run' + str(runNum) + '.nc')
+            tessPStats, tessP, ts = loadResults('tessP' + str(setNum) + 'Run' + str(runNum) + '.nc',runOutputDir)
             tessPTot = tessPStats[4] / 3600
         else:
             tessPStats = [0, 0, 0, 0, 0]
@@ -152,7 +157,7 @@ def getRunMetaData(projectSetDir,runs):
 
         # eess
         # get eess power
-        eessPStats, eessP, ts = loadResults('eessPSet'+str(setNum)+'Run' + str(runNum) + '.nc')
+        eessPStats, eessP, ts = loadResults('eessPSet'+str(setNum)+'Run' + str(runNum) + '.nc',runOutputDir)
         # get the charging power
         eessPch = [x for x in eessP if x < 0]
         eessPchTot = -sum(eessPch)*ts/3600 # total kWh charging of eess
@@ -163,7 +168,7 @@ def getRunMetaData(projectSetDir,runs):
         # get all ees used in kWh
         eessSRCTot = 0
         for eesFile in glob.glob('ees*SRC*.nc'):
-            eesSRCStats, eesSRC, ts = loadResults(eesFile)
+            eesSRCStats, eesSRC, ts = loadResults(eesFile,runOutputDir)
             eessSRCTot += eesSRCStats[4]/3600
 
 
@@ -198,15 +203,24 @@ def getRunMetaData(projectSetDir,runs):
         '''
 
         # add row for this run
-        df.loc[runNum] = [genPTot,genPch,genSw,genLoadingMean,genCapacityMean,genFuelCons,genTimeOff,genTimeRunTot,genRunTimeRunTotkWh,genOverLoadingTime,genOverLoadingkWh,wtgPImportTot,wtgPspillTot,wtgPchTot,eessPdisTot,eessPchTot,eessSRCTot,eessOverLoadingTime,eessOverLoadingkWh,tessPTot]
+        #df.loc[runNum] = [genPTot,genPch,genSw,genLoadingMean,genCapacityMean,genFuelCons,genTimeOff,genTimeRunTot,genRunTimeRunTotkWh,genOverLoadingTime,genOverLoadingkWh,wtgPImportTot,wtgPspillTot,wtgPchTot,eessPdisTot,eessPchTot,eessSRCTot,eessOverLoadingTime,eessOverLoadingkWh,tessPTot]
+        valuesDictionary = {'genPTot':genPTot,'genPch':genPch,'genSw':genSw,
+                        'genLoadingMean':genLoadingMean,'genCapacityMean':genCapacityMean,'genFuelCons':genFuelCons,
+                       'genTimeOff':genTimeOff,'genTimeRunTot':genTimeRunTot,'genRunTimeRunTotkWh':genRunTimeRunTotkWh,
+                       'genOverLoadingTime':genOverLoadingTime,'genOverLoadingkWh':genOverLoadingkWh,'wtgPImportTot':wtgPImportTot,
+                       'wtgPspillTot':wtgPspillTot,'wtgPchTot':wtgPchTot,'eessPdisTot':eessPdisTot,'eessPchTot':eessPchTot,
+                       'eessSRCTot':eessSRCTot,'eessOverLoadingTime':eessOverLoadingTime,'eessOverLoadingkWh':eessOverLoadingkWh,
+                        'tessPTot':tessPTot}
 
-    dfResult = pd.concat([dfAttr, df], axis=1, join='inner')
+        dbhandler.updateRunResult(setNum,runNum,valuesDictionary )
+        #dfResult = pd.concat([dfAttr, df], axis=1, join='inner')
 
-    os.chdir(projectSetDir)
-    conn = sqlite3.connect('set' + str(setNum) + 'Results.db')
-    dfResult.to_sql('Results', conn, if_exists="replace", index=False)  # write to table compAttributes in db
-    conn.close()
-    dfResult.to_csv('Set' + str(setNum) + 'Results.csv')  # save a csv version
+    # os.chdir(projectSetDir)
+    # conn = sqlite3.connect('set' + str(setNum) + 'Results.db')
+    # dfResult.to_sql('Results', conn, if_exists="replace", index=False)  # write to table compAttributes in db
+    # conn.close()
+    # dfResult.to_csv('Set' + str(setNum) + 'Results.csv')  # save a csv version
+    writeCSV(dbhandler.getRecords('run',setNum))
 
     # make pdfs
     # generator overloading
@@ -241,9 +255,8 @@ def getRunMetaData(projectSetDir,runs):
 
     # get the stats for this variable
 def loadResults(fileName, location = '', returnTimeSeries = False):
-    if location != '':
-        os.chdir(location)
-    var = readNCFile(fileName)
+
+    var = readNCFile(os.path.join(location,fileName))
     val = np.array(var.value)*var.scale + var.offset
     timeStep = np.nanmean(np.diff(var.time)) # mean timestep in seconds
     valMean = np.nanmean(val)

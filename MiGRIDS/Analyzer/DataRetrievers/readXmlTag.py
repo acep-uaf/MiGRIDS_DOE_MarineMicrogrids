@@ -9,9 +9,7 @@ def readXmlTag(fileName,tag,attr,fileDir='',returnDtype = ''):
     # returnDtype specifies if the data type of the output is returned as float or int. If left empty, returns strings
     import os
     from bs4 import BeautifulSoup
-    from xml.sax.saxutils import escape
-    
-    here = os.getcwd()
+
 
 
     # open file and read into soup
@@ -41,7 +39,7 @@ def readXmlTag(fileName,tag,attr,fileDir='',returnDtype = ''):
             tagValues = [float(x) for x in tagValues]
     else:
         tagValues = None
-    
+
     return tagValues
 
 

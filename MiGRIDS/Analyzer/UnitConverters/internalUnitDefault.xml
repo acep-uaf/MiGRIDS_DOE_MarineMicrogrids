@@ -33,10 +33,17 @@
     <FF units="kg/s" scale="10000" offset="0" datatype="int32"/>
 
     <!-- SRC -->
-    <SRC units="kW" scale="1" offset="0" datatype="int32"/>
+    <Src units="kW" scale="1" offset="0" datatype="int32"/>
 
-    <!-- NormalBounds -->
-    <Bounds units="bool" scale="1" offset="0" datatype="bool"/>
+    <!--Dis-->
+    <Dis units="kW" scale="1" offset="0" datatype="int32"/>
+    <!--NormalBounds-->
+    <Normal units="bool" scale="1" offset="0" datatype="bool"/>
+    <!-- EfficientBounds -->
+    <Efficient units="bool" scale="1" offset="0" datatype="bool"/>
+
+    <Pch units="kW" scale="1" offset="0" datatype="bool"/>
+
 
     <!-- Flag -->
     <Flag units="bool" scale="1" offset="0" datatype="bool"/>

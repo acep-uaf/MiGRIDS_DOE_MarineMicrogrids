@@ -247,7 +247,15 @@ class ProjectSQLiteHandler:
                                timestepunit text,
                                runtimestepsvalue
                                );""")
-
+        self.cursor.execute("DROP TABLE IF EXISTS pretty_names")
+        self.cursor.executescript("""
+                        CREATE TABLE IF NOT EXISTS pretty_names(
+                        _id interger PRIMARY KEY,
+                        table_name text,
+                        field text,
+                        pretty_name text
+                        UNIQUE (table_name,field)
+                        )""")
         self.cursor.execute("DROP TABLE IF EXISTS run")
         self.cursor.executescript("""
                 CREATE TABLE IF NOT EXISTS run
@@ -256,8 +264,30 @@ class ProjectSQLiteHandler:
                 run_num text NOT NULL,
                 started text,
                 finished text,
+                enptot text,
+                genpch text,
+                gensw text,
+                genloadingmean text,
+                gencapacitymean text,
+                genfuelcons text,
+                gentimeoff text,
+                gentimeruntot text,
+                genruntimeruntotkwh text,
+                genoverloadingtime text,
+                genoverLoadingkwh text,
+                wtgpimporttot text,
+                wtgpspilltot text,
+                wtgpspilltot text,
+                wtgpchtot text,
+                eesspdistot text,
+                eesspchtot text,
+                eesssrctot text,
+                eessoverloadingtime text,
+                eessoverloadingkwh text,
+                tessptot text
                 UNIQUE (set_id, run_num));""")
 
+        
         self.cursor.execute("DROP TABLE IF EXISTS run_attributes")
         self.cursor.executescript("""
                         CREATE TABLE IF NOT EXISTS run_attributes
@@ -484,10 +514,10 @@ class ProjectSQLiteHandler:
         :param loc: List of String names of components to add to the set_component table
         :return: None
         '''
-        setid = self.getId('set_','set_name',setName)[0][0]
+        setid = self.getId('set_','set_name',setName)
         #the [0][0] notation is required because getId returns a list of tuples. We want the first item in the list
         # and first item in the tuple (which is only 1 item long)
-        compid = [self.getId('component','componentnamevalue',c)[0][0] for c in loc]
+        compid = [self.getId('component','componentnamevalue',c) for c in loc]
         fields = ['component_id','set_id','tag','tag_value']
         values =[(str(x),setid,'None','None') for x in compid]
         if len(values) <=0: #if values are empty then set has no components
@@ -505,7 +535,7 @@ class ProjectSQLiteHandler:
         :return: None
         '''
 
-        [self.insertRecord('set_components',['set_id','component_id','tag','tag_value'],[self.getId('set_','set_name',setName)[0][0],t[0],t[1]+"." + t[2],t[3]]) for t in lot]
+        [self.insertRecord('set_components',['set_id','component_id','tag','tag_value'],[self.getId('set_','set_name',setName),t[0],t[1]+"." + t[2],t[3]]) for t in lot]
 
 
     def insertRecord(self, table, fields, values):
@@ -534,17 +564,21 @@ class ProjectSQLiteHandler:
             print(e)
             return -1
 
-    def getId(self,table,keyField,keyValue):
+    def fetchIds(self,table,keyField,keyValue):
         ''' get the id of the first record with a keyField equal to the specified keyValue
         :param table: String name of the table to query
         :param keyField: String name of the table column to match
         :param keyValue: String value to find in the table
         :return: integer, -1 if a matching record is not found'''
-        i = self.cursor.execute("SELECT _id from " + table + " WHERE " + keyField + " = ?",[keyValue]).fetchall()
-        if i is not None:
-            return i
+        lot = self.cursor.execute("SELECT _id from " + table + " WHERE " + keyField + " = ?",[keyValue]).fetchall()
+        if lot:
+            return [i[0] for i in lot] #this makes it a list of ids
         else:
             return [-1]
+
+    def getId(self,table,keyField,keyValue):
+        '''returns only the first id found by a call to fetchIds'''
+        return self.fetchIds(table,keyField,keyValue)[0]
     def getRuns(self,set_id):
         componentsInSet = self.getSetComponents(set_id)
         sqlStatement = self.createStatements(componentsInSet,set_id)
@@ -601,7 +635,7 @@ class ProjectSQLiteHandler:
         '''
         updateFields = ', '.join([str(a) + " = '" + str(b) + "'" for a,b in zip(fields,values)])
 
-        keyFields = ', '.join([str(a) + " = '" + str(b) + "'" for a,b in zip(keyField,keyValue)])
+        keyFields = ' AND '.join([str(a) + " = '" + str(b) + "'" for a,b in zip(keyField,keyValue)])
         try:
             self.cursor.execute("UPDATE " + table + " SET " + updateFields + " WHERE " + keyFields )
             self.connection.commit()
@@ -996,7 +1030,7 @@ class ProjectSQLiteHandler:
     def getNextRun(self,setName):
         set_id = self.getId('set_','set_name',setName)
         if set_id != (None,):
-            nextRun = self.cursor.execute("SELECT run_num from run where set_id = ? and started is null ORDER BY run_num LIMIT 1",[set_id[0][0]]).fetchall()
+            nextRun = self.cursor.execute("SELECT run_num from run where set_id = ? and started is null ORDER BY run_num LIMIT 1",[set_id]).fetchall()
             try:
                 runName = nextRun[0][0]
                 return runName
@@ -1004,3 +1038,14 @@ class ProjectSQLiteHandler:
                 return None
 
         return None
+    def updateRunStatus(self,setName,runNum,field):
+        '''sets the designated field of the run table t 1'''
+        self.updateRecord('run',['set_id','run_num'],[self.getId('set_','set_name',setName),runNum],[field],[1])
+
+    def updateRunToFinished(self, setName, runNum):
+        '''sets the finished field of the '''
+        self.updateRunStatus(setName,runNum,'finished')
+
+    def updateRunToStarted(self, setName, runNum):
+        '''sets the finished field of the '''
+        self.updateRunStatus(setName,runNum,'started')
