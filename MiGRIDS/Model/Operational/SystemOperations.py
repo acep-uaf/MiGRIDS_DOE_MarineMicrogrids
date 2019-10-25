@@ -260,7 +260,7 @@ class SystemOperations:
         :return: 
         '''
         channels_with_varLength = ['wtgPImport','wfPImport','wfPch','wfPTot','srcMin','eessDis','eessP',
-                                   'powerhousePch','powerhouseP','genPAvail','wfPAvail','wtgPAvail','rePlimit','tesP','wfPset']
+                                   'powerhousePch','powerhouseP','genPAvail','wfPAvail','wtgPAvail','rePLimit','tesP','wfPset']
         [setattr(self, c, TSVar([None],varLength,c)) for c in channels_with_varLength]
 
         #TS vars with lengths greater than varLength and holders other than [None]
@@ -275,8 +275,8 @@ class SystemOperations:
         # record for trouble shooting purposes
         self.futureLoadList = TSVar([0],varLength,'futureLoadList')
         self.futureWindList = TSVar([[0] * len(self.WF.windTurbines)], varLength,'futureWindList')
-        self.futureSRC = TSVar([0],varLength,'futureSRC')
-        self.underSRC = TSVar([0],varLength, 'underSRC')
+        self.futureSrc = TSVar([0], varLength, 'futureSRC')
+        self.underSrc = TSVar([0], varLength, 'underSRC')
         self.outOfNormalBounds =TSVar([0],varLength, 'outOfNormalBounds')
         self.outOfEfficientBounds = TSVar([0],varLength, 'outOfEfficeintBounds')
         self.wfSpilledWindFlag = TSVar([0],varLength,'wfSpilledWindFlag')
@@ -351,7 +351,7 @@ class SystemOperations:
             self.tesP.var[self.idx] = sum(self.TESS.tesP)  # thermal energy storage power
         else:
             self.tesP.var[self.idx] = 0
-        self.rePlimit.var[self.idx] = self.reDispatch.rePlimit
+        self.rePLimit.var[self.idx] = self.reDispatch.rePLimit
         self.wfPAvail.var[self.idx] = sum(self.WF.wtgPAvail[:])  # wind farm p avail
         self.wtgPAvail.var[self.idx] = self.WF.wtgPAvail[:]  # list of wind turbines  p avail
         self.wfPImport.var[self.idx] = self.reDispatch.wfPimport  # removed append usind self.idx
@@ -456,13 +456,13 @@ class SystemOperations:
             # power that can be covered by ESS (likely some scaling needed to avoid switching too much)
 
             # record for trouble shooting purposes
-            if True in self.WF.wtgSpilledWindFlag.var:
+            if True in self.WF.wtgSpilledWindFlag:
                 self.wfSpilledWindFlag.var[self.idx] = 1
             self.futureLoadList.var[self.idx] = self.futureLoad
             self.futureWindList.var[self.idx] = self.futureWind
-            self.futureSRC.var[self.idx] = futureSRC[0]
+            self.futureSrc.var[self.idx] = futureSRC[0]
             if True in self.EESS.underSRC:
-                self.underSRC.var[self.idx] = 1
+                self.underSrc.var[self.idx] = 1
             if True in self.PH.outOfNormalBounds:
                 self.outOfNormalBounds.var[self.idx] = 1
             if True in self.PH.outOfEfficientBounds:

@@ -3,8 +3,6 @@
 # Date: February 28, 2018
 # License: MIT License (see LICENSE file of this package for more information)
 
-import os
-import sys
 #here = os.path.dirname(os.path.realpath(__file__))
 #sys.path.append(os.path.join(here,".."))
 import sqlite3
@@ -23,10 +21,12 @@ from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
 from MiGRIDS.Analyzer.DataWriters.writeNCFile import writeNCFile
 from MiGRIDS.Model.Exceptions.NoDirectoryException import NoDirectoryException
 from MiGRIDS.Model.Exceptions.MissingInputFile import MissingInputFileException
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 def runSimulation(projectSetDir = ''):
+
+    #TODO update progress bar here to 1
     if projectSetDir == '':
        #throw an error
        raise NoDirectoryException("Specify a valid directory")
@@ -121,6 +121,7 @@ def runSimulation(projectSetDir = ''):
         print(e)
         print('Cannot proceed without file')
     dbhandler = ProjectSQLiteHandler()
+    # TOOD update progress bar here to 2
     while 1:
         # read the SQL table of runs in this set and look for the next run that has not been started yet.
         #conn = sqlite3.connect(os.path.join(projectSetDir,'set' + str(setNum) + 'ComponentAttributes.db') )# create sql database
@@ -136,9 +137,8 @@ def runSimulation(projectSetDir = ''):
             #break
         # set started value to 1 to indicate starting the simulations
         #df.at[runNum, 'started'] = 1
-        dbhandler.updateRecord('run', ['run_num'], [runNum],
-                          ['started'],
-                          [1])
+
+        dbhandler.updateRunToStarted('Set'+str(setNum),runNum)
         #df.to_sql('compAttributes', conn, if_exists="replace", index=False)  # write to table compAttributes in db
         #conn.close()
         # Go to run directory and run
@@ -225,34 +225,39 @@ def runSimulation(projectSetDir = ''):
 
         start_file_write = time.time()
         def ncOutFileName(prefix):
-            return '{}Set{}Run{}.nc'.format([prefix,str(setNum),str(runNum)])
+            filename = '{}Set{}Run{}.nc'.format(prefix,str(setNum),str(runNum))
+
+            return os.path.join(outputDataDir,filename)
         def getStandardUnit(prefix):
             #a prefix is formatted as nameAttribute
             attrList = re.findall('[A-Z][^A-Z]*', prefix)
-            if (attrList[len(attrList) -1]) == 'List':
-                attr = attrList[-2] + attrList[-1]
+            if (len(attrList) >1):
+                attr = attrList[-2]
             else:
                 attr = attrList[-1]
             #each attribute has a standard unit
             dir_path = os.path.dirname(os.path.realpath(__file__))
-            unitConventionDir = os.path.join(dir_path, *['..', 'Analyzer', 'UnitConverters'])
+            unitConventionDir = os.path.join(dir_path, *['..','..', 'Analyzer', 'UnitConverters'])
             # get the default unit for the data type
             units = readXmlTag('internalUnitDefault.xml', ['unitDefaults', attr], 'units',
-                       unitConventionDir)[0]
-            return units
+                       unitConventionDir)
+            if units != None:
+                return units[0]
+            else:
+                return 'NA'
 
         def stitchAndWrite(prefix):
             stitched = SO.stitchVariable(prefix)
             #scale is always 1, offset is always 0
-            writeNCFile(SO.DM.realTime,stitched,1,0,getStandardUnit(prefix),ncOutFileName(prefix))
+            writeNCFile(SO.DM.realTime,stitched,1,0,getStandardUnit(prefix),ncOutFileName(prefix.replace('wf','wtg')))
             stitched = None
             return
 
 
-        toStitch = ['powerhouseP','powerhousePch','rePlimit','wfPAvail','wfPImport','wfPch',
-                    'wfPTot','srcMin','eessDis','eessP','tesP','genPAvail','onlineCombinationID','underSRC',
+        toStitch = ['powerhouseP','powerhousePch','rePLimit','wfPAvail','wfPImport','wfPch',
+                    'wfPTot','srcMin','eessDis','eessP','tesP','genPAvail','onlineCombinationID','underSrc',
                     'outOfNormalBounds','outOfEfficientBounds','wfSpilledWindFlag','futureLoadList',
-                    'futureSRC']
+                    'futureSrc']
 
         [stitchAndWrite(p) for p in toStitch]
 
@@ -341,11 +346,13 @@ def runSimulation(projectSetDir = ''):
 
         #print('File write operation elapsed time: ' + str(time.time() - start_file_write))
 
-        # set the value in the 'finished' for this run to 1 to indicate it is finished.
-        conn = sqlite3.connect(
-            os.path.join(projectSetDir, 'set' + str(setNum) + 'ComponentAttributes.db'))  # create sql database
-        df = pd.read_sql_query('select * from compAttributes', conn)
-        # set finished value to 1 to indicate this run is finshed
-        df.loc[runNum, 'finished'] = 1
-        df.to_sql('compAttributes', conn, if_exists="replace", index=False)  # write to table compAttributes in db
-        conn.close()
+        # # set the value in the 'finished' for this run to 1 to indicate it is finished.
+        # conn = sqlite3.connect(
+        #     os.path.join(projectSetDir, 'set' + str(setNum) + 'ComponentAttributes.db'))  # create sql database
+        # df = pd.read_sql_query('select * from compAttributes', conn)
+        # # set finished value to 1 to indicate this run is finshed
+        # df.loc[runNum, 'finished'] = 1
+        # df.to_sql('compAttributes', conn, if_exists="replace", index=False)  # write to table compAttributes in db
+        # conn.close()
+        # TOOD update progress bar: while loop bar length is 8. Update by 8/num of runs
+        dbhandler.updateRunToFinished('Set' + setNum, runNum)
