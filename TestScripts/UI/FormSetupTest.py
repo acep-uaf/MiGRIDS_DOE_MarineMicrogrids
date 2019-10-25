@@ -1,11 +1,10 @@
 import unittest
 import sys
 import os
-from pathlib import Path
-from PyQt5 import QtWidgets, QtTest, QtSql, QtGui, QtCore
+from PyQt5 import QtWidgets, QtSql, QtCore
 from MiGRIDS.UserInterface.FormSetup import FormSetup
 
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 
 
 class FormSetupTest(unittest.TestCase):

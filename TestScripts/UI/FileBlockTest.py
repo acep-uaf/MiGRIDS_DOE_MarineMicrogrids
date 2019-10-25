@@ -1,9 +1,9 @@
 import unittest
 import sys
 import os
-from PyQt5 import QtWidgets, QtTest, QtSql, QtGui, QtCore
+from PyQt5 import QtWidgets, QtTest, QtSql, QtCore
 from MiGRIDS.UserInterface.FileBlock import FileBlock
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 
 class FileBlockTest(unittest.TestCase):
     app = QtWidgets.QApplication(sys.argv)

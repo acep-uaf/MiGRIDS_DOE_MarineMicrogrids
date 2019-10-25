@@ -4,7 +4,7 @@ from PyQt5 import QtSql
 from MiGRIDS.Controller.DirectoryPreview import DirectoryPreview
 from MiGRIDS.Controller.Exceptions.NoMatchException import NoMatchException
 from MiGRIDS.Controller.Exceptions.NoValidFilesError import NoValidFilesError
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 
 class DirectoryPreviewTest(unittest.TestCase):
 

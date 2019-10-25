@@ -2,7 +2,7 @@ import unittest
 import os
 from PyQt5 import QtSql
 
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.InputHandler.getSetupInformation import getSetupInformation
 
 

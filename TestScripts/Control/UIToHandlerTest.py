@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from PyQt5 import QtSql
 from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from MiGRIDS.InputHandler.readSetupFile import readSetupFile
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 
 class UIToHandlerTest(unittest.TestCase):
 
