@@ -1,6 +1,5 @@
 #fill project xml files
 #String, ModelSetupInformation - > None
-from MiGRIDS.Controller.makeXMLFriendly import stringToXML
 
 
 def fillProjectDataFromDb():
@@ -15,7 +14,7 @@ def fillProjectDataFromDb():
     import os
     from MiGRIDS.InputHandler.createComponentDescriptor import createComponentDescriptor
     from MiGRIDS.InputHandler.writeXmlTag import writeXmlTag
-    from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+    from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 
     here = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(here)

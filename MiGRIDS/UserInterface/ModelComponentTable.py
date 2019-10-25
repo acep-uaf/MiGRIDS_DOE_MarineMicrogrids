@@ -4,8 +4,7 @@ ComponentTableView is a default table view tied to the component table in projec
 '''
 from MiGRIDS.UserInterface.Delegates import *
 from MiGRIDS.UserInterface.Delegates import ComboDelegate
-import MiGRIDS.UserInterface.ModelFileInfoTable as F
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from enum import Enum
 
 class ComponentFields(Enum):

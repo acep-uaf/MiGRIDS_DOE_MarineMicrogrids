@@ -1,5 +1,7 @@
 #form for selecting what components to use in a model set
-from PyQt5 import QtWidgets, QtCore, QtSql
+from PyQt5 import QtWidgets, QtCore
+
+
 class ComponentSetListForm(QtWidgets.QDialog):
     #initialize with a list of component names and list of boolean values for whether or not to include
     def __init__(self,setName):
@@ -19,7 +21,7 @@ class ComponentSetListForm(QtWidgets.QDialog):
    #Make a list widget with checkboxes and a list of components
     def makeListWidget(self):
         import pandas as pd
-        from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+        from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
         sqlhandler = ProjectSQLiteHandler('project_manager')
         self.components = pd.read_sql_query("select componentnamevalue from component",sqlhandler.connection)
 

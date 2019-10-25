@@ -34,9 +34,9 @@ class reDispatch:
 
         # the amount used to supply the load is the min of the max allowed and the output
         # the maximum amount of power that can be imported from renewable resources
-        self.rePlimit = max([P - sum(SO.PH.genMolAvail), 0])
+        self.rePLimit = max([P - sum(SO.PH.genMolAvail), 0])
         # amount of imported wind power
-        self.wfPimport = min(self.rePlimit, self.wfP)
+        self.wfPimport = min(self.rePLimit, self.wfP)
 
         # charge the EESS with whatever is leftover, as much as possible.
         # amount of wind power used to charge the eess is the minimum of maximum charging power and the difference

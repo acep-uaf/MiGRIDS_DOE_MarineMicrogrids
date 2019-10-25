@@ -7,6 +7,9 @@ from tkinter import filedialog
 import pandas as pd
 import itertools
 import matplotlib
+
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numbers
@@ -39,14 +42,12 @@ def plotSetResult(plotRes,plotAttr, projectSetDir = '', otherAttr = [],otherAttr
     :return: Nothing
     '''
     if projectSetDir == '':
-        print('Choose the directory for the set of simulations')
-        root = tk.Tk()
-        root.withdraw()
-        projectSetDir = filedialog.askdirectory()
+        raise NotADirectoryError
 
     # get the set number
     dirName = os.path.basename(projectSetDir)
     setNum = dirName[3:]
+    dbhandler = ProjectSQLiteHandler()
     #try:
     #    setNum = int(dirName[3:])
     #except ValueError:
@@ -56,22 +57,23 @@ def plotSetResult(plotRes,plotAttr, projectSetDir = '', otherAttr = [],otherAttr
     # get the base case value, if set
     if baseSet != '' and baseRun != '':
         baseDir = os.path.join(projectSetDir,'..', 'Set'+str(baseSet))
-        try:
-            os.chdir(baseDir) # go to directory
-        except:
+        dbhandler.updateBaseCase(baseSet,baseRun)
+        if not os.path.exist(baseDir):
             print('The base case set and run could not be found for this project')
         else:
-            conn = sqlite3.connect('set' + str(baseSet) + 'Results.db')
+            #conn = sqlite3.connect('set' + str(baseSet) + 'Results.db')
             # check if Results table exists, tableName will be empty if not
-            tableName = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table' AND name='Results';", conn)
+            #tableName = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table' AND name='Results';", conn)
             # if not initialized
-            if tableName.empty:
+            if not dbhandler.hasBaseResults():
                 print('No results have been calculated for the base case set yet.')
                 return  # exit function
             else:
-                dfBase = pd.read_sql_query('select * from Results', conn)
+                #dfBase = pd.read_sql_query('select * from Results', conn)
+                id = dbhandler.getId('run',['basecase'],1)
+                base_row = dbhandler.getRecordDictionary('run',id)
 
-            conn.close()
+            #conn.close()
 
             # get the base value
             yBase = pd.to_numeric(getPlotRes(plotRes, dfBase).loc[baseRun])

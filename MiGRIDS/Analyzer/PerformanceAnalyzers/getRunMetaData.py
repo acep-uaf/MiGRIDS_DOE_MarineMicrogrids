@@ -51,9 +51,18 @@ def getRunMetaData(projectSetDir,runs):
 
     # check which runs to analyze
     if not runs:
+        def getNumber(mystring):
+            d = re.findall(r'\d+', mystring)
+            if d:
+                return int(d[0])
+            else:
+                return None
+
         #os.chdir(projectSetDir)
-        runDirs = glob.glob(projectSetDir,'Run*/')
-        runs = [int(x[3:-1]) for x in runDirs]
+        runDirs = glob.glob(os.path.join(projectSetDir,'Run*/'))
+        runs= [getNumber(os.path.basename(os.path.normpath(x))) for x in runDirs]
+
+
 
     for runNum in runs:
         # get run dir
@@ -69,11 +78,11 @@ def getRunMetaData(projectSetDir,runs):
         # get generator power available stats
         genPAvailStats, genPAvail, tsGenPAvail = loadResults('genPAvailSet'+str(setNum)+'Run' + str(runNum) + '.nc',runOutputDir)
         # check to see if fuel consumption has been calculated
-        genFuelConsFileNames = glob.glob('gen*FuelConsSet*Run*.nc')
+        genFuelConsFileNames = glob.glob(os.path.join(runOutputDir,'gen*FuelConsSet*Run*.nc'))
         # if the fuel cons has not been calculated, calculate
         if len(genFuelConsFileNames) == 0:
             getRunFuelUse(projectSetDir, [runNum])
-            genFuelConsFileNames = glob.glob(runOutputDir,'gen*FuelConsSet*Run*.nc')
+            genFuelConsFileNames = glob.glob(os.path.join(runOutputDir,'gen*FuelConsSet*Run*.nc'))
        # iterate through all generators and sum their fuel consumption.
         genFuelCons = 0
         for genFuelConsFileName in genFuelConsFileNames:
@@ -114,7 +123,7 @@ def getRunMetaData(projectSetDir,runs):
         # get the total diesel run time
         genTimeRunTot = 0.
         genRunTimeRunTotkWh = 0.
-        for genRunTimeFile in glob.glob(runOutputDir,'gen*RunTime*.nc'):
+        for genRunTimeFile in glob.glob(os.path.join(runOutputDir,'gen*RunTime*.nc')):
             genRunTimeStats, genRunTime, ts = loadResults(genRunTimeFile,runOutputDir)
             genTimeRunTot += np.count_nonzero(genRunTime != 0)* ts / 3600
             # get the capcity of this generator
@@ -140,8 +149,8 @@ def getRunMetaData(projectSetDir,runs):
 
         # tes
         # get tess power, if included in simulations
-        if len(glob.glob('ees*SRC*.nc')) > 0:
-            tessPStats, tessP, ts = loadResults('tessP' + str(setNum) + 'Run' + str(runNum) + '.nc',runOutputDir)
+        if len(glob.glob(os.path.join(runOutputDir,'ees*SRC*.nc'))) > 0:
+            tessPStats, tessP, ts = loadResults('tesPSet' + str(setNum) + 'Run' + str(runNum) + '.nc',runOutputDir)
             tessPTot = tessPStats[4] / 3600
         else:
             tessPStats = [0, 0, 0, 0, 0]
@@ -167,13 +176,9 @@ def getRunMetaData(projectSetDir,runs):
         # get eess SRC
         # get all ees used in kWh
         eessSRCTot = 0
-        for eesFile in glob.glob('ees*SRC*.nc'):
+        for eesFile in glob.glob(os.path.join(runOutputDir,'ees*SRC*.nc')):
             eesSRCStats, eesSRC, ts = loadResults(eesFile,runOutputDir)
             eessSRCTot += eesSRCStats[4]/3600
-
-
-
-
 
 
         # TODO: add gen fuel consumption
@@ -181,7 +186,7 @@ def getRunMetaData(projectSetDir,runs):
         # get all gen power files
         '''
         dfGenP = 0
-        for idx, genPFile in enumerate(glob.glob('gen*PSet*.nc')):
+        for idx, genPFile in enumerate(glob.glob(os.path.join(runOutputDir,'gen*PSet*.nc'))):
             genPStats, genP, genTime = loadResults(genPFile,returnTimeSeries=True) # load the file
             if idx == 0: # if the first, initiate df
                 dfGenP = pd.DataFrame([genTime,genP],columns=['time',str(idx)])
@@ -212,7 +217,8 @@ def getRunMetaData(projectSetDir,runs):
                        'eessSRCTot':eessSRCTot,'eessOverLoadingTime':eessOverLoadingTime,'eessOverLoadingkWh':eessOverLoadingkWh,
                         'tessPTot':tessPTot}
 
-        dbhandler.updateRunResult(setNum,runNum,valuesDictionary )
+
+        dbhandler.updateRunResult(setNum,runNum,valuesDictionary)
         #dfResult = pd.concat([dfAttr, df], axis=1, join='inner')
 
     # os.chdir(projectSetDir)
@@ -220,7 +226,7 @@ def getRunMetaData(projectSetDir,runs):
     # dfResult.to_sql('Results', conn, if_exists="replace", index=False)  # write to table compAttributes in db
     # conn.close()
     # dfResult.to_csv('Set' + str(setNum) + 'Results.csv')  # save a csv version
-    writeCSV(dbhandler.getRecords('run',setNum))
+    #writeCSV(dbhandler.getRecords('run',setNum))
 
     # make pdfs
     # generator overloading

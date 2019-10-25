@@ -12,7 +12,7 @@ import os
 import pandas as pd
 from MiGRIDS.Controller.Exceptions.NoValidFilesError import NoValidFilesError
 from MiGRIDS.Controller.Exceptions.NoMatchException import NoMatchException
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 import MiGRIDS.UserInterface.ModelFileInfoTable as F
 
 class DirectoryPreview():

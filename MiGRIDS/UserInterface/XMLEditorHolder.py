@@ -3,7 +3,7 @@
 # Purpose :  PredictEditorHolder is a Form widget that holds modeleditor subwidgets
 import os
 from PyQt5 import QtWidgets
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from MiGRIDS.UserInterface.XMLEditor import XMLEditor
 

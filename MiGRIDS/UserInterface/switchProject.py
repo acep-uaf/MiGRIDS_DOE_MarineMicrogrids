@@ -1,8 +1,8 @@
 import shutil
 import os
-from PyQt5 import QtWidgets,QtSql
+from PyQt5 import QtWidgets
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit, ComboDelegate
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.ModelRunTable import RunTableModel
 def switchProject(caller):
     '''saves an existing project, clears the database and initiates a new project'''

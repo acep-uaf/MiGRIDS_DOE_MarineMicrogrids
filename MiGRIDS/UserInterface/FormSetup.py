@@ -17,13 +17,12 @@ from MiGRIDS.UserInterface.ResultsSetup import  ResultsSetup
 from MiGRIDS.UserInterface.FormModelRuns import SetsAttributeEditorBlock
 from MiGRIDS.UserInterface.Pages import Pages
 from MiGRIDS.UserInterface.FileBlock import FileBlock
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.qdateFromString import qdateFromString
 from MiGRIDS.UserInterface.switchProject import switchProject
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.replaceDefaultDatabase import replaceDefaultDatabase
 from MiGRIDS.UserInterface.Resources.SetupWizardDictionary import *
-import datetime
 import pandas as pd
 
 BASESET ='Set0'

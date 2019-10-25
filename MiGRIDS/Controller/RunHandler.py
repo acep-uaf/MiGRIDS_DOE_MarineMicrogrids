@@ -39,7 +39,7 @@ class RunHandler(UIHandler):
         #add model xml attributes
 
     def makeRunDescriptors(self,setCompId,runName,setName):
-        allComponents = self.dbhandler.getSetComponents(self.dbhandler.getId('set_','set_name',setName)[0][0])
+        allComponents = self.dbhandler.getSetComponents(self.dbhandler.getId('set_','set_name',setName))
         for i in allComponents:
             runFolder = getFilePath(runName,projectFolder = self.dbhandler.getProjectPath(),Set=setName)
             descFile = os.path.join(*[runFolder,'Components',
@@ -103,7 +103,7 @@ class RunHandler(UIHandler):
         fileName = self.dbhandler.getProject() + setName.capitalize() + 'Attributes.xml'
         setDir = getFilePath(setName, projectFolder=self.dbhandler.getProjectPath())
         compName = readXmlTag(fileName, 'compName', 'value', setDir)
-        compId = [self.dbhandler.getId('component','componentnamevalue',c)[0][0] for c in compName]
+        compId = [self.dbhandler.getId('component','componentnamevalue',c) for c in compName]
         compTag = readXmlTag(fileName, 'compTag', 'value', setDir)
 
         compAttr = readXmlTag(fileName, 'compAttr', 'value', setDir)
@@ -159,7 +159,7 @@ class RunHandler(UIHandler):
         self.makeRunDescriptors(setComponentIds, "Run" + str(run), setName)
 
         #insert the run into the run table
-        run_id = self.dbhandler.insertRecord('run',['run_num','set_id'],[run,self.dbhandler.getId('set_','set_name',setName)[0][0]])
+        run_id = self.dbhandler.insertRecord('run',['run_num','set_id'],[run,self.dbhandler.getId('set_','set_name',setName)])
         #and the run_attributes table
         loi = list(setComponentIds)
         [self.dbhandler.insertRecord('run_attributes', ['run_id', 'set_component_id'],[run_id, x]) for x in loi]

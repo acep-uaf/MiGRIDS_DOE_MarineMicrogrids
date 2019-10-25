@@ -9,7 +9,7 @@ from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from MiGRIDS.UserInterface.GridFromXML import GridFromXML
 from bs4 import BeautifulSoup
 
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 

@@ -3,7 +3,7 @@
 # Purpose :  displayComponentXML
 from PyQt5 import QtWidgets
 from MiGRIDS.Controller.UIToInputHandler import UIHandler
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.componentFormFromXML import componentFormFromXML
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 

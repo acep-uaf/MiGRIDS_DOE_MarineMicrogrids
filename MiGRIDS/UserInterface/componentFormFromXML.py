@@ -1,5 +1,5 @@
 #creates a dynamic form based on the information in xml files
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtWidgets, QtCore
 from MiGRIDS.Controller.UIToInputHandler import UIHandler
 
 class componentFormFromXML(QtWidgets.QDialog):
@@ -43,8 +43,7 @@ class componentFormFromXML(QtWidgets.QDialog):
     #create a layout from the xml that was turned into soup
     #BeautifulSoup QVBoxLayout -> QVBoxLayout
     def displayXML(self, soup, vlayout):
-        from bs4 import Comment
-        from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+        from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
         from MiGRIDS.UserInterface.gridLayoutSetup import setupGrid
         g1 = {'headers': [1,2,3,4,5],
               'rowNames': [],

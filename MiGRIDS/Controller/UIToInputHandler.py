@@ -3,19 +3,15 @@
 
 import os
 import pickle
-import pandas as pd
-import shutil
 import numpy as np
 from bs4 import BeautifulSoup
-from PyQt5 import QtWidgets
-
 
 from MiGRIDS.InputHandler.getSetupInformation import setupToDictionary
 
 from MiGRIDS.Controller.GenericSender import GenericSender
 from MiGRIDS.InputHandler.makeSoup import makeComponentSoup
 from MiGRIDS.InputHandler.writeXmlTag import writeXmlTag
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.InputHandler.getSetupInformation import getSetupInformation
 

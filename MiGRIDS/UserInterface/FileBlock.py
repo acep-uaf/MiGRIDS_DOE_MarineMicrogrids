@@ -1,11 +1,7 @@
-from PyQt5.QtCore import Qt
-
 from MiGRIDS.Controller.Exceptions.NoValidFilesError import NoValidFilesError
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 import MiGRIDS.UserInterface.ModelComponentTable as T
 import MiGRIDS.UserInterface.ModelFileInfoTable as F
-from MiGRIDS.UserInterface.Delegates import *
-import os
 import pytz
 
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit

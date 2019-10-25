@@ -12,16 +12,16 @@ import numpy as np
 class reDispatch:
     def __init__(self):
         self.wfPimport = 0
-        self.rePlimit = 0
+        self.rePLimit = 0
         self.wfPch = 0
     def reDispatch(self, SO):
         ## Dispatch units
         # get available wind power
         wfPAvail = sum(SO.WF.wtgPAvail)
         # the maximum amount of power that can be imported from renewable resources
-        self.rePlimit = max([SO.P - sum(SO.PH.genMolAvail), 0])
+        self.rePLimit = max([SO.P - sum(SO.PH.genMolAvail), 0])
         # amount of imported wind power
-        self.wfPimport = min(self.rePlimit, wfPAvail)
+        self.wfPimport = min(self.rePLimit, wfPAvail)
         # amount of wind power used to charge the eess is the minimum of maximum charging power and the difference
         # between available wind power and wind power imported to the grid.
         self.wfPch = min(sum(SO.EESS.eesPinAvail), wfPAvail - self.wfPimport)

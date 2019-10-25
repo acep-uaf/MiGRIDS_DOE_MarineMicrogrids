@@ -3,11 +3,10 @@ import pandas as pd
 
 #uses a set name and data model of component attribute changes to generate set#attribute.xml based on template
 #string, Table -> Beautifulsoup
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 
 
 def makeAttributeXML(currentSet):
-    from PyQt5 import QtWidgets
     soup = readTemplateAttributeXML()
 
     #fillSetInfo the soup to reflect the model
@@ -33,7 +32,7 @@ def dropAttr(lotag):
 
 def updateComponentAttributes(currentSet, dbhandler,  soup):
     '''updates a soup with changes entered into the project database'''
-    compChanges = dbhandler.getSetChanges(dbhandler.getId('set_', 'set_name', currentSet)[0][0])
+    compChanges = dbhandler.getSetChanges(dbhandler.getId('set_', 'set_name', currentSet))
     compName, compTag, compValue = zip(*compChanges)
     splitTags = [dropAttr(t) for t in compTag]
     compTag,compAttr =list(zip(*splitTags))

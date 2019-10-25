@@ -2,9 +2,9 @@ import pandas as pd
 import os
 import sqlite3 as lite
 from MiGRIDS.InputHandler.Component import Component
-from MiGRIDS.Controller.makeXMLFriendly import xmlToString
+from MiGRIDS.Controller.makeXMLFriendly import xmlToString, stringToXML
 from MiGRIDS.UserInterface.qdateFromString import asDate
-
+import pandas as pd
 
 class ProjectSQLiteHandler:
 
@@ -253,7 +253,7 @@ class ProjectSQLiteHandler:
                         _id interger PRIMARY KEY,
                         table_name text,
                         field text,
-                        pretty_name text
+                        pretty_name text,
                         UNIQUE (table_name,field)
                         )""")
         self.cursor.execute("DROP TABLE IF EXISTS run")
@@ -262,9 +262,10 @@ class ProjectSQLiteHandler:
                 (_id integer primary key,
                 set_id integer NOT NULL ,
                 run_num text NOT NULL,
+                base_case integer,
                 started text,
                 finished text,
-                enptot text,
+                genptot text,
                 genpch text,
                 gensw text,
                 genloadingmean text,
@@ -277,17 +278,16 @@ class ProjectSQLiteHandler:
                 genoverLoadingkwh text,
                 wtgpimporttot text,
                 wtgpspilltot text,
-                wtgpspilltot text,
                 wtgpchtot text,
                 eesspdistot text,
                 eesspchtot text,
                 eesssrctot text,
                 eessoverloadingtime text,
                 eessoverloadingkwh text,
-                tessptot text
+                tessptot text,
                 UNIQUE (set_id, run_num));""")
 
-        
+
         self.cursor.execute("DROP TABLE IF EXISTS run_attributes")
         self.cursor.executescript("""
                         CREATE TABLE IF NOT EXISTS run_attributes
@@ -688,6 +688,32 @@ class ProjectSQLiteHandler:
        '''
        data = self.cursor.execute("SELECT * FROM " + table).fetchall()
        return data
+    def updateFromDictionaryRow(self,tablename,rowDict,keyField,keyValue):
+        '''
+               Update the fields for a specific record in a table. The record is identified by its keyField with the specified keyValue
+               :param tablename: String table name of the table containing the record to update
+               :param rowDict: A single row of values where dictionary keys match columns and values that will be inserted
+               :param keyField: List of String name of the field containing the record identifier
+               :param keyValue: List of Value to find in the keyField; records with this value in thier key field will be updated
+               :return: Boolean True if successfully updated
+               '''
+        #all column are lower case and can't have ., so make dictionary keys conform
+        #all values need to be strings
+        dict = {key.lower().replace(".", ""): stringToXML(str(value).split(' ')) for key, value in rowDict.items() }
+        updateFields = ', '.join([k + " = '" + str(dict[k]) + "'" for k in dict.keys()])
+
+        keyFields = ' AND '.join([str(a) + " = '" + str(b) + "'" for a, b in zip(keyField, keyValue)])
+        try:
+            self.cursor.execute("UPDATE " + tablename + " SET " + updateFields + " WHERE " + keyFields)
+            self.connection.commit()
+            return True
+        except Exception as e:
+            print(e)
+            print(type(e))
+
+            return False
+        return
+
     def insertDictionaryRow(self,tablename, dict):
         '''
         Inserts a dictionary of values into a project_manager table.
@@ -754,7 +780,7 @@ class ProjectSQLiteHandler:
         :param table: String name of a table containing the field 'code'
         :return: List of Strings
         '''
-        import pandas as pd
+
         codes = pd.read_sql_query("select code from " + table + " ORDER BY sort_order", self.connection)
 
         codes = (codes['code']).tolist()
@@ -1041,11 +1067,35 @@ class ProjectSQLiteHandler:
     def updateRunStatus(self,setName,runNum,field):
         '''sets the designated field of the run table t 1'''
         self.updateRecord('run',['set_id','run_num'],[self.getId('set_','set_name',setName),runNum],[field],[1])
-
     def updateRunToFinished(self, setName, runNum):
         '''sets the finished field of the '''
         self.updateRunStatus(setName,runNum,'finished')
-
     def updateRunToStarted(self, setName, runNum):
         '''sets the finished field of the '''
         self.updateRunStatus(setName,runNum,'started')
+    def hasResults(self,setName):
+        results = self.cursor.execute("SELECT * from run where set_id = ?",[self.getId('set_','set_name',setName)]).fetchall()
+        df = pd.DataFrame(results)
+        return not df[5:].isnull().all().all() #are all the columns after the finished column null?
+    def hasBaseResults(self):
+        results = self.cursor.execute("SELECT * from run where basecase = 1").fetchall()
+        if results:
+            return all([i == None for i in list(results[5:])])
+
+        else:
+            return False
+    def updateBaseCase(self,setName,runNum):
+        self.updateRecord('run',['basecase'],[1],['basecase'],[0]) #all base cases set to 0
+        self.updateRecord('run',['set_id','run_num'],[self.getId(setName),runNum],['basecase'],[1]) #new base case selected
+    def getSetId(self,setx):
+        '''returns the _id value for a specified set in the set_ table
+        :param setx is a string that contains either the set name number or the full set name
+        :returns integer _id value for the set, -1 if none found.
+        '''
+        if setx.isdigit():
+            setName = 'Set' + setx
+        else:
+            setName = setx
+        return self.getId('set_','set_name',setName)
+    def updateRunResult(self,setNum,runNum,rowDict):
+        self.updateFromDictionaryRow('run',rowDict,['set_id','run_num'],[self.getSetId(setNum),runNum])

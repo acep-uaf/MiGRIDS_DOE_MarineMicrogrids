@@ -3,7 +3,7 @@ from enum import Enum
 
 from MiGRIDS.Controller.RunHandler import RunHandler
 from MiGRIDS.UserInterface.Delegates import TextDelegate, ComboDelegate, RelationDelegate
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 

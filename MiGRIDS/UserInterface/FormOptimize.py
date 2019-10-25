@@ -4,7 +4,7 @@ import os
 from MiGRIDS.UserInterface.GridFromXML import GridFromXML
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIToInputHandler import UIHandler
 
 class FormOptimize(QtWidgets.QWidget):
