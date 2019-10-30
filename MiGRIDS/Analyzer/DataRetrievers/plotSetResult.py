@@ -1,9 +1,7 @@
 #imports
 import numpy as np
 import os
-import sqlite3
-import tkinter as tk
-from tkinter import filedialog
+import re
 import pandas as pd
 import itertools
 import matplotlib
@@ -46,7 +44,7 @@ def plotSetResult(plotRes,plotAttr, projectSetDir = '', otherAttr = [],otherAttr
 
     # get the set number
     dirName = os.path.basename(projectSetDir)
-    setNum = dirName[3:]
+    setNum = re.findall(r'\d+', dirName)[len(re.findall(r'\d+', dirName)) -1]
     dbhandler = ProjectSQLiteHandler()
     #try:
     #    setNum = int(dirName[3:])
@@ -70,7 +68,7 @@ def plotSetResult(plotRes,plotAttr, projectSetDir = '', otherAttr = [],otherAttr
                 return  # exit function
             else:
                 #dfBase = pd.read_sql_query('select * from Results', conn)
-                id = dbhandler.getId('run',['basecase'],1)
+                id = dbhandler.getId('run',['basecase'],[1])
                 base_row = dbhandler.getRecordDictionary('run',id)
 
             #conn.close()
@@ -85,31 +83,34 @@ def plotSetResult(plotRes,plotAttr, projectSetDir = '', otherAttr = [],otherAttr
 
 
     # load the results dataframe
-    os.chdir(projectSetDir)
-    conn = sqlite3.connect('set' + str(setNum) + 'Results.db')
+    resultdf = dbhandler.getSetResults(setNum)
+    #os.chdir(projectSetDir)
+    #conn = sqlite3.connect('set' + str(setNum) + 'Results.db')
     # check if Results table exists, tableName will be empty if not
-    tableName = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table' AND name='Results';", conn)
-    # if not initialized
-    if tableName.empty:
+    #tableName = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table' AND name='Results';", conn)
+    # if no results yet
+    if resultdf.empty:
         print('No results have been calculated for this set yet.')
         return  # exit function
-    else:
-        dfRes = pd.read_sql_query('select * from Results', conn)
-    conn.close()
+    # else:
+    #     dfRes = pd.read_sql_query('select * from Results', conn)
+    # conn.close()
 
     # load the simulation parameters for each run
-    os.chdir(projectSetDir)
-    conn = sqlite3.connect('set' + str(setNum) + 'ComponentAttributes.db')
+    #os.chdir(projectSetDir)
+    #conn = sqlite3.connect('set' + str(setNum) + 'ComponentAttributes.db')
     # check if Results compAttr exists, tableName will be empty if not
-    tableName = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table' AND name='compAttributes';",
-                                  conn)
+    #tableName = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table' AND name='compAttributes';",
+    #                             conn)
+    dfAttr = dbhandler.getSetAttributes(setNum)
     # if not initialized
-    if tableName.empty:
+    if dfAttr.empty:
         print('This simulation set has not been set up yet.')
         return  # exit function
-    else:
-        dfAttr = pd.read_sql_query('select * from compAttributes', conn)
-    conn.close()
+    # else:
+    #     dfAttr = pd.read_sql_query('select * from compAttributes', conn)
+    # conn.close()
+    #dfAttr has tags as column names
 
     # remove values from otherAttr not to be plotted, only if values to be plotted have been specified
     if otherAttrVal != []:
@@ -128,7 +129,7 @@ def plotSetResult(plotRes,plotAttr, projectSetDir = '', otherAttr = [],otherAttr
                     dropIdx.append(dfAttr.index[idx0])
                     # dfAttr = dfAttr.drop(dfIdx)
                     # dfRes = dfRes.drop(dfIdx)
-            dfAttr = dfAttr.drop(dropIdx)
+            dfAttr = dfAttr.drop(dropIdx) #drops
             dfRes = dfRes.drop(dropIdx)
     else:
         includeAttrValInFileName = False  # include attribute values in the saved figure name
@@ -144,6 +145,8 @@ def plotSetResult(plotRes,plotAttr, projectSetDir = '', otherAttr = [],otherAttr
     columns = list(dfAttr.columns.values)
 
     x = dfAttr[plotAttr]
+
+
     y = getPlotRes(plotRes, dfRes)
 
     # group according to other columns
