@@ -3,13 +3,14 @@ import os
 
 from PyQt5 import QtWidgets, QtCore
 from MiGRIDS.Controller.UIToInputHandler import UIHandler
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 
 
 class ResultsPlot(QtWidgets.QWidget):
-    def __init__(self,parent):
+    def __init__(self,parent,plotName):
         super().__init__(parent)
 
-        self.init()
+        self.init(plotName)
     #initialize the form
     def init(self,plotName):
         self.layout = QtWidgets.QGridLayout()
@@ -30,6 +31,7 @@ class ResultsPlot(QtWidgets.QWidget):
         self.plotWidget = self.createPlotArea(self.data)
         self.layout.addWidget(self.plotWidget, 1, 0, 5, 5)
         self.layout.addWidget(self.refreshButton, 0,0,1,2)
+        self.layout.addWidget(self.navi_toolbar,1,2,1,2)
         self.layout.addWidget(self.xcombo,7,2,1,1)
         self.layout.addWidget(self.ycombo,3,6,1,1)
 
@@ -78,6 +80,9 @@ class ResultsPlot(QtWidgets.QWidget):
     def createPlotArea(self,data):
         from MiGRIDS.UserInterface.PlotResult import PlotResult
         plotWidget = PlotResult(self, data)
+        self.navi_toolbar = NavigationToolbar(plotWidget, self)
+
+        #self.toolbar.hide()
         return plotWidget
 
     #->QPushButton
@@ -98,34 +103,24 @@ class ResultsPlot(QtWidgets.QWidget):
             self.displayData = None
         self.plotWidget.makePlot(self.displayData)
 
-    #data object consisting of fixed and raw dataframes
-    def defaultDisplay(self):
+    #Navigation
+    def home(self):
+        self.toolbar.home()
+    def zoom(self):
+        self.toolbar.zoom()
+    def pan(self):
+        self.toolbar.pan()
 
-        displayData = {'raw': {'x':self.data['raw'].index, 'y':self.data['raw']['total_p']},
-                       'fixed': {'x':self.data['fixed'].index, 'y':self.data['fixed'].total_p}
-                       }
-        return displayData
+    def defaultDisplay(self):
+        return
 
     def defaultPlot(self):
-        if self.data is not None:
-           # combo boxes need to be set with field options
-            options = list(self.data['fixed'].columns.values)
-
-            options.append('index')
-            self.xcombo.addItems(options)
-            self.ycombo.addItems(options)
-            self.displayData = self.defaultDisplay()
-            self.plotWidget.makePlot(self.displayData)
+        return
 
     def setPlotData(self,data):
-        '''sets the data attribute
-        :param data [DataClass] is the data to be available for use in plots'''
-        def mergedDF(lodf):
-            df0 = lodf[0]
-            for d in lodf[1:]:
-                df0 = df0.append(d)
-            return df0
-        self.data = {'raw':data.raw,'fixed':mergedDF(data.fixed)}
+        '''sets the data attribute'''
+        return
+
 
     def revalidate(self):
         return True
