@@ -1,7 +1,8 @@
 #Form for display model run parameters
-from PyQt5 import QtWidgets, QtCore, QtGui, QtSql
+from PyQt5 import QtWidgets, QtCore, QtSql
 
 from MiGRIDS.Controller.RunHandler import RunHandler
+from MiGRIDS.UserInterface import ResultsModel
 from MiGRIDS.UserInterface.XMLEditor import XMLEditor
 from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
@@ -9,7 +10,7 @@ from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.TableHandler import TableHandler
 from MiGRIDS.UserInterface.ModelSetTable import SetTableModel, SetTableView
 from MiGRIDS.UserInterface.ModelRunTable import RunTableModel, RunTableView
-from MiGRIDS.UserInterface.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.Pages import Pages
@@ -52,25 +53,7 @@ class FormModelRun(QtWidgets.QWidget):
         self.setLayout(self.layout)
         self.showMaximized()
 
-    #the run table shows ??
-    def createRunTable(self):
-        gb = QtWidgets.QGroupBox('Runs')
 
-        tableGroup = QtWidgets.QVBoxLayout()
-
-        tv = RunTableView(self)
-        tv.setObjectName('runs')
-        m = RunTableModel(self)
-        tv.setModel(m)
-
-        # hide the id column
-        tv.hideColumn(0)
-
-        tableGroup.addWidget(tv, 1)
-        gb.setLayout(tableGroup)
-        gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-
-        return gb
 
     #add a new set to the project, this adds a new tab for the new set information
     def newTab(self):
@@ -86,20 +69,24 @@ class FormModelRun(QtWidgets.QWidget):
         buttonFunction()
 
 
-#the set table shows components to include in the set and attributes to change for runs
-#This widget is the main windget for each set tab on the model tab.
+
 class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
+    '''
+    The setAttributeEditorBlock contains inputs to determin what runs will occurr within a set and displays run results
+    '''
     def __init__(self, parent, set):
         super().__init__(parent)
         self.init(set)
+
 
     def init(self, set):
         self.componentDefault = []
         self.dbhandler = ProjectSQLiteHandler()
         self.handler = RunHandler()
-        self.set = set #set is an integer
+        self.set = set #set is an integer corresponding to the tab position
         self.setName = "Set" + str(self.set) #set name is a string with a prefix
         self.tabName = "Set " + str(self.set)
+        self.setId = self.dbhandler.getSetId(set)
 
         #main layouts
         tableGroup = QtWidgets.QVBoxLayout()
@@ -135,6 +122,9 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
             self.fillSetInfo(set)
         else:
             self.fillSetInfo()
+
+       #make the run result table
+        self.createRunTable()
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
     def updateForm(self):
         '''refreshes data displayed in form based on any changes made in database or xml model files'''
@@ -435,7 +425,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         The number of runs is based on the number of possible combination for component tag changes
         :return dictionary of run combinations'''
 
-        set_id = self.dbhandler.getId('set_','set_name',self.setName)[0][0]
+        set_id = self.dbhandler.getId('set_','set_name',self.setName)
         #id of tag changes
 
         #all possible combinations not allowing for repeated use of a component:tag:value combination
@@ -456,7 +446,34 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     def startModeling(self):
         #starts running models based on xml files that were genereted in a set directory
         self.handler.runModels(self.setName)
+        self.updateDependents() #update the plot to show results
         return
+    def updateDependents(self):
+        self.refreshDataPlot()
+
+    # the run table shows ??
+    def createRunTable(self):
+        gb = QtWidgets.QGroupBox('Runs')
+
+        tableGroup = QtWidgets.QVBoxLayout()
+
+        tv = RunTableView(self)
+        tv.setObjectName('runs')
+        m = RunTableModel(self,self.setId,['test1','test2'])
+        tv.setModel(m)
+
+        # hide the id column
+        tv.hideColumn(0)
+
+        tableGroup.addWidget(tv, 1)
+        gb.setLayout(tableGroup)
+        gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
+        return gb
+    def refreshDataPlot(self):
+        '''finds the plot object and calls its default method'''
+        resultDisplay = self.parent().findChild(ResultsModel)
+        resultDisplay.defaultPlot()
     # close event is triggered when the form is closed
     def closeEvent(self, event):
 
