@@ -42,12 +42,8 @@ class RunTableModel(QtSql.QSqlQueryModel):
         QtSql.QSqlQueryModel.__init__(self, parent)
         self.setId = setId
         self.header = header
-        runQuery = QtSql.QSqlQuery("""SELECT * FROM run LEFT JOIN (
-           SELECT run_id, aggregate(component |'.' | tag | ' = ' | tag_value) from 
-           run_attributes 
-          JOIN set_components ON set_components.component_id = run_attributes.component_id ) as ra 
-          ON run._id = ra.run_idWHERE set_id = ?""",[self.setId])
-
+        runQuery = QtSql.QSqlQuery("""SELECT * FROM run LEFT JOIN (SELECT run_id, aggregate(component |'.' | tag | ' = ' | tag_value) from run_attributes JOIN set_components ON set_components.component_id = run_attributes.component_id ) as ra ON run._id = ra.run_id""")
+        #self.setFilter('set_id = '  + self.setId)
         self.setQuery(runQuery)
 
 

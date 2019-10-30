@@ -1,12 +1,14 @@
 # Projet: MiGRIDS
 # Created by: # Created on: 9/25/2019
-
+import glob
 import os
 
 import shutil
 from PyQt5 import QtWidgets
 
+from MiGRIDS.Analyzer.DataRetrievers.getAllRuns import getAllRuns
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
+from MiGRIDS.Analyzer.PerformanceAnalyzers.getRunMetaData import getRunMetaData
 from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from MiGRIDS.Model.Operational.runSimulation import runSimulation
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
@@ -17,15 +19,12 @@ from MiGRIDS.UserInterface.makeAttributeXML import makeAttributeXML, writeAttrib
 class RunHandler(UIHandler):
     """
     Description: Provides methods used for reading, writing and passing run data within the user interface and between the ui and model packages
-    Attributes: 
-        
-        
+    Attributes:
     """
 
     def __init__(self):
         super().__init__()
         return
-
 
     def makeAttributeXML(self,currentSet):
 
@@ -37,9 +36,8 @@ class RunHandler(UIHandler):
         writeAttributeXML(soup, setDir, fileName)
 
         #add model xml attributes
-
     def makeRunDescriptors(self,setCompId,runName,setName):
-        allComponents = self.dbhandler.getSetComponents(self.dbhandler.getId('set_','set_name',setName))
+        allComponents = self.dbhandler.getSetComponents(self.dbhandler.getSetId(setName))
         for i in allComponents:
             runFolder = getFilePath(runName,projectFolder = self.dbhandler.getProjectPath(),Set=setName)
             descFile = os.path.join(*[runFolder,'Components',
@@ -94,23 +92,75 @@ class RunHandler(UIHandler):
            compList = setSetup['componentNames.value'].split(" ")
            #add components to the set_component table (base case, tag set to None)
            self.dbhandler.updateSetComponents(setName, compList)
-       #read attribute xml and put new tags in set_component table
-       self.updateFromAttributeXML(setName)
+        #look for existing runs and update the database
 
+       #read attribute xml and put new tags in set_component table
+       try:
+           self.updateFromAttributeXML(setName)
+       except FileNotFoundError as e:
+           return
+       self.loadExistingRuns(setName)
        return
+    def loadExistingRuns(self,setName):
+        '''fill in the project database with information found in the set folder'''
+        projectDir = self.dbhandler.getProjectPath()
+        projectSetDir = getFilePath(setName,projectFolder = projectDir)
+        runs = getAllRuns(projectSetDir)
+
+        setId = self.dbhandler.getSetId(setName)
+        [self.updateRunStartFinishMeta(projectSetDir,setId,r) for r in runs]
+        return
+
+    def updateRunStartFinishMeta(self,setDir,setId,runNum):
+        #get the metadata for all existing runs
+        runPath = getFilePath('Run' + str(runNum), set=setDir)
+
+        if self.hasOutPutData(runPath):
+            self.dbhandler.insertCompletedRun(setId, runNum) #puts minimal info in database
+            runId = self.dbhandler.getId('run', ['run_num', 'set_id'], [runNum, setId])
+            self.setRunComponentsFromFolder(setId,runPath,runId) #fill in the run_attribute table
+            getRunMetaData(setDir, []) #fills in metadata results
+
+    def hasOutPutData(self,runPath):
+        '''checks if there are any netcdf files in the output folder
+        If there is atleast 1 file returns true
+        otherwise false'''
+        searchpath = os.path.join(*[runPath,'OutputData','*.nc'])
+        outdata = glob.glob(searchpath )
+        if outdata:
+            return True
+        else:
+            return False
+    def setRunComponentsFromFolder(self,setId,runPath,runId):
+        def setComponentName(d):
+            d['component_name'] = self.dbhandler.getFieldValue('component','componentnamevalue','_id',d['component_id'])
+            return d
+        possibleComponentAttributesDict = self.dbhandler.getSetComponentTags(setId)
+        possibleComponentAttributesDict =[setComponentName(p) for p in possibleComponentAttributesDict]
+        searchPath = os.path.join(*[runPath,'Components','*.xml'])
+        xmls = glob.glob(searchPath)
+
+        [self.insertIfContainsComponentTag(x,possibleComponentAttributesDict,runId) for x in xmls]
+
+    def insertIfContainsComponentTag(self,xml,loAT,runId):
+        def hasTag(d):
+            t,a = self.splitAttribute(d['tag'])
+            return readXmlTag(os.path.basename(xml),t ,a, os.path.dirname(xml)) != None
+        #does not position arguments correctly
+        [self.dbhandler.insertRunComponent(runId,t['_id']) for t in loAT if
+         (hasTag(t) & (t['component_name'] in xml))]
 
     def updateFromAttributeXML(self,setName):
         fileName = self.dbhandler.getProject() + setName.capitalize() + 'Attributes.xml'
         setDir = getFilePath(setName, projectFolder=self.dbhandler.getProjectPath())
         compName = readXmlTag(fileName, 'compName', 'value', setDir)
-        compId = [self.dbhandler.getId('component','componentnamevalue',c) for c in compName]
+        compId = [self.dbhandler.getId('component',['componentnamevalue'],[c]) for c in compName]
         compTag = readXmlTag(fileName, 'compTag', 'value', setDir)
 
         compAttr = readXmlTag(fileName, 'compAttr', 'value', setDir)
         compValue = readXmlTag(fileName, 'compValue', 'value', setDir)
         compTuple = list(zip(compId,compTag,compAttr,compValue))
         self.dbhandler.insertSetComponentTags(setName,compTuple)
-
     def attributeToDictionary(self,fileName,setDir):
         '''creates a dictionary from the component portion of  attribute xml file '''
         lod = []
@@ -135,6 +185,7 @@ class RunHandler(UIHandler):
 
         #this is silly to have more than 1 database in a single program
         # Check if a set component attribute database already exists
+        #TODO this does not exist anymore
         if os.path.exists(os.path.join(setDir, currentSet + 'ComponentAttributes.db')):
             #ask to delete it or generate a new set
             msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Overwrite files?",
@@ -150,6 +201,8 @@ class RunHandler(UIHandler):
 
         # call to run models
         runSimulation(projectSetDir=setDir)
+        getRunMetaData(setDir,[]) #get metadata for all the runs
+
 
     def createRun(self, setComponentIds, run,setName):
         # make the run directory
@@ -159,7 +212,7 @@ class RunHandler(UIHandler):
         self.makeRunDescriptors(setComponentIds, "Run" + str(run), setName)
 
         #insert the run into the run table
-        run_id = self.dbhandler.insertRecord('run',['run_num','set_id'],[run,self.dbhandler.getId('set_','set_name',setName)])
+        run_id = self.dbhandler.insertRecord('run',['run_num','set_id'],[run,self.dbhandler.getSetId(setName)])
         #and the run_attributes table
         loi = list(setComponentIds)
         [self.dbhandler.insertRecord('run_attributes', ['run_id', 'set_component_id'],[run_id, x]) for x in loi]

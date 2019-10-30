@@ -20,7 +20,7 @@ def getFilePath(designator,**kwargs):
         elif designator == 'OutputData':
             return os.path.realpath(os.path.join(setupFolder, *['..', '..','OutputData']))
         elif designator[0:3] == 'Run':
-            return os.path.realpath(os.path.join(setupFolder, *['..',  kwargs.get('Set'), designator]))
+            return os.path.realpath(os.path.join(setupFolder, *['..',  kwargs.get('set'), designator]))
         elif designator == 'Project':
             return os.path.realpath(os.path.join(setupFolder,*['..','..','..']))
         elif designator == 'Setup':

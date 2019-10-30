@@ -169,7 +169,6 @@ class UIHandler():
         projectPath= self.dbhandler.getProjectPath()
         self.writeSoup(setupSoup,os.path.join(*[getFilePath(setName,projectFolder=projectPath),'Setup',
                                               self.dbhandler.getProject() + setName.capitalize() + 'Setup.xml']))
-
     def readInSetupFile(self, setupFile):
 
         #setupInfo is a dictionary of setup tags and values to be inserted into the database

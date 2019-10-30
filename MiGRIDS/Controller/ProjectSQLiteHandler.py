@@ -256,6 +256,7 @@ class ProjectSQLiteHandler:
                         pretty_name text,
                         UNIQUE (table_name,field)
                         )""")
+
         self.cursor.execute("DROP TABLE IF EXISTS run")
         self.cursor.executescript("""
                 CREATE TABLE IF NOT EXISTS run
@@ -318,8 +319,6 @@ class ProjectSQLiteHandler:
     def clearTable(self,table):
         self.cursor.execute("Delete From " + table)
         self.connection.commit()
-
-
     def getSetupDateRange(self):
         '''
 
@@ -331,13 +330,13 @@ class ProjectSQLiteHandler:
         end = self.cursor.execute("select date_end from setup").fetchone()
 
         return start[0],end[0]
-
     def insertFirstSet(self,dict):
        self.insertDictionaryRow('set_',dict)
     def insertAllComponents(self,setName):
-         self.cursor.execute("INSERT INTO set_components (set_id, component_id, tag, tag_value) SELECT set_._id, component._id,'None','None' FROM component, set_ where set_.set_name = '" + setName + "'")
+         self.cursor.execute("INSERT OR IGNORE INTO set_components (set_id, component_id, tag, tag_value) "
+                             "SELECT set_._id, component._id,'None','None' FROM component, set_ "
+                             "where set_.set_name = '" + setName + "'")
          self.connection.commit()
-
     def convertToSeconds(self,value,currentUnits):
         '''uses the multiplier field in ref_time_units to convert a value to seconds'''
         multiplier = self.getFieldValue('ref_time_units','multiplier','code',currentUnits)
@@ -394,7 +393,6 @@ class ProjectSQLiteHandler:
             return None
 
         return setDict
-
     def getSetUpInfo(self):
         '''
         Creates a dictionary of setup information for a specific set, default is set 0 which is the base case
@@ -514,10 +512,10 @@ class ProjectSQLiteHandler:
         :param loc: List of String names of components to add to the set_component table
         :return: None
         '''
-        setid = self.getId('set_','set_name',setName)
+        setid = self.getSetId(setName)
         #the [0][0] notation is required because getId returns a list of tuples. We want the first item in the list
         # and first item in the tuple (which is only 1 item long)
-        compid = [self.getId('component','componentnamevalue',c) for c in loc]
+        compid = [self.getId('component',['componentnamevalue'],[c]) for c in loc]
         fields = ['component_id','set_id','tag','tag_value']
         values =[(str(x),setid,'None','None') for x in compid]
         if len(values) <=0: #if values are empty then set has no components
@@ -534,10 +532,8 @@ class ProjectSQLiteHandler:
         :param lot: is a list of tuples of the order name,tag,attr,value
         :return: None
         '''
-
-        [self.insertRecord('set_components',['set_id','component_id','tag','tag_value'],[self.getId('set_','set_name',setName),t[0],t[1]+"." + t[2],t[3]]) for t in lot]
-
-
+        [self.insertRecord('set_components',['set_id','component_id','tag','tag_value'],[self.getSetId(setName),t[0],t[1]+"." + t[2],t[3]]) for t in lot]
+        return
     def insertRecord(self, table, fields, values):
         '''
         Insert a record in a specified table
@@ -563,19 +559,19 @@ class ProjectSQLiteHandler:
         except Exception as e:
             print(e)
             return -1
-
     def fetchIds(self,table,keyField,keyValue):
         ''' get the id of the first record with a keyField equal to the specified keyValue
         :param table: String name of the table to query
-        :param keyField: String name of the table column to match
-        :param keyValue: String value to find in the table
+        :param keyField: List of String name of the table column to match
+        :param keyValue: List of String value to find in the table
         :return: integer, -1 if a matching record is not found'''
-        lot = self.cursor.execute("SELECT _id from " + table + " WHERE " + keyField + " = ?",[keyValue]).fetchall()
+
+        keyFields = ' AND '.join([str(a) + " = '" + str(b) + "'" for a, b in zip(keyField, keyValue)])
+        lot = self.cursor.execute("SELECT _id from " + table + " WHERE " + keyFields).fetchall()
         if lot:
             return [i[0] for i in lot] #this makes it a list of ids
         else:
             return [-1]
-
     def getId(self,table,keyField,keyValue):
         '''returns only the first id found by a call to fetchIds'''
         return self.fetchIds(table,keyField,keyValue)[0]
@@ -585,10 +581,27 @@ class ProjectSQLiteHandler:
         set_component_combos = self.cursor.execute(sqlStatement).fetchall()
         return set_component_combos
     def getSetComponents(self, set_id):
+        '''produces a list of component id's for a given set'''
         componentsInSet = self.cursor.execute("SELECT _id from component WHERE _id in "
                                           "(SELECT component_id FROM set_components WHERE set_id = ?) GROUP BY _id",
                                           [set_id]).fetchall()
         return componentsInSet
+    def getSetComponentNames(self, setName ='Set0'):
+        '''
+        returns a list of names for components in the set_components table. Defaults to set0
+        :param setName: String name of the set
+        :return: list of string component names
+        '''
+
+        names = self.cursor.execute("select componentnamevalue from component JOIN set_components on component._id = set_components.component_id where "
+                                    " set_id = (SELECT _id from set_ where set_name = '" + setName + "')").fetchall()
+        if len(names) >0:
+            names = [''.join(i) for i in names if i is not None]
+            return pd.Series(names).tolist()
+        return []
+    def getSetComponentTags(self,set_id):
+        lot = self.cursor.execute("SELECT _id from set_components where set_id = ?",[set_id]).fetchall()
+        return [self.getRecordDictionary('set_components',i[0]) for i in lot]
     def createStatements(self,componentList,setId):
 
         selectStatements = [self.createComponentStatement(c[0],setId) for c in componentList]
@@ -713,7 +726,6 @@ class ProjectSQLiteHandler:
 
             return False
         return
-
     def insertDictionaryRow(self,tablename, dict):
         '''
         Inserts a dictionary of values into a project_manager table.
@@ -1054,7 +1066,7 @@ class ProjectSQLiteHandler:
                                    "component on set_components.component_id = component._id "
                                     "where set_id = ? AND tag != 'None' GROUP BY componentnamevalue",[set_id]).fetchall()
     def getNextRun(self,setName):
-        set_id = self.getId('set_','set_name',setName)
+        set_id = self.getSetId(setName)
         if set_id != (None,):
             nextRun = self.cursor.execute("SELECT run_num from run where set_id = ? and started is null ORDER BY run_num LIMIT 1",[set_id]).fetchall()
             try:
@@ -1066,7 +1078,7 @@ class ProjectSQLiteHandler:
         return None
     def updateRunStatus(self,setName,runNum,field):
         '''sets the designated field of the run table t 1'''
-        self.updateRecord('run',['set_id','run_num'],[self.getId('set_','set_name',setName),runNum],[field],[1])
+        self.updateRecord('run',['set_id','run_num'],[self.getSetId(setName),runNum],[field],[1])
     def updateRunToFinished(self, setName, runNum):
         '''sets the finished field of the '''
         self.updateRunStatus(setName,runNum,'finished')
@@ -1074,7 +1086,7 @@ class ProjectSQLiteHandler:
         '''sets the finished field of the '''
         self.updateRunStatus(setName,runNum,'started')
     def hasResults(self,setName):
-        results = self.cursor.execute("SELECT * from run where set_id = ?",[self.getId('set_','set_name',setName)]).fetchall()
+        results = self.cursor.execute("SELECT * from run where set_id = ?",[self.getSetId(setName)]).fetchall()
         df = pd.DataFrame(results)
         return not df[5:].isnull().all().all() #are all the columns after the finished column null?
     def hasBaseResults(self):
@@ -1086,7 +1098,7 @@ class ProjectSQLiteHandler:
             return False
     def updateBaseCase(self,setName,runNum):
         self.updateRecord('run',['basecase'],[1],['basecase'],[0]) #all base cases set to 0
-        self.updateRecord('run',['set_id','run_num'],[self.getId(setName),runNum],['basecase'],[1]) #new base case selected
+        self.updateRecord('run',['set_id','run_num'],[self.getSetId(setName),runNum],['basecase'],[1]) #new base case selected
     def getSetId(self,setx):
         '''returns the _id value for a specified set in the set_ table
         :param setx is a string that contains either the set name number or the full set name
@@ -1096,6 +1108,52 @@ class ProjectSQLiteHandler:
             setName = 'Set' + setx
         else:
             setName = setx
-        return self.getId('set_','set_name',setName)
+        return self.getId('set_',['set_name'],[setName])
     def updateRunResult(self,setNum,runNum,rowDict):
         self.updateFromDictionaryRow('run',rowDict,['set_id','run_num'],[self.getSetId(setNum),runNum])
+    def checkMinimalData(self,projectSetDir):
+        # at a minimum the database should have a setup record, a set record associated with the specified projectSetDir
+        # and a run record for each run folder in the set dir
+        # componenent records for each set
+        #TODO write function
+        return True
+    def prepareForResults(self, projectSetDir):
+        '''checks for necessary tables to be filled that are necessary to store results
+        If tables are not populated loads info from project folder'''
+        #TODO write function
+        #is there already a project database with minimal data
+        if self.checkMinimalData(projectSetDir):
+            return True
+        else:
+            try:
+                # self.loadSetUp()
+                # self.loadComponents()
+                # self.loadSet()
+                # self.loadRun()
+                #at this point result loading can commence
+                return True
+            except Exception as e:
+                print(e)
+                return False
+    def modelsRun(self):
+        return self.cursor.execute("SELECT * FROM run where finished = 1").fetchall()
+    def getSetResults(self,setNum):
+        #returns a dataframe of run table
+        set_id = self.getSetId(setNum)
+        print(self.getAllRecords('run'))
+        tups = self.cursor.execute("SELECT * from run where set_id = ?",[set_id]).fetchall()
+        col_name_list = [tuple[0] for tuple in self.cursor.description]
+        if tups:
+            return pd.DataFrame(tups,columns = col_name_list)
+        else:
+            return pd.DataFrame()
+    def insertCompletedRun(self,setId,runNum):
+        id = self.insertRecord('run',['set_id','run_num','started','finished'],[setId,runNum,1,1])
+        return id
+    def getSetAttributes(self,setNum):
+        #returns a dataframe of component tag values by run
+        #TODO write function
+        return pd.DataFrame()
+    def insertRunComponent(self,run_id,set_component_id):
+        id = self.insertRecord('run_attributes', ['run_id', 'set_component_id'], [run_id,set_component_id])
+        return id

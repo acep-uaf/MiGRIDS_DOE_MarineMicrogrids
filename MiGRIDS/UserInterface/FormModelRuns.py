@@ -36,7 +36,7 @@ class FormModelRun(QtWidgets.QWidget):
 
         self.tabs = Pages(self, 0, SetsAttributeEditorBlock)
         self.tabs.setObjectName('modelPages')
-        self.runTable = self.createRunTable()
+
         self.layout = QtWidgets.QVBoxLayout()
 
         #button to create a new set tab
@@ -48,8 +48,7 @@ class FormModelRun(QtWidgets.QWidget):
 
         #set table goes below the new tab button
         self.layout.addWidget(self.tabs)
-        #runs are at the bottom
-        self.layout.addWidget(self.runTable)
+
         self.setLayout(self.layout)
         self.showMaximized()
 
@@ -86,7 +85,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.set = set #set is an integer corresponding to the tab position
         self.setName = "Set" + str(self.set) #set name is a string with a prefix
         self.tabName = "Set " + str(self.set)
-        self.setId = self.dbhandler.getSetId(set)
+        self.setId = self.dbhandler.getSetId(str(set))
 
         #main layouts
         tableGroup = QtWidgets.QVBoxLayout()

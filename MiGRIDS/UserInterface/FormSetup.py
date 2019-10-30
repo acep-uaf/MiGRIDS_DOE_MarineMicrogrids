@@ -312,10 +312,10 @@ class FormSetup(QtWidgets.QWidget):
 
         #TODO this part of the code always sets setsRun to false, need to implement check for models run
         #boolean indicator of whether or not model sets have already been run
-        setsRun = False
+
         #make the data blocks editable if there are no sets already created
         #if sets have been created then input data is not editable from the interface
-        if setsRun:
+        if self.setsRun():
             self.showAlert("Analysis in Progress","Analysis results were detected. You cannot edit input data after analysis has begun.")
         else:
             self.tabs.setEnabled(True)
@@ -325,6 +325,11 @@ class FormSetup(QtWidgets.QWidget):
         self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.project)
 
         return
+    def setsRun(self):
+        if self.dbhandler.modelsRun():
+            return True
+        return False
+
     def makeComponentList(self):
         loc = self.dbhandler.makeComponents()
         return loc
@@ -475,6 +480,9 @@ class FormSetup(QtWidgets.QWidget):
         # list netcdf files previously generated
         self.currentNetcdfs.setText('Processed Files: ' + ', '.join(self.listNetCDFs()))
         self.updateDependents()
+        if not self.listNetCDFs():
+            return False
+        return True
 
     def inputDataLoaded(self):
         # indicate that the data has loaded
@@ -486,14 +494,15 @@ class FormSetup(QtWidgets.QWidget):
         # refresh the plot or processed data
         self.refreshDataPlot()
         self.progressBar.setRange(0, 1)
-        # generate netcdf files if requested
-        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Time Series loaded",
+        if not self.netCdfsLoaded():
+            # generate netcdf files if requested
+            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Time Series loaded",
                                     "Do you want to generate netcdf files?.")
-        msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.No)
-        result = msg.exec()
-        # if yes create netcdf files, Otherwise this can be done after the data is reviewed.
-        if result == QtWidgets.QMessageBox.Ok:
-            self.makeNetcdfs()
+            msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.No)
+            result = msg.exec()
+            # if yes create netcdf files, Otherwise this can be done after the data is reviewed.
+            if result == QtWidgets.QMessageBox.Ok:
+                self.makeNetcdfs()
 
     def validateRunTimeSteps(self):
         #run time steps need to either equal the range of the data set or be a subset within the dataset

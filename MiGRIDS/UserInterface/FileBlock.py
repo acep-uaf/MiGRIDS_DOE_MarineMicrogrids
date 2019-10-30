@@ -563,7 +563,7 @@ class FileBlock(QtWidgets.QGroupBox):
     def filterTables(self):
         tables = self.findChildren(QtWidgets.QTableView)
         filedir = self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).text()
-        id = self.dbhandler.getId("input_files",'inputfiledirvalue',filedir)
+        id = self.dbhandler.getId("input_files",['inputfiledirvalue'],[filedir])
         self.filter = filedir
         for t in tables:
             m = t.model()

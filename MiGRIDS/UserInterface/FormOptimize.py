@@ -78,7 +78,7 @@ class FormOptimize(QtWidgets.QWidget):
         handler = UIHandler()
         myGrid = self.findChildren(GridFromXML)[0]
         outFile = 'optimizerConfig.xml'
-        outFile = os.path.join(getFilePath('Optimize',projectFolder = self.dbhandler.getProjectFolder()),outFile)
+        outFile = os.path.join(getFilePath('Optimize',projectFolder = self.dbhandler.getProjectPath()),outFile)
         handler.writeSoup(myGrid.extractValues()[0],outFile)
 
     def updateStoredValues(self):
