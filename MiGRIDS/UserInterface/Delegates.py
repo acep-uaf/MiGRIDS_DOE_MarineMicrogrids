@@ -182,3 +182,76 @@ class RefTableModel(QtCore.QAbstractTableModel):
 
     def updateModel(self, newArray):
         self.arraydata = newArray
+class QueryCheckBoxDelegate(QtWidgets.QStyledItemDelegate):
+    updateQuery= QtCore.pyqtSignal(str,int,bool,str)
+    def __init__(self,parent,columnToUpdate,table):
+        QtWidgets.QItemDelegate.__init__(self,parent)
+        self.columnToUpdate = columnToUpdate
+        self.table = table
+
+    def createEditor(self, parent, option, index):
+        """ Important, otherwise an editor is created if the user clicks in this cell.
+        """
+        return None
+
+    def flags(self, index):
+        return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled
+
+
+    def paint(self, painter, option, index):
+        modelValue = index.model().data(index, QtCore.Qt.DisplayRole)
+        checked = bool(index.model().data(index, QtCore.Qt.DisplayRole))
+        opt = QtWidgets.QStyleOptionButton()
+
+        opt.state |= QtWidgets.QStyle.State_Active
+
+        if checked:
+            opt.state |= QtWidgets.QStyle.State_On
+        else:
+            opt.state |= QtWidgets.QStyle.State_Off
+        opt.rect = self.getCheckBoxRect(option)
+
+        QtWidgets.QApplication.style().drawControl(QtWidgets.QStyle.CE_CheckBox, opt, painter)
+
+
+
+    def editorEvent(self, event: QtCore.QEvent, model: QtCore.QAbstractItemModel, option: 'QStyleOptionViewItem', index: QtCore.QModelIndex):
+        flags = model.flags(index)
+
+        #if not (index.flags() & QtCore.Qt.ItemIsEditable):
+            #return False
+        if event.button() == QtCore.Qt.LeftButton:
+            if event.type() == QtCore.QEvent.MouseButtonRelease:
+                if self.getCheckBoxRect(option).contains(event.pos()):
+                    self.setModelData(None, model, index)
+                    return True
+            elif event.type() == QtCore.QEvent.MouseButtonDblClick:
+                if self.getCheckBoxRect(option).contains(event.pos()):
+                    return True
+        return False
+
+    def setModelData(self, editor: QtWidgets.QWidget, model: QtCore.QAbstractItemModel, index: QtCore.QModelIndex):
+        modelValue = index.model().data(index, QtCore.Qt.DisplayRole)
+        checked = not bool(index.model().data(index, QtCore.Qt.DisplayRole))
+
+        id = index.model().data(model.index(index.row(),0),QtCore.Qt.DisplayRole)
+        model.setData(index, checked, QtCore.Qt.EditRole)
+
+        self.updateQuery.emit(self.table,id,checked,self.columnToUpdate)
+
+    def getCheckBoxRect(self, option):
+        """ Get rect for checkbox centered in option.rect.
+        """
+        # Get size of a standard checkbox.
+
+        opts = QtWidgets.QStyleOptionButton()
+        checkBoxRect = QtWidgets.QApplication.style().subElementRect(QtWidgets.QStyle.SE_CheckBoxIndicator, opts, None)
+        # Center checkbox in option.rect.
+        x = option.rect.x()
+        y = option.rect.y()
+        w = option.rect.width()
+        h = option.rect.height()
+
+        checkBoxTopLeftCorner = QtCore.QPoint(x + w / 2 - checkBoxRect.width() / 2, y + h / 2 - checkBoxRect.height() / 2)
+        return QtCore.QRect(checkBoxTopLeftCorner, checkBoxRect.size())
+

@@ -1,56 +1,86 @@
 #subclass of QTableView for displaying component information
 from enum import Enum
+
+from IPython.core.inputtransformer import tr
 from PyQt5 import QtWidgets, QtSql, QtCore
+
+from MiGRIDS.UserInterface.Delegates import QueryCheckBoxDelegate
+
 
 class SetComponentFields(Enum):
     _id=0
     set_id =1
     run_num = 2
-    started = 3
-    finished = 4
-    genptot = 5
-    genpch = 6
-    gensw = 7
-    genloadingmean = 8
-    gencapacitymean = 9
-    genfuelcons = 10
-    gentimeoff = 11
-    gentimeruntot = 12
-    genruntimeruntotkwh = 13
-    genoverloadingtime = 14
-    genoverLoadingkwh = 15
-    wtgpimporttot = 16
-    wtgpspilltot = 17
-    wtgpchtot = 18
-    eesspdistot = 19
-    eesspchtot = 20
-    eesssrctot = 21
-    eessoverloadingtime = 22
-    eessoverloadingkwh = 23
-    tessptot =24
+    base_case = 3
+    started = 4
+    finished = 5
+    genptot = 6
+    genpch = 7
+    gensw = 8
+    genloadingmean = 9
+    gencapacitymean = 10
+    genfuelcons = 11
+    gentimeoff = 12
+    gentimeruntot = 13
+    genruntimeruntotkwh = 14
+    genoverloadingtime = 15
+    genoverLoadingkwh = 16
+    wtgpimporttot = 17
+    wtgpspilltot = 18
+    wtgpchtot = 19
+    eesspdistot = 20
+    eesspchtot = 21
+    eesssrctot = 22
+    eessoverloadingtime = 23
+    eessoverloadingkwh = 24
+    tessptot = 25
 
 class RunTableView(QtWidgets.QTableView):
+    updateRunBaseCase = QtCore.pyqtSignal(int, bool)
     def __init__(self, *args, **kwargs):
         QtWidgets.QTableView.__init__(self, *args, **kwargs)
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
         self.resizeColumnsToContents()
-        #TODO set delegates
+        d = QueryCheckBoxDelegate(self,'base_case','run')
+        d.updateQuery.connect(self.notifyUpdateRun)
+        self.setItemDelegateForColumn(SetComponentFields.base_case.value,d)
+
+
+    def notifyUpdateRun(self,table,id,value,field):
+        if (table == 'run') & (field =='base_case'):
+            self.updateRunBaseCase.emit(id,value)
 
 class RunTableModel(QtSql.QSqlQueryModel):
-    def __init__(self, parent,setId,header):
+    def __init__(self, parent,setId):
+        super(RunTableModel, self).__init__(parent)
 
         QtSql.QSqlQueryModel.__init__(self, parent)
         self.setId = setId
-        self.header = header
-        runQuery = QtSql.QSqlQuery("""SELECT * FROM run LEFT JOIN (SELECT run_id, aggregate(component |'.' | tag | ' = ' | tag_value) from run_attributes JOIN set_components ON set_components.component_id = run_attributes.component_id ) as ra ON run._id = ra.run_id""")
-        #self.setFilter('set_id = '  + self.setId)
-        self.setQuery(runQuery)
+        self.header = [name for name, member in SetComponentFields.__members__.items()]
+        self.header.append("run_id")
+        self.header.append("Component Tag Values")
 
+        self.strsql = "SELECT * FROM run LEFT JOIN (SELECT run_id, " \
+                 "group_concat(componentnamevalue ||'.' || tag || ' = ' || tag_value) from run_attributes " \
+                 "JOIN set_components ON set_components._id = run_attributes.set_component_id " \
+                 "JOIN component on set_components.component_id = component._id WHERE " \
+                 "set_components.set_id = " + str(self.setId) + ") as ra ON run._id = ra.run_id "
+
+        self.refresh()
+
+
+    def refresh(self):
+        self.setQuery(self.strsql)
+        self.query()
 
 
     def headerData(self, section: int, orientation, role):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
-            return QtCore.QVariant(self.header[section])
-        return QtCore.QVariant()
+            try:
+                v = self.header[section]
+                return QtCore.QVariant(self.header[section])
+            except IndexError:
+                return QtCore.QVariant(self.header[0])
 
+        return QtCore.QVariant()
 

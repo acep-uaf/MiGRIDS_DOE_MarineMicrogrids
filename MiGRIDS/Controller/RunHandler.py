@@ -146,6 +146,7 @@ class RunHandler(UIHandler):
         def hasTag(d):
             t,a = self.splitAttribute(d['tag'])
             return readXmlTag(os.path.basename(xml),t ,a, os.path.dirname(xml)) != None
+
         #does not position arguments correctly
         [self.dbhandler.insertRunComponent(runId,t['_id']) for t in loAT if
          (hasTag(t) & (t['component_name'] in xml))]

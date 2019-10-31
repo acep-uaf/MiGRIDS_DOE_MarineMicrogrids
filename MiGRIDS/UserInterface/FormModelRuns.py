@@ -51,9 +51,6 @@ class FormModelRun(QtWidgets.QWidget):
 
         self.setLayout(self.layout)
         self.showMaximized()
-
-
-
     #add a new set to the project, this adds a new tab for the new set information
     def newTab(self):
         # get the set count
@@ -66,8 +63,6 @@ class FormModelRun(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):
         buttonFunction()
-
-
 
 class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     '''
@@ -83,9 +78,10 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.dbhandler = ProjectSQLiteHandler()
         self.handler = RunHandler()
         self.set = set #set is an integer corresponding to the tab position
+        self.setId = -1
         self.setName = "Set" + str(self.set) #set name is a string with a prefix
         self.tabName = "Set " + str(self.set)
-        self.setId = self.dbhandler.getSetId(str(set))
+
 
         #main layouts
         tableGroup = QtWidgets.QVBoxLayout()
@@ -110,7 +106,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
 
         #hide the id column
         tv.hideColumn(0)
-        #tv.hideColumn(1)
+        tv.hideColumn(1)
         tableGroup.addWidget(tv, 1)
 
         #xmlEditing block
@@ -123,11 +119,13 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
             self.fillSetInfo()
 
        #make the run result table
-        self.createRunTable()
+        tableGroup.addWidget(self.createRunTable(str(self.setId))) #Set Id will be negative 1 at creation
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
     def updateForm(self):
         '''refreshes data displayed in form based on any changes made in database or xml model files'''
+        self.setId = self.dbhandler.getSetId(set)
         self.setModel.select() #update the set data inputs
+        self.setModel.setFilter('set_._id = ' + str(self.setId))
         self.setValidators() #update the validators tied to inputs
         self.mapper.toLast() #make sure the mapper is on the actual record (1 per tab)
         self.setModel.submit() #submit any data that was changed
@@ -137,7 +135,13 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.set_componentsModel.select()
 
         self.xmlEditor.updateWidget() #this relies on xml files, not the database
+        self.run_Model.refresh(self.setId)
+        self.rehide(self.findChild(QtWidgets.QTableView,'runs'),[0,1,26])
+        self.rehide(self.findChild(QtWidgets.QTableView,'sets'), [0,1])
 
+    def rehide(self,tview,loc):
+        for i in loc:
+            tview.hideColumn(i)
     def loadSetData(self):
         #load and update from set setup file
         self.handler.loadExistingProjectSet(self.setName)
@@ -146,21 +150,14 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.updateForm()
         return
 
-    def updateFromAttributeXML(self):
-        #read attribute xml if its found
-        #update the database based on attribute xml contents
-        return
-
     def submitData(self):
         self.setModel.submitAll()
         self.set_componentsModel.submitAll()
-
     def updateComponentLineEdit(self,listNames):
         '''component line edit is unbound so it gets called manually to update'''
         lineedit = self.infoBox.findChild(ClickableLineEdit,'componentNames')
         lineedit.setText(",".join(listNames))
         return
-
     def getDefaultDates(self):
 
         start,end = self.dbhandler.getSetupDateRange()
@@ -204,6 +201,8 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         return
     def updateModel(self):
         self.setModel.select()
+        self.setModel.setFilter('set_._id = ' + str(self.setId))
+        self.runModel.query()
     def makeSetLayout(self):
         infoBox = QtWidgets.QGroupBox()
         infoRow = QtWidgets.QHBoxLayout()
@@ -274,11 +273,10 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
 
         infoRowModel.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
         infoRowModel.select();
-        infoRowModel.setFilter('set_._id = ' + str(self.set +1))
+        infoRowModel.setFilter('set_._id = ' + str(self.setId))
         infoRowModel.select()
         infoRowModel.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         return infoRowModel
-
     def componentSelector(self):
 
         #if components are not provided use the default list
@@ -292,7 +290,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
 
         widg.clicked.connect(lambda: self.componentCellClicked())
         return widg
-
     def fillSetInfo(self,setName = '0'):
 
         setInfo = self.dbhandler.getSetInfo('set' + str(setName))
@@ -449,21 +446,24 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         return
     def updateDependents(self):
         self.refreshDataPlot()
-
     # the run table shows ??
-    def createRunTable(self):
+    def createRunTable(self,setId):
         gb = QtWidgets.QGroupBox('Runs')
 
         tableGroup = QtWidgets.QVBoxLayout()
 
         tv = RunTableView(self)
         tv.setObjectName('runs')
-        m = RunTableModel(self,self.setId,['test1','test2'])
-        tv.setModel(m)
+        self.run_Model = RunTableModel(self,setId)
 
-        # hide the id column
+        # hide the id columns
         tv.hideColumn(0)
+        tv.hideColumn(1)
+        tv.hideColumn(26)
 
+        self.run_Model.query()
+        tv.setModel(self.run_Model)
+        tv.updateRunBaseCase.connect(self.receiveUpdateRunBaseCase)
         tableGroup.addWidget(tv, 1)
         gb.setLayout(tableGroup)
         gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -473,6 +473,15 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         '''finds the plot object and calls its default method'''
         resultDisplay = self.parent().findChild(ResultsModel)
         resultDisplay.defaultPlot()
+
+
+    def receiveUpdateRunBaseCase(self,id, checked):
+
+         self.dbhandler.updateBaseCase(self.setId, id, checked)
+         self.run_Model.refresh()
+         self.refreshDataPlot()
+
+
     # close event is triggered when the form is closed
     def closeEvent(self, event):
 

@@ -55,7 +55,10 @@ def plotSetResult(plotRes,plotAttr, projectSetDir = '', otherAttr = [],otherAttr
     # get the base case value, if set
     if baseSet != '' and baseRun != '':
         baseDir = os.path.join(projectSetDir,'..', 'Set'+str(baseSet))
-        dbhandler.updateBaseCase(baseSet,baseRun)
+        set_id = dbhandler.getSetId(baseSet)
+        baseRunId = dbhandler.getId('run',['run_num','set_id'],['baseRun',set_id])
+        dbhandler.updateBaseCase(set_id,baseRunId)
+
         if not os.path.exist(baseDir):
             print('The base case set and run could not be found for this project')
         else:

@@ -1096,9 +1096,21 @@ class ProjectSQLiteHandler:
 
         else:
             return False
-    def updateBaseCase(self,setName,runNum):
-        self.updateRecord('run',['basecase'],[1],['basecase'],[0]) #all base cases set to 0
-        self.updateRecord('run',['set_id','run_num'],[self.getSetId(setName),runNum],['basecase'],[1]) #new base case selected
+    def updateBaseCase(self,setID,runId,isBase =True):
+        '''updates the base case value for an individual run record to 1, setting all others to 0
+        If the new baseCase run record id matches the old baseCase run record id False is returned,
+        Otherwise queries are performed and True is returned'''
+        originalBase = self.getId('run',['set_id','base_case'],[setID,1])
+        if originalBase != runId and isBase:
+            self.updateRecord('run', ['set_id'], [setID], ['basecase'],
+                              [0])  # all base cases set to 0 for the specified set
+            self.updateRecord('run', ['_id'], [runId], ['basecase'], [1])  # new base case selected
+            return True
+        elif originalBase == runId and not isBase:
+            self.updateRecord('run', ['_id'], [runId], ['basecase'], [0])  # base case removed
+            return True
+        else:
+            return False
     def getSetId(self,setx):
         '''returns the _id value for a specified set in the set_ table
         :param setx is a string that contains either the set name number or the full set name

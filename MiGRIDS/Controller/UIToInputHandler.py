@@ -21,8 +21,6 @@ class UIHandler():
         self.sender = GenericSender() #used to send signals to pyqt objects
         self.dbhandler = ProjectSQLiteHandler()
 
-
-
     def splitAttribute(self,tag):
         a = tag.split(".")[len(tag.split(".")) - 1]
         tag = tag.split(".")[len(tag.split(".")) - 2]
@@ -72,8 +70,8 @@ class UIHandler():
             print('This descriptor file already exists in this project')
 
         return
-    def relayProgress(self,i):
-        self.notifyProgress.emit(i)
+    # def relayProgress(self,i):
+    #     self.notifyProgress.emit(i)
     def loadInputData(self,setupFile):
         '''
         Read in a pickled data object if it exists. Pickled objects are created once data has begun the fixing process

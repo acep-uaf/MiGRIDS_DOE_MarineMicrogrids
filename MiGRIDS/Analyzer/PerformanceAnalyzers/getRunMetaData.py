@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import pickle
 
+from MiGRIDS.Analyzer.DataRetrievers.getAllRuns import getAllRuns
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 
 here = os.path.dirname(os.path.realpath(__file__))
@@ -31,6 +32,7 @@ def getRunMetaData(projectSetDir,runs):
     dir_path = os.path.basename(projectSetDir)
     setNum = str(dir_path[3:])
     dbhandler = ProjectSQLiteHandler()
+    dbhandler.prepareForResults(projectSetDir)
     # read the input parameter sql database
     #os.chdir(projectSetDir)
     #conn = sqlite3.connect('set' + str(setNum) + 'ComponentAttributes.db')
@@ -51,16 +53,7 @@ def getRunMetaData(projectSetDir,runs):
 
     # check which runs to analyze
     if not runs:
-        def getNumber(mystring):
-            d = re.findall(r'\d+', mystring)
-            if d:
-                return int(d[0])
-            else:
-                return None
-
-        #os.chdir(projectSetDir)
-        runDirs = glob.glob(os.path.join(projectSetDir,'Run*/'))
-        runs= [getNumber(os.path.basename(os.path.normpath(x))) for x in runDirs]
+        runs = getAllRuns(projectSetDir)
 
 
 
@@ -260,6 +253,10 @@ def getRunMetaData(projectSetDir,runs):
 
 
     # get the stats for this variable
+
+
+
+
 def loadResults(fileName, location = '', returnTimeSeries = False):
 
     var = readNCFile(os.path.join(location,fileName))

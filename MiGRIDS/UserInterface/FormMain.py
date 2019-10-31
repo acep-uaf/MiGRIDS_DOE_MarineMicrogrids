@@ -238,9 +238,9 @@ class PageBlock(QtWidgets.QTabWidget):
         from MiGRIDS.UserInterface.ResultsOptimize import ResultsOptimize
         from MiGRIDS.UserInterface.FormContainer import FormContainer
 
-        self.addTab(FormContainer(self,[FormSetup(self), ResultsSetup(self)],'Setup',screen=self.screen), 'Setup')
-        self.addTab(FormContainer(self, [FormModelRun(self), ResultsModel(self)],'Model',screen=self.screen), 'Model')
-        self.addTab(FormContainer(self, [FormOptimize(self), ResultsOptimize(self)],'Optimize',screen=self.screen), 'Optimize')
+        self.addTab(FormContainer(self,[FormSetup(self), ResultsSetup(self,'setupResult')],'Setup',screen=self.screen), 'Setup')
+        self.addTab(FormContainer(self, [FormModelRun(self), ResultsModel(self,'modelResult')],'Model',screen=self.screen), 'Model')
+        self.addTab(FormContainer(self, [FormOptimize(self), ResultsOptimize(self,'optimizeResult')],'Optimize',screen=self.screen), 'Optimize')
 
         self.findChild(FormContainer,'Model').hide()
         self.findChild(FormContainer, 'Optimize').hide()
