@@ -7,7 +7,7 @@ from PyQt5 import QtWidgets, QtSql, QtCore
 from MiGRIDS.UserInterface.Delegates import QueryCheckBoxDelegate
 
 
-class SetComponentFields(Enum):
+class RunFields(Enum):
     _id=0
     set_id =1
     run_num = 2
@@ -43,7 +43,7 @@ class RunTableView(QtWidgets.QTableView):
         self.resizeColumnsToContents()
         d = QueryCheckBoxDelegate(self,'base_case','run')
         d.updateQuery.connect(self.notifyUpdateRun)
-        self.setItemDelegateForColumn(SetComponentFields.base_case.value,d)
+        self.setItemDelegateForColumn(RunFields.base_case.value, d)
 
 
     def notifyUpdateRun(self,table,id,value,field):
@@ -56,20 +56,24 @@ class RunTableModel(QtSql.QSqlQueryModel):
 
         QtSql.QSqlQueryModel.__init__(self, parent)
         self.setId = setId
-        self.header = [name for name, member in SetComponentFields.__members__.items()]
+        self.header = [name for name, member in RunFields.__members__.items()]
         self.header.append("run_id")
         self.header.append("Component Tag Values")
 
-        self.strsql = "SELECT * FROM run LEFT JOIN (SELECT run_id, " \
-                 "group_concat(componentnamevalue ||'.' || tag || ' = ' || tag_value) from run_attributes " \
-                 "JOIN set_components ON set_components._id = run_attributes.set_component_id " \
-                 "JOIN component on set_components.component_id = component._id WHERE " \
-                 "set_components.set_id = " + str(self.setId) + ") as ra ON run._id = ra.run_id "
+
 
         self.refresh()
 
 
-    def refresh(self):
+    def refresh(self, setId = None):
+        if setId is not None:
+            self.setId = setId
+        self.strsql = "SELECT * FROM run LEFT JOIN (SELECT run_id, " \
+                      "group_concat(componentnamevalue ||'.' || tag || ' = ' || tag_value) from run_attributes " \
+                      "JOIN set_components ON set_components._id = run_attributes.set_component_id " \
+                      "JOIN component on set_components.component_id = component._id WHERE " \
+                      "set_components.set_id = " + str(self.setId) + ") as ra ON run._id = ra.run_id "
+
         self.setQuery(self.strsql)
         self.query()
 

@@ -214,7 +214,6 @@ class QueryCheckBoxDelegate(QtWidgets.QStyledItemDelegate):
         QtWidgets.QApplication.style().drawControl(QtWidgets.QStyle.CE_CheckBox, opt, painter)
 
 
-
     def editorEvent(self, event: QtCore.QEvent, model: QtCore.QAbstractItemModel, option: 'QStyleOptionViewItem', index: QtCore.QModelIndex):
         flags = model.flags(index)
 

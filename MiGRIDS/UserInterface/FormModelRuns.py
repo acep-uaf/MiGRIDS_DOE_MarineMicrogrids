@@ -2,7 +2,7 @@
 from PyQt5 import QtWidgets, QtCore, QtSql
 
 from MiGRIDS.Controller.RunHandler import RunHandler
-from MiGRIDS.UserInterface import ResultsModel
+from MiGRIDS.UserInterface.ResultsModel import ResultsModel
 from MiGRIDS.UserInterface.XMLEditor import XMLEditor
 from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
@@ -71,8 +71,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     def __init__(self, parent, set):
         super().__init__(parent)
         self.init(set)
-
-
     def init(self, set):
         self.componentDefault = []
         self.dbhandler = ProjectSQLiteHandler()
@@ -123,7 +121,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
     def updateForm(self):
         '''refreshes data displayed in form based on any changes made in database or xml model files'''
-        self.setId = self.dbhandler.getSetId(set)
+        self.setId = self.dbhandler.getSetId(str(self.set))
         self.setModel.select() #update the set data inputs
         self.setModel.setFilter('set_._id = ' + str(self.setId))
         self.setValidators() #update the validators tied to inputs
@@ -138,7 +136,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.run_Model.refresh(self.setId)
         self.rehide(self.findChild(QtWidgets.QTableView,'runs'),[0,1,26])
         self.rehide(self.findChild(QtWidgets.QTableView,'sets'), [0,1])
-
+        self.updateDependents()
     def rehide(self,tview,loc):
         for i in loc:
             tview.hideColumn(i)
@@ -149,7 +147,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         #load and update from xml resources
         self.updateForm()
         return
-
     def submitData(self):
         self.setModel.submitAll()
         self.set_componentsModel.submitAll()
@@ -471,7 +468,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         return gb
     def refreshDataPlot(self):
         '''finds the plot object and calls its default method'''
-        resultDisplay = self.parent().findChild(ResultsModel)
+        resultDisplay = self.window().findChild(ResultsModel)
         resultDisplay.defaultPlot()
 
 

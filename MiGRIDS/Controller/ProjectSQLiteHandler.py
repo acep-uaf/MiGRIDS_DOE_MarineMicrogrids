@@ -1015,7 +1015,7 @@ class ProjectSQLiteHandler:
             return os.path.join(self.getProjectPath(),*aslist[1:])
         else:
             return os.path.join(*aslist)
-    # returns a possible component type inferred from the components column name
+
     def inferComponentType(self,componentname):
         import re
         try:

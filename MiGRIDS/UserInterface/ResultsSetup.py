@@ -20,10 +20,9 @@ class ResultsSetup(ResultsPlot):
         if self.data is not None:
            # combo boxes need to be set with field options
             options = list(self.data['fixed'].columns.values)
-
             options.append('index')
-            self.xcombo.addItems(options)
-            self.ycombo.addItems(options)
+            self.set_XCombo(options)
+            self.set_YCombo(options)
             self.displayData = self.defaultDisplay()
             self.plotWidget.makePlot(self.displayData)
 

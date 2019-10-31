@@ -1,7 +1,7 @@
 
 import os
 
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtSql
 from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 
@@ -38,7 +38,7 @@ class ResultsPlot(QtWidgets.QWidget):
         self.setLayout(self.layout)
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
-    #List, Boolean -> QComboBox
+
     def createCombo(self,list,x):
         combo = QtWidgets.QComboBox(self)
         combo.addItems(list),
@@ -48,6 +48,7 @@ class ResultsPlot(QtWidgets.QWidget):
             combo.setObjectName('ycombo')
         combo.currentIndexChanged.connect(lambda: self.updatePlotData(combo.currentText(),combo.objectName()))
         return combo
+
 
     def updatePlotData(self, field, axis):
         #data is the data object
@@ -112,15 +113,52 @@ class ResultsPlot(QtWidgets.QWidget):
         self.toolbar.pan()
 
     def defaultDisplay(self):
-        return
+        pass
+
 
     def defaultPlot(self):
-        return
+        pass
 
     def setPlotData(self,data):
         '''sets the data attribute'''
+        self.data = data
         return
 
+    def set_X(self, v):
+        # each item in x is vector representing a series
+        if isinstance(v, list):
+            self.y = [i for i in v]
+        else:
+            self.y[0] = v
+        return
+    def set_Y(self, v):
+        # each item in y is vector representing a series
+        if isinstance(v, list):
+            self.y = [i for i in v]
+        else:
+            self.y[0] = v
+        return
+    def set_XCombo(self, v):
+        '''set the drop down options for the x axix'''
+        if isinstance(v,QtSql.QSqlQueryModel):
+            self.xcombo.setModel(v)
+            self.Xoptions = self.xcombo.currentData()
+        else:
+            self.Xoptions = v
+            self.xcombo.clear()
+            self.xcombo.addItems(self.Xoptions)
 
+        return
+    def set_YCombo(self, v):
+        '''set the drop down options for the y axix'''
+        if isinstance(v, QtSql.QSqlQueryModel):
+            self.ycombo.setModel(v)
+            self.Yoptions = self.ycombo.currentData()
+        else:
+            self.Yoptions = v
+            self.ycombo.clear()
+            self.ycombo.addItems(self.Yoptions)
+
+        return
     def revalidate(self):
-        return True
+        pass
