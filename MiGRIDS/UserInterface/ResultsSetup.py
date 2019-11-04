@@ -23,8 +23,8 @@ class ResultsSetup(ResultsPlot):
             options.append('index')
             self.set_XCombo(options)
             self.set_YCombo(options)
-            self.displayData = self.defaultDisplay()
-            self.plotWidget.makePlot(self.displayData)
+
+            self.plotWidget.makePlot(self.data)
 
     def setPlotData(self,data):
         '''sets the data attribute

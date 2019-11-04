@@ -469,7 +469,8 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     def refreshDataPlot(self):
         '''finds the plot object and calls its default method'''
         resultDisplay = self.window().findChild(ResultsModel)
-        resultDisplay.defaultPlot()
+        resultDisplay.refreshPlot()
+        resultDisplay.showPlot()
 
 
     def receiveUpdateRunBaseCase(self,id, checked):

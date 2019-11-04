@@ -1169,3 +1169,32 @@ class ProjectSQLiteHandler:
     def insertRunComponent(self,run_id,set_component_id):
         id = self.insertRecord('run_attributes', ['run_id', 'set_component_id'], [run_id,set_component_id])
         return id
+    def getRunXYValues(self,tag,metric):
+        '''
+        creates a dictionary of run results to display in the data plot.
+        :param tag: String starting with setname followed by attribute tag
+        :param metric: The metadata metric to display
+        :return: dictionary of series and x y values
+        '''
+        def dict_from_tuple(lot,d):
+            if not lot:
+                return d
+            else:
+                if (lot[0][0] + " " + lot[0][1]) in d.keys():
+                    d[lot[0][0] + " " + lot[0][1]]['x'].append(lot[0][2])
+                    d[lot[0][0] + " " + lot[0][1]]['y'].append(lot[0][3])
+                else:
+                    d[lot[0][0] + " " + lot[0][1]] = {}
+                    d[lot[0][0] + " " + lot[0][1]]['x']=[lot[0][2]]
+                    d[lot[0][0] + " " + lot[0][1]]['y']=[lot[0][3]]
+                lot.pop(0)
+                return dict_from_tuple(lot,d)
+
+        tag = tag.split(" ")[1]
+        resultTuples = self.cursor.execute("SELECT set_name, 'Run' || run_num,tag_value," + metric + " FROM "
+                             "run JOIN run_attributes ON run._id = run_attributes.run_id "
+                              "JOIN set_components ON run_attributes.set_component_id = set_components._id "
+                              "JOIN component on set_components.component_id = component._id "
+                              "JOIN set_ on set_components.set_id = set_._id "
+                              "WHERE componentnamevalue || '.' || tag = ?",[tag]).fetchall()
+        return dict_from_tuple(resultTuples,{})

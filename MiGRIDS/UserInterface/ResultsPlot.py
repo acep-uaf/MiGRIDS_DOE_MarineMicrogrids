@@ -2,6 +2,8 @@
 import os
 
 from PyQt5 import QtWidgets, QtCore, QtSql
+
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 
@@ -13,6 +15,7 @@ class ResultsPlot(QtWidgets.QWidget):
         self.init(plotName)
     #initialize the form
     def init(self,plotName):
+        self.dbhandler = ProjectSQLiteHandler()
         self.layout = QtWidgets.QGridLayout()
         self.setObjectName(plotName)
 
@@ -25,10 +28,10 @@ class ResultsPlot(QtWidgets.QWidget):
         #self.displayData = {'fixed': {'x': None, 'y': None}, 'raw': {'x': None, 'y': None}}
         #TODO data will always be None here?
 
-        self.xcombo = self.createCombo([], True)
-        self.ycombo = self.createCombo([], False)
+        self.xcombo = self.createCombo('xcombo')
+        self.ycombo = self.createCombo('ycombo')
 
-        self.plotWidget = self.createPlotArea(self.data)
+        self.plotWidget = self.createPlotArea()
         self.layout.addWidget(self.plotWidget, 1, 0, 5, 5)
         self.layout.addWidget(self.refreshButton, 0,0,1,2)
         self.layout.addWidget(self.navi_toolbar,1,2,1,2)
@@ -37,36 +40,23 @@ class ResultsPlot(QtWidgets.QWidget):
 
         self.setLayout(self.layout)
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.defaultPlot()
 
-
-    def createCombo(self,list,x):
+    def createCombo(self,name):
         combo = QtWidgets.QComboBox(self)
-        combo.addItems(list),
-        if x:
-            combo.setObjectName('xcombo')
-        else:
-            combo.setObjectName('ycombo')
-        combo.currentIndexChanged.connect(lambda: self.updatePlotData(combo.currentText(),combo.objectName()))
+        combo.setObjectName(name)
+        combo.currentIndexChanged.connect(self.updatePlotData)
         return combo
 
 
-    def updatePlotData(self, field, axis):
+    def updatePlotData(self):
         #data is the data object
-        if self.data is not None:
-            if 'displayData' in self.__dict__.keys():
-                for s in self.displayData.keys():
-                   if axis == 'xcombo':
-                       if field != 'index':
-                           newx = self.data[s][field]
-                           self.displayData[s]['x'] = newx.values
-                       else:
-                           self.displayData[s]['x'] = self.data[s].index
-                   else:
-                       if field != 'index':
-                            self.displayData[s]['y'] = self.data[s][field].values
-                       else:
-                           self.displayData[s]['y'] = self.data[s].index
+        self.data = self.getData()
 
+
+
+    def getdata(self, field, axis):
+        pass
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
@@ -77,10 +67,9 @@ class ResultsPlot(QtWidgets.QWidget):
     def onClick(self, buttonFunction):
         buttonFunction()
 
-    #->plotWidget
-    def createPlotArea(self,data):
+    def createPlotArea(self):
         from MiGRIDS.UserInterface.PlotResult import PlotResult
-        plotWidget = PlotResult(self, data)
+        plotWidget = PlotResult(self, self.data)
         self.navi_toolbar = NavigationToolbar(plotWidget, self)
 
         #self.toolbar.hide()
@@ -95,14 +84,9 @@ class ResultsPlot(QtWidgets.QWidget):
 
     #refresh the data plot with currently set data
     def refreshPlot(self):
+        #update drop downs
 
-        if self.data is not None:
-            #set the default data to display after fill options
-            if 'displayData' not in self.__dict__.keys():
-                self.displayData = self.defaultDisplay(self.data)
-        else:
-            self.displayData = None
-        self.plotWidget.makePlot(self.displayData)
+        self.plotWidget.makePlot(self.data)
 
     #Navigation
     def home(self):
@@ -139,8 +123,9 @@ class ResultsPlot(QtWidgets.QWidget):
             self.y[0] = v
         return
     def set_XCombo(self, v):
-        '''set the drop down options for the x axix'''
+        '''set the drop down options for the x axis'''
         if isinstance(v,QtSql.QSqlQueryModel):
+            r = v.rowCount()
             self.xcombo.setModel(v)
             self.Xoptions = self.xcombo.currentData()
         else:
@@ -149,6 +134,10 @@ class ResultsPlot(QtWidgets.QWidget):
             self.xcombo.addItems(self.Xoptions)
 
         return
+    def showPlot(self):
+        if self.data is not None:
+            self.plotWidget.makePlot(self.data)
+
     def set_YCombo(self, v):
         '''set the drop down options for the y axix'''
         if isinstance(v, QtSql.QSqlQueryModel):

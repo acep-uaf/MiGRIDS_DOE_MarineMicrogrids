@@ -6,6 +6,9 @@
 # imports
 import os
 import sys
+
+from MiGRIDS.UserInterface.getFilePaths import getFilePath
+
 here = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(here, '../'))
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
@@ -17,18 +20,19 @@ from shutil import copyfile
 from shutil import rmtree
 
 def generateRuns(projectSetDir):
-    here = os.getcwd()
-    os.chdir(projectSetDir) # change directories to the directory for this set of simulations
+    #here = os.getcwd()
+    #os.chdir(projectSetDir) # change directories to the directory for this set of simulations
     # get the set number
     dir_path = os.path.basename(projectSetDir)
     setNum = str(dir_path[3:])
     # get the project name
-    os.chdir(projectSetDir)
-    os.chdir('../..')
-    projectDir = os.getcwd()
+    #os.chdir(projectSetDir)
+    #os.chdir('../..')
+    #projectDir = os.getcwd()
+    projectDir = getFilePath('project',set=projectSetDir)
     projectName = os.path.basename(projectDir)
 
-    os.chdir(projectSetDir)
+    #os.chdir(projectSetDir)
 
     # load the file with the list of different component attributes
     compName = readXmlTag(projectName + 'Set'+str(setNum) + 'Attributes.xml', ['compAttributeValues', 'compName'], 'value')

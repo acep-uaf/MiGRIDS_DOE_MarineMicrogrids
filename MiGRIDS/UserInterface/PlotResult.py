@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 class PlotResult(FigureCanvas):
     def __init__(self,parent, data, title = None):
         fig = Figure(figsize=(5, 6), dpi=100)
-
         self.axes = fig.add_subplot(111)
         FigureCanvas.__init__(self, fig)
         self.setParent(parent)
@@ -18,7 +17,7 @@ class PlotResult(FigureCanvas):
 
          #make plot
         self.makePlot(data)
-
+        self.mpl_connect('pick_event',self.onpick)
 
 
     def makePlot(self, data):
@@ -29,14 +28,33 @@ class PlotResult(FigureCanvas):
         if data is not None:
 
             #data can have more than 1 series to display
+            self.lines = {}
+            self.lines['testline'] = ax.plot([190,200,207], [1320,1360,1400], label='testline')
             for k in data.keys():
                 if (data[k]['x'] is not None) & (data[k]['y'] is not None):
-                    ax.plot(data[k]['x'],data[k]['y'], label=k)
+                    if(len(data[k]['x'])) > 1:
+                         self.lines[k] = ax.plot(data[k]['x'],data[k]['y'], label=k)
+                    else:
+                        self.lines[k] = ax.plot(data[k]['x'], data[k]['y'], 'o',label=k)
+
 
         ax.set_title(self.title)
         handles, labels = ax.get_legend_handles_labels()
-        ax.legend(handles,labels)
+
+        leg = ax.legend(handles,labels,loc='upper left', fancybox=True, shadow=False)
+        [l.set_picker(5) for l in leg.get_lines()] #tolerance around legend items
+        leg.get_frame().set_alpha(0.4)
         #refresh the plot
         self.draw()
         return
 
+    def onpick(self,event):
+        legline = event.artist
+        origline = self.lines[legline._label][0]
+        vis = not origline.get_visible() #swap the visibility
+        origline.set_visible(vis)
+        if vis:
+            legline.set_alpha(1.0)
+        else:
+            legline.set_alpha(0.2) #dim if not displayed in plot
+        self.draw()

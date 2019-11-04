@@ -80,8 +80,9 @@ class RunHandler(UIHandler):
         else:
             return None
     def isTagReferenced(self,tag):
-        pieces = tag.split(".")
-        return len([p for p in pieces if not p.isnumeric()]) > 0
+        pieces = str(tag).split(".")
+        return len([p for p in pieces if not p.isnumeric()]) >0
+
     def loadExistingProjectSet(self,setName):
        #get a setup dictionary - None if setup file not found
        setSetup = self.readInSetupFile(self.findSetupFile(setName))
