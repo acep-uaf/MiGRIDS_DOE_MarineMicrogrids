@@ -238,7 +238,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         #start date needs to be equal to or greater than the setup start
         start, end = self.dbhandler.getSetupDateRange()
         wids = self.infoBox.findChildren(QtWidgets.QDateEdit)
-        p = len(wids)
+
 
         list(map(lambda w: constrainDateRange(w,qdateFromString(start),qdateFromString(end)), wids))
     def mapWidgets(self):
@@ -409,6 +409,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         '''Calculates the the run combinations and creates a folder for each run. Necessary xmls are transferred to the run folder'''
         #make sure all set attribute entries are entered
         self.set_componentsModel.submitAll()
+        self.setModel.submitAll()
         # calculate the run matrix
         runs = self.calculateRuns()
         # create a folder for each run
@@ -418,8 +419,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         The number of runs is based on the number of possible combination for component tag changes
         :return dictionary of run combinations'''
 
-        set_id = self.dbhandler.getId('set_','set_name',self.setName)
-        #id of tag changes
+        set_id = self.dbhandler.getSetId(self.setName)
 
         #all possible combinations not allowing for repeated use of a component:tag:value combination
         runs = self.dbhandler.getRuns(set_id)

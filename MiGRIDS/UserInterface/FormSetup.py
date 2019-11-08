@@ -569,7 +569,7 @@ class FormSetup(QtWidgets.QWidget):
         [m.loadSetData() for m in modelForms] #load data individually for each set
 
     def updateInputDataDependents(self, data = None):
-        ''':return dictionary of values relevant to a set setup file'''
+        ''':return dictionary of values relevant to a setup file'''
         # each dataframe needs a datetime index
         if data != None:
             for df in data.fixed:

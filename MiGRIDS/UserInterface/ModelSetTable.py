@@ -45,7 +45,6 @@ class SetTableView(QtWidgets.QTableView):
 
 
     def updateTagList(self,compname):
-        print(self.dbhandler.getAllRecords('set_components')) #extra row appears
         if compname != '':
             projectFolder = self.dbhandler.getProjectPath()
             componentFolder = getFilePath('Components', projectFolder=projectFolder)
@@ -66,7 +65,7 @@ class SetTableModel(QtSql.QSqlRelationalTableModel):
         self.setTable('set_components')
 
         #the set table gets filtered to only show records for that set
-        self.setFilter('set_id = ' + str(position + 1) + ' and tag != None')
+        self.setFilter('set_id = ' + str(position + 1) + ' and tag != None ORDER BY _id')
         self.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
 
         self.setRelation(SetComponentFields.component_id.value,

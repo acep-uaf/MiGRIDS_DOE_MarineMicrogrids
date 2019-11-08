@@ -60,9 +60,6 @@ class UIHandler():
         '''
         import shutil
 
-        fileName =os.path.basename(descriptorFile)
-
-        componentName = fileName[:-14]
         # copy the xml to the project folder
         try:
             shutil.copy2(descriptorFile, componentDir)

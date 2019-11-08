@@ -6,7 +6,7 @@ from PyQt5 import QtCore
 
 
 def qdateFromString(strDate):
-    if type(strDate) == str:
+    if (type(strDate) == str) & (strDate != 'None'):
        return QtCore.QDate(asDate(strDate))
     elif type(strDate) == list:
        return QtCore.QDate(asDate(strDate[0]))

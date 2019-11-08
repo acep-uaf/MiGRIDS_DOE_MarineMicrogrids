@@ -42,7 +42,7 @@ class PlotResult(FigureCanvas):
         handles, labels = ax.get_legend_handles_labels()
 
         leg = ax.legend(handles,labels,loc='upper left', fancybox=True, shadow=False)
-        [l.set_picker(5) for l in leg.get_lines()] #tolerance around legend items
+        [l.set_picker(10) for l in leg.get_lines()] #tolerance around legend items
         leg.get_frame().set_alpha(0.4)
         #refresh the plot
         self.draw()

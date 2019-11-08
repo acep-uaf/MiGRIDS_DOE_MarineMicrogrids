@@ -32,7 +32,7 @@ def dropAttr(lotag):
 
 def updateComponentAttributes(currentSet, dbhandler,  soup):
     '''updates a soup with changes entered into the project database'''
-    compChanges = dbhandler.getSetChanges(dbhandler.getId('set_', 'set_name', currentSet))
+    compChanges = dbhandler.getSetChanges(dbhandler.getSetId(currentSet))
     compName, compTag, compValue = zip(*compChanges)
     splitTags = [dropAttr(t) for t in compTag]
     compTag,compAttr =list(zip(*splitTags))

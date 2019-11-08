@@ -530,10 +530,19 @@ class ProjectSQLiteHandler:
     def insertSetComponentTags(self,setName,lot):
         '''update tags in set_components with an attributeDictionary
         :param lot: is a list of tuples of the order name,tag,attr,value
+        The value position of the tuple is sometimes a list, in which case it needs to be cycled through
         :return: None
         '''
-        [self.insertRecord('set_components',['set_id','component_id','tag','tag_value'],[self.getSetId(setName),t[0],t[1]+"." + t[2],t[3]]) for t in lot]
+        [self.insertTagRecord(t,self.getSetId(setName))for t in lot]
         return
+    def insertTagRecord(self,record,setId):
+        if isinstance(record[3],list):
+            [self.insertRecord('set_components', ['set_id', 'component_id', 'tag', 'tag_value'],
+                              [setId, record[0], record[1] + "." + record[2], v]) for v in record[3]]
+
+        else:
+            self.insertRecord('set_components', ['set_id', 'component_id', 'tag', 'tag_value'],[setId, record[0], record[1] + "." + record[2], record[3]])
+
     def insertRecord(self, table, fields, values):
         '''
         Insert a record in a specified table
@@ -1061,10 +1070,10 @@ class ProjectSQLiteHandler:
         return rowDict
     def getSetChanges(self,set_id):
 
-        return self.cursor.execute("SELECT componentnamevalue, tag, group_concat(tag_value, ',')from "
-                                   "set_components JOIN "
-                                   "component on set_components.component_id = component._id "
-                                    "where set_id = ? AND tag != 'None' GROUP BY componentnamevalue",[set_id]).fetchall()
+        return self.cursor.execute("SELECT componentnamevalue,"
+                         "tag, group_concat(tag_value,',') from "
+                                   "set_components JOIN component ON set_components.component_id = component._id "
+                                    "where set_id = ? AND tag != 'None' GROUP BY component.componentnamevalue,tag", [set_id]).fetchall()
     def getNextRun(self,setName):
         set_id = self.getSetId(setName)
         if set_id != (None,):

@@ -153,6 +153,7 @@ class RunHandler(UIHandler):
          (hasTag(t) & (t['component_name'] in xml))]
 
     def updateFromAttributeXML(self,setName):
+        #the attribute xml is set up different from other files.
         fileName = self.dbhandler.getProject() + setName.capitalize() + 'Attributes.xml'
         setDir = getFilePath(setName, projectFolder=self.dbhandler.getProjectPath())
         compName = readXmlTag(fileName, 'compName', 'value', setDir)
@@ -185,10 +186,7 @@ class RunHandler(UIHandler):
 
         setDir = getFilePath(currentSet,projectFolder=self.dbhandler.getProjectPath())
 
-        #this is silly to have more than 1 database in a single program
-        # Check if a set component attribute database already exists
-        #TODO this does not exist anymore
-        if os.path.exists(os.path.join(setDir, currentSet + 'ComponentAttributes.db')):
+        if self.hasOutPutData(setDir):
             #ask to delete it or generate a new set
             msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Overwrite files?",
                                         "Set up files were already generated for this model set. Do you want to overwrite them? ")
@@ -196,7 +194,7 @@ class RunHandler(UIHandler):
             result = msg.exec()
 
             if result == QtWidgets.QMessageBox.Yes:
-                os.remove(os.path.join(setDir, currentSet + 'ComponentAttributes.db'))
+                os.remove(os.path.join(setDir, currentSet + '/'))
             else:
                 #create a new set tab
                 return

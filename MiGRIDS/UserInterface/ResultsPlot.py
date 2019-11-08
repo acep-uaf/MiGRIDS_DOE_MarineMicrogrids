@@ -6,7 +6,7 @@ from PyQt5 import QtWidgets, QtCore, QtSql
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
-
+from MiGRIDS.UserInterface.PlotResult import PlotResult
 
 class ResultsPlot(QtWidgets.QWidget):
     def __init__(self,parent,plotName):
@@ -18,7 +18,7 @@ class ResultsPlot(QtWidgets.QWidget):
         self.dbhandler = ProjectSQLiteHandler()
         self.layout = QtWidgets.QGridLayout()
         self.setObjectName(plotName)
-
+        self.plotName = plotName
         self.refreshButton = self.createRefreshButton()
         #get the current data object
         #print(self.parent().parent().findChildren(QtWidgets.QWidget))
@@ -68,8 +68,8 @@ class ResultsPlot(QtWidgets.QWidget):
         buttonFunction()
 
     def createPlotArea(self):
-        from MiGRIDS.UserInterface.PlotResult import PlotResult
-        plotWidget = PlotResult(self, self.data)
+
+        plotWidget = PlotResult(self, self.data,self.plotName)
         self.navi_toolbar = NavigationToolbar(plotWidget, self)
 
         #self.toolbar.hide()

@@ -32,11 +32,11 @@ def fillProjectDataFromDb():
             if len(tags)>1:
                 attr = tags[len(tags)-1] #the last value after '.' is the attr
                 value = generalSetupInfo[k]
-                writeXmlTag(projectSetup, tags[len(tags) -2], attr, value, setupFolder)
+                writeXmlTag(os.path.join(setupFolder,projectSetup), tags[len(tags) -2], attr, value)
             else:
                 attr = k # the last value after '.' is the attr
                 value = generalSetupInfo[k]
-                writeXmlTag(projectSetup, k, attr, value, setupFolder)
+                writeXmlTag(os.path.join(setupFolder,projectSetup), k, attr, value)
 
         #look for component descriptor files for all componentName
         componentDir = os.path.join(setupFolder, *['..','Components'])
@@ -44,8 +44,10 @@ def fillProjectDataFromDb():
         #component is a string
         if (generalSetupInfo['componentNames.value'] is not None) &(generalSetupInfo['componentNames.value'] != 'None'):
             #use as list not string
-            if (len(generalSetupInfo['componentNames.value'].split()) >0):
-                for component in generalSetupInfo['componentNames.value'].split(): # for each component
+            if isinstance(generalSetupInfo['componentNames.value'],str):
+                generalSetupInfo['componentNames.value'] = generalSetupInfo['componentNames.value'].split(" ") #this should make it a list
+            if isinstance(generalSetupInfo['componentNames.value'],list):
+                for component in generalSetupInfo['componentNames.value']: # for each component
 
                      #if there isn't a component descriptor file create one
                      if not os.path.exists(os.path.join(componentDir, component + 'Descriptor.xml')):
