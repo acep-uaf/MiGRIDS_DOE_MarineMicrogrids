@@ -5,7 +5,7 @@ import pickle
 
 import pandas as pd
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
-from MiGRIDS.Controller.UIToInputHandler import UIHandler
+from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.InputHandler.buildProjectSetup import buildProjectSetup
 from MiGRIDS.InputHandler.fillProjectData import fillProjectData
 from MiGRIDS.InputHandler.makeSoup import makeComponentSoup

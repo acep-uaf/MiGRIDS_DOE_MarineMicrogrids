@@ -7,7 +7,7 @@ from MiGRIDS.UserInterface.ModelRunTable import RunTableModel
 def switchProject(caller):
     '''saves an existing project, clears the database and initiates a new project'''
     dbhandler = ProjectSQLiteHandler()
-    pathTo = os.path.join(dbhandler.getProjectPath(),'InputData','Setup')
+    pathTo = dbhandler.getProjectPath()
     saveProject(pathTo)
     clearProjectDatabase(caller)
     return
@@ -17,7 +17,7 @@ def saveProject(pathTo):
     path = os.path.dirname(__file__)
     shutil.copy(os.path.join(path, '../project_manager'),
                 os.path.join(pathTo, 'project_manager'))
-    print('Database was saved to %s' % pathTo)
+    print('Database was saved to %s' % os.path.realpath(pathTo))
     return
 
 def clearProjectDatabase(caller=None):

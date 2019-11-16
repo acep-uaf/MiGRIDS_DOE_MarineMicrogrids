@@ -7,6 +7,9 @@
 # imports
 import numpy as np
 
+from MiGRIDS.Model.Operational.getIntListIndex import getIntListIndex
+
+
 class genSchedule:
     def __init__(self,args):
         # whether to try to minimize fuel consumption or maximize RE contribution (by minimizing MOL of generators)

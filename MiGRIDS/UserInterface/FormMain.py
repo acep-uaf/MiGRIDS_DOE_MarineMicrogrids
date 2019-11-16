@@ -99,7 +99,7 @@ class MainForm(QtWidgets.QMainWindow):
 
             ])
         ]
-        self.focusObjects = {'Setup File':FormSetup.showSetup,
+        self.focusObjects = {'Setup File':FormSetup.prePopulateSetupWizard,
                              'Input Files':'fileInput',
                              'Components':'components',
 
@@ -278,7 +278,6 @@ class PageBlock(QtWidgets.QTabWidget):
             path = os.path.dirname(__file__)
             print('Database was saved to %s' % self.model.projectFolder)
 
-        #Can be commented out if we don't want to save the existing project database during development
             shutil.move(os.path.join(path, 'project_manager'),
                        os.path.join(self.model.projectFolder, 'project_manager'))
         else:

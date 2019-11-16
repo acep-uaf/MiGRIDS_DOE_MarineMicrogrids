@@ -5,14 +5,17 @@
 
 #here = os.path.dirname(os.path.realpath(__file__))
 #sys.path.append(os.path.join(here,".."))
+import glob
 import sqlite3
 import time
 # add to sys path
 
-import pandas as pd
 import re
 import os
 from MiGRIDS.Model.Operational.SystemOperations import SystemOperations
+from MiGRIDS.Controller.UIHandler import UIHandler
+#from MiGRIDS.Controller.RunHandler import RunHandler
+
 
 #here = os.path.dirname(os.path.realpath(__file__))
 #sys.path.append(os.path.join(here, '../'))
@@ -25,7 +28,7 @@ from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 def runSimulation(projectSetDir = ''):
-
+    controller = RunHandler()
     #TODO update progress bar here to 1
     if projectSetDir == '':
        #throw an error
@@ -44,6 +47,7 @@ def runSimulation(projectSetDir = ''):
     dir_path = os.path.basename(projectSetDir)
     #extract the numerical part of the set folder name
     setNum = re.findall(r'\d+', dir_path)[len(re.findall(r'\d+', dir_path)) -1]
+
     #setNum = str(dir_path[3:])
     # get the project name
     #os.chdir(projectSetDir)
@@ -65,8 +69,11 @@ def runSimulation(projectSetDir = ''):
 
     if len(runTimeSteps) == 1: # if only one value, take out of list. this prevents failures further down.
         runTimeSteps = runTimeSteps[0]
-        if not runTimeSteps == 'all':
+        if (not runTimeSteps == 'all') & (not 'None' in runTimeSteps):
             runTimeSteps = int(runTimeSteps)
+        elif 'None' in runTimeSteps: #TODO remove this conversion and make sure it doesn't effect model reading in data
+            runTimeSteps = 'all'
+
     else: # convert to int
         runTimeSteps = [int(x) for x in runTimeSteps]
     try:
@@ -120,15 +127,17 @@ def runSimulation(projectSetDir = ''):
     except MissingInputFileException as e:
         print(e)
         print('Cannot proceed without file')
-    dbhandler = ProjectSQLiteHandler()
-    # TOOD update progress bar here to 2
+
+    searchpath = os.path.join(*[projectSetDir,  'Run*'])
+    runCount = len(glob.glob(searchpath))
+    controller.sender.notifyProgress(2,'Simulation')
     while 1:
         # read the SQL table of runs in this set and look for the next run that has not been started yet.
         #conn = sqlite3.connect(os.path.join(projectSetDir,'set' + str(setNum) + 'ComponentAttributes.db') )# create sql database
         #df = pd.read_sql_query('select * from compAttributes',conn)
         # try to find the first 0 value in started column
 
-        runNum = dbhandler.getNextRun('Set' + setNum)
+        runNum = controller.getNextRun('Set' + setNum)
         if runNum == None:
             break
         #try:
@@ -138,7 +147,7 @@ def runSimulation(projectSetDir = ''):
         # set started value to 1 to indicate starting the simulations
         #df.at[runNum, 'started'] = 1
 
-        dbhandler.updateRunToStarted('Set'+str(setNum),runNum)
+        controller.updateRunToStarted('Set'+str(setNum),runNum)
         #df.to_sql('compAttributes', conn, if_exists="replace", index=False)  # write to table compAttributes in db
         #conn.close()
         # Go to run directory and run
@@ -228,6 +237,7 @@ def runSimulation(projectSetDir = ''):
             filename = '{}Set{}Run{}.nc'.format(prefix,str(setNum),str(runNum))
 
             return os.path.join(outputDataDir,filename)
+
         def getStandardUnit(prefix):
             #a prefix is formatted as nameAttribute
             attrList = re.findall('[A-Z][^A-Z]*', prefix)
@@ -246,12 +256,25 @@ def runSimulation(projectSetDir = ''):
             else:
                 return 'NA'
 
+        def stitchLoopWrite(var,dim):
+            stitched = SO.stitchVariable(var)
+            print(len(stitched))
+            print(type(stitched))
+            for idx, c in enumerate(zip(*stitched)):  # for each object
+                writeNCFile(dim, c, 1, 0, getStandardUnit(var),
+                             ncOutFileName(str(SO.getId(var,idx)) + str(var.replace('List',''))))
+            stitched = None
+
         def stitchAndWrite(prefix):
             stitched = SO.stitchVariable(prefix)
-            #scale is always 1, offset is always 0
-            writeNCFile(SO.DM.realTime,stitched,1,0,getStandardUnit(prefix),ncOutFileName(prefix.replace('wf','wtg')))
+            print(len(stitched))
+            print(type(stitched))
+            # scale is always 1, offset is always 0
+            writeNCFile(SO.DM.realTime, stitched, 1, 0, getStandardUnit(prefix),
+                        ncOutFileName(prefix.replace('wf', 'wtg')))
             stitched = None
             return
+
 
 
         toStitch = ['powerhouseP','powerhousePch','rePLimit','wfPAvail','wfPImport','wfPch',
@@ -269,81 +292,8 @@ def runSimulation(projectSetDir = ''):
           #          'futureLoad' + str(setNum) + 'Run' + str(runNum) + '.nc')  # future Load predicted
         #futureLoadList = None
 
-        # Stitch futureSRC did not include 'set' in the name
-
-        #TODO these should call a function to stitch, zip and write
-        # power each generators
-        genP = SO.stitchVariable('genP')
-        for idx, genP in enumerate(zip(*genP)):  # for each generator in the powerhouse
-            writeNCFile(SO.DM.realTime, genP, 1, 0, 'kW',
-                        'gen' + str(SO.PH.genIDS[idx]) + 'PSet' + str(setNum) + 'Run' + str(
-                            runNum) + '.nc')
-        genP = None
-
-        # fuel consumption for each generator
-        genFuelCons = SO.stitchVariable('genFuelCons')
-        for idx, genFuelCons in enumerate(zip(*genFuelCons)):  # for each generator in the powerhouse
-            writeNCFile(SO.DM.realTime, genFuelCons, 1, 0, 'kg/s',
-                        'gen' + str(SO.PH.genIDS[idx]) + 'FuelConsSet' + str(setNum) + 'Run' + str(
-                            runNum) + '.nc')
-        genFuelCons = None
-
-
-        # start times for each generators
-        genStartTime = SO.stitchVariable('genStartTime')
-        for idx, genST in enumerate(zip(*genStartTime)): # for each generator in the powerhouse
-            writeNCFile(SO.DM.realTime, genST, 1, 0, 's', 'gen' + str(SO.PH.genIDS[idx]) + 'StartTimeSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # eessSoc
-        genStartTime = None
-
-        # run times for each generators
-        genRunTime = SO.stitchVariable('genRunTime')
-        for idx, genRT in enumerate(zip(*genRunTime)):  # for each generator in the powerhouse
-            writeNCFile(SO.DM.realTime, genRT, 1, 0, 's',
-                        'gen' + str(SO.PH.genIDS[idx]) + 'RunTimeSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  #
-        genRunTime = None
-
-        # SRC for each ees
-        eessSrc = SO.stitchVariable('eessSrc')
-        for idx, eesSRC in enumerate(zip(*eessSrc)):  # for each eess
-            writeNCFile(SO.DM.realTime, eesSRC, 1, 0, 'kW',
-                        'ees' + str(SO.EESS.eesIDs[idx]) + 'SRCSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  #
-        eessSrc = None
-
-        # SOC for each ees
-        eessSoc = SO.stitchVariable('eessSoc')
-        for idx, eesSOC in enumerate(zip(*eessSoc)):  # for each eess
-            writeNCFile(SO.DM.realTime, eesSOC, 1, 0, 'PU',
-                        'ees' + str(SO.EESS.eesIDs[idx]) + 'SOCSet' + str(setNum) + 'Run' + str(runNum) + '.nc')  # eessSoc
-        eessSoc = None
-
-        # ees loss
-        eesPLoss = SO.stitchVariable('eesPLoss')
-        for idx, eesLoss in enumerate(zip(*eesPLoss)):  # for each eess
-            writeNCFile(SO.DM.realTime, eesLoss, 1, 0, 'kW',
-                        'ees' + str(SO.EESS.eesIDs[idx]) + 'LossSet' + str(setNum) + 'Run' + str(runNum) + '.nc')
-        eesPLoss = None
-
-        # wtg P avail
-        wtgPAvail = SO.stitchVariable('wtgPAvail')
-        for idx, wtgPAvail in enumerate(zip(*wtgPAvail)):  # for wtg
-            writeNCFile(SO.DM.realTime, wtgPAvail, 1, 0, 'kW',
-                        'wtg' + str(SO.WF.wtgIDS[idx]) + 'PAvailSet' + str(setNum) + 'Run' + str(runNum) + '.nc')
-        wtgPAvail = None
-
-        # wtg P
-        wtgP = SO.stitchVariable('wtgP')
-        for idx, wtgP in enumerate(zip(*wtgP)):  # for each wtg
-            writeNCFile(SO.DM.realTime, wtgP, 1, 0, 'kW',
-                        'wtg' + str(SO.WF.wtgIDS[idx]) + 'PSet' + str(setNum) + 'Run' + str(runNum) + '.nc')
-        wtgP = None
-
-        # future wind predicted
-        futureWindList = SO.stitchVariable('futureWindList')
-        for idx, fw in enumerate(zip(*futureWindList)):  # for each wtg
-            writeNCFile(SO.DM.realTime, fw, 1, 0, 'kW',
-                        'wtg' + str(SO.WF.wtgIDS[idx]) + 'FutureWind' + str(setNum) + 'Run' + str(runNum) + '.nc')
-        futureWindList = None
-
+        stitchLoopList=['futureWindList','wtgP','wtgPAvail','eesPLoss','eessSoc','eessSrc','genRunTime','genStartTime','genFuelCons','genP']
+        [stitchLoopWrite(SO.DM.realTime,v) for v in stitchLoopList]
         #print('File write operation elapsed time: ' + str(time.time() - start_file_write))
 
         # # set the value in the 'finished' for this run to 1 to indicate it is finished.
@@ -355,4 +305,9 @@ def runSimulation(projectSetDir = ''):
         # df.to_sql('compAttributes', conn, if_exists="replace", index=False)  # write to table compAttributes in db
         # conn.close()
         # TOOD update progress bar: while loop bar length is 8. Update by 8/num of runs
-        dbhandler.updateRunToFinished('Set' + setNum, runNum)
+
+        controller.updateRunToFinished('Set' + setNum, runNum)
+
+        controller.sender.notifyProgress(1/runCount, 'Simulation')
+
+

@@ -36,7 +36,7 @@ def setupToDictionary(soup,setupXML):
                         setupInfo[children[i].name + "." + k]= children[i][k]
 
 
-        setupInfo['projectPath'] = os.path.join(setupXML,'..','..','..')
+        setupInfo['projectPath'] = os.path.realpath(os.path.join(os.path.dirname(setupXML),'..','..'))
         return setupInfo
     except:
         return None

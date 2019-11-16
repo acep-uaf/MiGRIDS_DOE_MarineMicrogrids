@@ -1,6 +1,6 @@
-from PyQt5 import QtWidgets,QtSql
+from PyQt5 import QtSql
 
-from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
+
 from MiGRIDS.Controller.RunHandler import RunHandler
 from MiGRIDS.UserInterface.ModelRunTable import RunFields
 from MiGRIDS.UserInterface.ResultsPlot import ResultsPlot
@@ -95,9 +95,6 @@ class ResultsModel(ResultsPlot):
         else:
             return self.dbhandler.getRunXYValues(tag,metric) #[run1:40,run2:100,run3:20]
 
-    def getSelectedX(self):
-        return self.xcombo.currentText()
-    def getSelectedY(self):
-        return self.ycombo.currentText()
+
     def revalidate(self):
         return True

@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets
 
 import MiGRIDS
-from MiGRIDS.Controller.UIToInputHandler import UIHandler
+from MiGRIDS.Controller.UIHandler import UIHandler
 class TableHandler():
 
     def __init__(self, parent):

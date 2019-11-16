@@ -5,7 +5,7 @@ from PyQt5 import QtWidgets, QtCore
 import os
 import re
 
-from MiGRIDS.Controller.UIToInputHandler import UIHandler
+from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.UserInterface.GridFromXML import GridFromXML
 from bs4 import BeautifulSoup
 

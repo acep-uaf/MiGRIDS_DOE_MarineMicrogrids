@@ -4,7 +4,7 @@
 import os
 from PyQt5 import QtWidgets
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
-from MiGRIDS.Controller.UIToInputHandler import UIHandler
+from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.UserInterface.XMLEditor import XMLEditor
 
 

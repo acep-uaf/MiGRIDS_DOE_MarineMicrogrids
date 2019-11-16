@@ -1,6 +1,7 @@
 from PyQt5 import QtCore
 class GenericSender(QtCore.QObject):
     notifyProgress = QtCore.pyqtSignal(int,str)
+    msg = QtCore.pyqtSignal(str,str)
 
     def update(self,value,task):
         if value == 0:
@@ -11,3 +12,6 @@ class GenericSender(QtCore.QObject):
         else:
             self.notifyProgress.emit(value, task)
             self.last = value
+
+    def message(self,type,msgtext):
+        self.msg.emit(type,msgtext)

@@ -1,7 +1,7 @@
 def replaceDefaultDatabase(projectdb):
     from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
     import pandas as pd
-    tables = ['environment', 'components', 'sets','runs']
+    tables = ['project','component_files','component','set_components','input_files','optimize_input','set_','pretty_names','run','run_attributes','setup']
     for t in tables:
         h = ProjectSQLiteHandler(projectdb)
         # project data becomes a dataframe
@@ -17,6 +17,6 @@ def replaceDefaultDatabase(projectdb):
             #data gets appended into empty tables created in default database
             projectTable.to_sql(t, h.connection, if_exists='append')
             h.closeDatabase()
-        except:
-            #TODO print some message to the console
-           h.closeDatabase()
+        except Exception as e:
+            print(e)
+            h.closeDatabase()

@@ -4,7 +4,6 @@ import os
 from PyQt5 import QtWidgets, QtCore, QtSql
 
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
-from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from MiGRIDS.UserInterface.PlotResult import PlotResult
 
@@ -53,7 +52,10 @@ class ResultsPlot(QtWidgets.QWidget):
         #data is the data object
         self.data = self.getData()
 
-
+    def getSelectedX(self):
+        return self.xcombo.currentText()
+    def getSelectedY(self):
+        return self.ycombo.currentText()
 
     def getdata(self, field, axis):
         pass

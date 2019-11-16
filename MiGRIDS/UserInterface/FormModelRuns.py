@@ -1,7 +1,9 @@
 #Form for display model run parameters
 from PyQt5 import QtWidgets, QtCore, QtSql
 
-from MiGRIDS.Controller.RunHandler import RunHandler
+from MiGRIDS.Controller.Controller import Controller
+
+from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
 from MiGRIDS.UserInterface.ResultsModel import ResultsModel
 from MiGRIDS.UserInterface.XMLEditor import XMLEditor
 from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
@@ -10,7 +12,6 @@ from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.TableHandler import TableHandler
 from MiGRIDS.UserInterface.ModelSetTable import SetTableModel, SetTableView
 from MiGRIDS.UserInterface.ModelRunTable import RunTableModel, RunTableView
-from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.Pages import Pages
@@ -29,8 +30,7 @@ class FormModelRun(QtWidgets.QWidget):
         self.initUI()
 
     def initUI(self):
-        self.dbhandler = ProjectSQLiteHandler()
-        self.handler = RunHandler()
+        self.controller = Controller()
         self.setObjectName("modelDialog")
         #the first page is for set0
 
@@ -72,9 +72,8 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         super().__init__(parent)
         self.init(set)
     def init(self, set):
+        self.controller = Controller()
         self.componentDefault = []
-        self.dbhandler = ProjectSQLiteHandler()
-        self.handler = RunHandler()
         self.set = set #set is an integer corresponding to the tab position
         self.setId = -1
         self.setName = "Set" + str(self.set) #set name is a string with a prefix
@@ -119,16 +118,17 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
        #make the run result table
         tableGroup.addWidget(self.createRunTable(str(self.setId))) #Set Id will be negative 1 at creation
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
     def updateForm(self):
         '''refreshes data displayed in form based on any changes made in database or xml model files'''
-        self.setId = self.dbhandler.getSetId(str(self.set))
+        self.setId = self.controller.dbhandler.getSetId(str(self.set))
         self.setModel.select() #update the set data inputs
         self.setModel.setFilter('set_._id = ' + str(self.setId))
         self.setValidators() #update the validators tied to inputs
         self.mapper.toLast() #make sure the mapper is on the actual record (1 per tab)
         self.setModel.submit() #submit any data that was changed
-        self.updateComponentLineEdit(self.dbhandler.getComponentNames()) # update the clickable line edit to show current components
-        #self.updateComponentDelegate(self.dbhandler.getComponentNames())
+        self.updateComponentLineEdit(self.controller.dbhandler.getComponentNames()) # update the clickable line edit to show current components
+        #self.updateComponentDelegate(self.controller.dbhandler.getComponentNames())
 
         self.set_componentsModel.select()
 
@@ -142,7 +142,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
             tview.hideColumn(i)
     def loadSetData(self):
         #load and update from set setup file
-        self.handler.loadExistingProjectSet(self.setName)
+        #self.controller.runHandler.loadExistingProjectSet(self.setName)
         #load and update from attributeXML
         #load and update from xml resources
         self.updateForm()
@@ -157,7 +157,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         return
     def getDefaultDates(self):
 
-        start,end = self.dbhandler.getSetupDateRange()
+        start,end = self.controller.dbhandler.getSetupDateRange()
 
        #format the tuples from database output to datetime objects
         if (start == None) | (start == (None,)): #no date data in the database yet
@@ -178,7 +178,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         :return:
         '''
 
-        start, end = self.dbhandler.getSetupDateRange(setName)
+        start, end = self.controller.dbhandler.getSetupDateRange(setName)
         self.startDate = start
         self.endDate = end
         return
@@ -225,10 +225,10 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         return infoBox
     def setValidators(self):
         #timesteps need to be equal to or greater than te setup timestep
-        minSeconds = self.dbhandler.getFieldValue('setup','timestepvalue','_id',1)
-        units = self.dbhandler.getFieldValue('setup','timestepunit','_id',1)
+        minSeconds = self.controller.dbhandler.getFieldValue('setup','timestepvalue','_id',1)
+        units = self.controller.dbhandler.getFieldValue('setup','timestepunit','_id',1)
         if units.lower() != 's':
-            minSeconds = self.dbhandler.convertToSeconds(minSeconds,units)
+            minSeconds = self.controller.dbhandler.convertToSeconds(minSeconds,units)
         timestepWidget = self.infoBox.findChild(QtWidgets.QDoubleSpinBox,'timestepvalue')
         #timestepWidget.setValidator(QtGui.QIntValidator(int(minSeconds),86400))
         timestepWidget.setMinimum(int(minSeconds))
@@ -236,7 +236,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
             dateWidget.setMinimumDate(start)
             dateWidget.setMaximumDate(end)
         #start date needs to be equal to or greater than the setup start
-        start, end = self.dbhandler.getSetupDateRange()
+        start, end = self.controller.dbhandler.getSetupDateRange()
         wids = self.infoBox.findChildren(QtWidgets.QDateEdit)
 
 
@@ -278,8 +278,8 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
 
         #if components are not provided use the default list
 
-        allcomponents = self.dbhandler.getComponentNames()
-        #setcomponents = self.dbhandler.getSetComponentNames(self.setName)
+        allcomponents = self.controller.dbhandler.getComponentNames()
+        #setcomponents = self.controller.dbhandler.getSetComponentNames(self.setName)
 
         widg = ClickableLineEdit(','.join(allcomponents)) #all are selectable
         widg.setText(','.join(allcomponents))
@@ -289,7 +289,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         return widg
     def fillSetInfo(self,setName = '0'):
 
-        setInfo = self.dbhandler.getSetInfo('set' + str(setName))
+        setInfo = self.controller.dbhandler.getSetInfo('set' + str(setName))
         if setInfo != None:
             if type(setInfo['componentNames.value']) == str:
                 self.componentDefault = setInfo['componentNames.value'].split(',')
@@ -320,7 +320,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         str1 = ','.join(components)
         widg = self.findChild(QtWidgets.QLineEdit,'componentNames')
         widg.setText(str1)
-        self.dbhandler.updateSetComponents(self.setName,components)
+        self.controller.dbhandler.updateSetComponents(self.setName,components)
         #self.updateComponentDelegate(components)
         self.set_componentsModel.select()
     #Boolean -> QDateEdit
@@ -363,7 +363,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         buttonBox.setLayout(buttonRow)
         return buttonBox
     def makeSetFolder(self):
-        path = self.dbhandler.getProjectPath()
+        path = self.controller.dbhandler.getProjectPath()
         setFolder = getFilePath(self.setName, projectFolder = path)
         if not os.path.exists(setFolder):
             os.makedirs(setFolder,exist_ok=True)
@@ -396,7 +396,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     def writeSetup(self):
         '''copies the setup file from the project setup folder to the set folder
         and makes tag modifications where specified in the model run form'''
-        self.handler.makeSetSetup(self.setName)
+        self.controller.runHandler.makeSetSetup(self.setName)
         return
     def writeModelXMLs(self):
         '''calls each xml editor to write its file to the set folder'''
@@ -404,7 +404,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         holder.writeToSetFolder(self.setName)
         return
     def writeAttributeXML(self):
-        self.handler.makeAttributeXML(self.setName)
+        self.controller.runHandler.makeAttributeXML(self.setName)
     def setupRuns(self):
         '''Calculates the the run combinations and creates a folder for each run. Necessary xmls are transferred to the run folder'''
         #make sure all set attribute entries are entered
@@ -413,16 +413,16 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         # calculate the run matrix
         runs = self.calculateRuns()
         # create a folder for each run
-        [self.handler.createRun(r,i,self.setName) for i,r in enumerate(runs)]
+        [self.controller.runHandler.createRun(r,i,self.setName) for i,r in enumerate(runs)]
     def calculateRuns(self):
         '''calculates a dictionary of run possibilities. Each key is the name of a run folder from Run0...Run#
         The number of runs is based on the number of possible combination for component tag changes
         :return dictionary of run combinations'''
 
-        set_id = self.dbhandler.getSetId(self.setName)
+        set_id = self.controller.dbhandler.getSetId(self.setName)
 
         #all possible combinations not allowing for repeated use of a component:tag:value combination
-        runs = self.dbhandler.getRuns(set_id)
+        runs = self.controller.dbhandler.getRuns(set_id)
         return runs
     def revalidate(self):
         return True
@@ -437,9 +437,18 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.setupSet()
         self.startModeling()
     def startModeling(self):
-        #starts running models based on xml files that were genereted in a set directory
-        self.handler.runModels(self.setName)
-        self.updateDependents() #update the plot to show results
+        #post a progress dialog box
+        pbox = CustomProgressBar("Running Simulations")
+        self.controller.runHandler.sender.notifyProgress.connect(pbox.onProgress)
+        try:#starts running models based on xml files that were genereted in a set directory
+            self.controller.runHandler.runModels(self.setName)
+            self.updateDependents() #update the plot to show results
+        except Exception as e:
+            print("Could not complete model simulations")
+        finally:
+        #close the progress dialog box
+            pbox.hide()
+            del pbox
         return
     def updateDependents(self):
         self.refreshDataPlot()
@@ -475,7 +484,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
 
     def receiveUpdateRunBaseCase(self,id, checked):
 
-         self.dbhandler.updateBaseCase(self.setId, id, checked)
+         self.controller.dbhandler.updateBaseCase(self.setId, id, checked)
          self.run_Model.refresh()
          self.refreshDataPlot()
 

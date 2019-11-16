@@ -1,7 +1,7 @@
 '''SetupInformation is a data model for storing setup information collected through the SetupWizard or UISetupForm.
 The information is written to an XML file using the writeXML method. '''
 from MiGRIDS.InputHandler.Component import Component
-from MiGRIDS.Controller.UIToInputHandler import UIHandler
+from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 import os
 #setup tags are a class that is used for attributes that get written to the setup.xml

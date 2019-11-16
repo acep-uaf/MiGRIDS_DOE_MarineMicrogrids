@@ -114,6 +114,18 @@ class SystemOperations:
         # save local variables
         self.timeStep = timeStep
 
+    def getComponentId(self,prefix,i):
+        if 'wind' in prefix.lower():
+            return 'wtg' + self.WF.wtgIDs[i]
+        if 'wtg' in prefix.lower():
+            return 'wtg' + self.WF.wtgIDs[i]
+        if 'ees' in prefix.lower():
+            return 'ees' + self.EESS.eesIDs[i]
+        if 'tes' in prefix.lower():
+            return 'tes' + self.TESS.tesIDs[i]
+        if 'gen' in prefix.lower():
+            return 'gen' + self.PowerHouse.genIDS[i]
+
     # TODO: Put in seperate input file
     def runSimulation(self):
         
@@ -207,8 +219,8 @@ class SystemOperations:
         Returns a list of all timeseries variables.
         :return:
         '''
-        ol = dir(self)
-        tsvars = [a for a in dir(self) if isinstance(a, TSVar)]
+
+        tsvars = [a for a in dir(self) if isinstance(self.__getattribute__(a), TSVar)]
 
         return tsvars
 

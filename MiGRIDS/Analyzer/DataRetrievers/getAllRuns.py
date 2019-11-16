@@ -17,3 +17,9 @@ def getAllRuns(projectSetDir):
     runDirs = glob.glob(os.path.join(projectSetDir, 'Run*/'))
     runs = [getNumber(os.path.basename(os.path.normpath(x))) for x in runDirs]
     return runs
+
+def getAllSets(projectDir):
+   # os.chdir(projectSetDir)
+    setsDirs = glob.glob(os.path.join(projectDir, 'Set*/'))
+
+    return setsDirs

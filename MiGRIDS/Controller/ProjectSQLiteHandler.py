@@ -230,7 +230,7 @@ class ProjectSQLiteHandler:
         #The table optimize input only contains parameters that were changed from the default
         self.cursor.execute("Drop TABLE IF EXISTS optimize_input")
         self.cursor.executescript("""
-                     CREATE TABLE IF NOT EXISTS optimizer_input
+                     CREATE TABLE IF NOT EXISTS optimize_input
                      (_id integer primary key,
                      parameter text,
                      parameter_value text);""")
@@ -395,13 +395,12 @@ class ProjectSQLiteHandler:
         return setDict
     def getSetUpInfo(self):
         '''
-        Creates a dictionary of setup information for a specific set, default is set 0 which is the base case
+        Creates a dictionary of setup information, default is set 0 which is the base case
         :return: dictionary of xml tags and values to be written to a setup.xml file
         '''
         setDict = {}
 
         #get tuple for basic set info
-        testSet = self.cursor.execute("select project_id, timestepvalue, timestepunit, date_start, date_end from setup").fetchall()
         values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end from setup join project on setup.project_id = project._id").fetchone()
         if values is not None:
             setDict['project name'] = values[0]
@@ -832,26 +831,19 @@ class ProjectSQLiteHandler:
             names = [''.join(i) for i in names if i is not None]
             return pd.Series(names).tolist()
         return []
-    def updateSetupInfo(self, setupDict,setupFile):
+    def updateSetupInfo(self, setupDict,setupFilePath):
         '''
         Updates the database setup tables with information from the setup.xml file
         The setup file is a mesh of both input handler information and model run information.
         The Project_manager database only handles the portion of the setup file that is important for creating netdfs for model running
         The remaining attributes are modified directly in an interface to the xml file.
         :param setupDict: a dictionary extracted from a setup xml file
+        :param setupFilePath is the path to the setup file
         :return: None
         '''
         #update actual setup fields - these have a single value and are used in models
         #update project table
-        pid = self.insertRecord('project',['project_name','project_path','setupfile'],[setupDict['project'],setupDict['projectPath'],setupFile])
-
-        def isInteger(value):
-            ''':returns True if value can be interpreted as an integer'''
-            try:
-                int(value)
-                return True
-            except ValueError:
-                return False
+        pid = self.insertRecord('project',['project_name','project_path','setupfile'],[setupDict['project'],setupDict['projectPath'],setupFilePath])
 
         def isdateOnly(value):
             '''determines if a string contains both date and time or just date values

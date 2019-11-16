@@ -67,16 +67,15 @@ class UIHandler():
             print('This descriptor file already exists in this project')
 
         return
-    # def relayProgress(self,i):
-    #     self.notifyProgress.emit(i)
-    def loadInputData(self,setupFile):
+
+    def loadInputData(self,setupFolder):
         '''
         Read in a pickled data object if it exists. Pickled objects are created once data has begun the fixing process
         which can be time consuming and may need to be performed in stages.
-        :param setupFile: the file path to a setup xml
+        :param setupFolder: the file path to a setup folder
         :return: a DataClass object which consists of raw and fixed data
         '''
-        outputDirectory = os.path.join(os.path.dirname(setupFile), *['..','TimeSeriesData'])
+        outputDirectory = os.path.join(setupFolder, *['..','TimeSeriesData'])
         outfile = os.path.join(outputDirectory, 'fixed_data.pkl')
 
         if not os.path.exists(outfile):

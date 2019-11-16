@@ -1,6 +1,6 @@
 #creates a dynamic form based on the information in xml files
 from PyQt5 import QtWidgets, QtCore
-from MiGRIDS.Controller.UIToInputHandler import UIHandler
+from MiGRIDS.Controller.UIHandler import UIHandler
 
 class componentFormFromXML(QtWidgets.QDialog):
     def __init__(self, component, componentSoup, write=True):

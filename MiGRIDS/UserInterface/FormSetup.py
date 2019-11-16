@@ -9,23 +9,24 @@ on each wtg components descriptor file.'''
 import os
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-from MiGRIDS.Controller.SetupHandler import SetupHandler
-from MiGRIDS.Controller.UIToInputHandler import UIHandler
+from MiGRIDS.Controller.Controller import Controller
+from MiGRIDS.Controller.Validator import ValidatorTypes
 from MiGRIDS.InputHandler.DataClass import DataClass
+from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
+from MiGRIDS.UserInterface.WizardPages import WizardPage, TextWithDropDown, ComponentSelect, TwoDatesDialog
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.ResultsSetup import  ResultsSetup
 from MiGRIDS.UserInterface.FormModelRuns import SetsAttributeEditorBlock
 from MiGRIDS.UserInterface.Pages import Pages
 from MiGRIDS.UserInterface.FileBlock import FileBlock
-from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
-from MiGRIDS.UserInterface.qdateFromString import qdateFromString
 from MiGRIDS.UserInterface.switchProject import switchProject
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
-from MiGRIDS.UserInterface.replaceDefaultDatabase import replaceDefaultDatabase
 from MiGRIDS.UserInterface.Resources.SetupWizardDictionary import *
 import pandas as pd
 
 BASESET ='Set0'
+
+
 class FormSetup(QtWidgets.QWidget):
 
     def __init__(self, parent):
@@ -33,9 +34,9 @@ class FormSetup(QtWidgets.QWidget):
         self.initUI()
     #initialize the form
     def initUI(self):
-        self.dbhandler = ProjectSQLiteHandler()
-        self.uihandler = SetupHandler()
+        self.controller = Controller()
         self.setObjectName("setupDialog")
+
         #the main layout is oriented vertically
         windowLayout = QtWidgets.QVBoxLayout()
 
@@ -128,9 +129,7 @@ class FormSetup(QtWidgets.QWidget):
         dataLoaded.setFixedWidth(200)
         self.dataLoadedOutput = dataLoaded
         hlayout.addWidget(self.dataLoadedOutput)
-        #TODO make progress bar invisible until we need it
-        self.addProgressBar()
-        hlayout.addWidget(self.progressBar)
+
         # generate netcd button
         netCDFButton = self.createSubmitButton()
         hlayout.addWidget(netCDFButton)
@@ -155,8 +154,7 @@ class FormSetup(QtWidgets.QWidget):
     def viewLogDetails(self):
         '''Opens a window for viewing data fixing metrics and log file'''
         return
-    def projectExists(self):
-        return os.path.exists(self.setupFolder)
+
     def functionForCreateButton(self):
         '''
         Launches the setup process for creating a new project
@@ -171,10 +169,17 @@ class FormSetup(QtWidgets.QWidget):
         except AttributeError as e:
             print("Project not set yet")
         self.createNewProject()
+
+    def resetValidateStatus(self):
+        self.controller.initializeState()
+
+
     def createNewProject(self):
         # calls the setup wizard to fill the database from wizard information
+        self.resetValidateStatus()
         self.fillSetup()
-        self.projectDatabase = False
+
+
         # if setup is valid enable tabs
         if self.hasSetup():
             # enable the model and optimize pages too
@@ -183,6 +188,7 @@ class FormSetup(QtWidgets.QWidget):
             self.tabs.setEnabled(True)
             #FileBlock mapper needs to be set to a new records so information can be saved
             self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.project)
+
     def validateProjectSwitch(self):
         '''
         launches a dialog to make sure the user wants to switch projects
@@ -193,6 +199,7 @@ class FormSetup(QtWidgets.QWidget):
         msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
         newProject = msg.exec()
         if newProject == QtWidgets.QMessageBox.Yes:
+            self.resetValidateStatus()
             switchProject(self)
             return True
         else:
@@ -200,32 +207,24 @@ class FormSetup(QtWidgets.QWidget):
     def hasSetup(self):
         try:
 
-            setupfolder = self.uihandler.findSetupFolder(self.project)
-            if os.path.exists(os.path.join(setupfolder, self.project + 'Setup.xml')):
+            setupfolder = self.uihandler.findSetupFolder(self.controller.project)
+            if os.path.exists(os.path.join(setupfolder, self.controller.project + 'Setup.xml')):
                 return True
         except AttributeError as e:
             return False
         return False
 
-    def loadSetup(self, setupFile):
-
-        #setup is a dictionary read from the setupFile
-        setup = self.uihandler.readInSetupFile(setupFile)
-
-        self.dbhandler.updateSetupInfo(setup,setupFile)
-        self.assignProjectPath(setup['project'])
-        self.displayModelData(setup)
-    def showSetup(self):
+    def prePopulateSetupWizard(self):
             #rebuild the wizard tree with values pre-set
             self.WizardTree = self.buildWizardTree(dlist)
-            self.WizardTree.exec()
+            self.fillSetup()
+
     def fillSetup(self):
         '''
         calls the setup wizard to fill setup information into the project_manager database and subsequently to setup.xml
         :return:
         '''
-        s = self.WizardTree
-        s.exec_()
+        self.WizardTree.exec_()
 
     def procedeToSetup(self):
         '''Evaluates whether or not the setup input should be generated. If a setup file already exists then the user needs to
@@ -234,17 +233,20 @@ class FormSetup(QtWidgets.QWidget):
 
         # If the project already exists wait to see if it should be overwritten
         # assign project has already been called at this point so the directory is created
-        if self.setupExists():
+        if self.controller.setupValid:
             overwrite = self.checkOverride("Project Aready Exists",
                                     "Do you want to overwrite existing setup files?.")
             if not overwrite:
                 #self.fillSetup()  # call up the wizard again so a new project name can be assigned
+
                 self.WizardTree.restart()
                 return False
             else:
+
                 return True # this line won't get reached until an original project name is generated or overwrite is chose
         else:
             return True
+
     def checkOverride(self,title,msg):
         '''message dialog ot check if files should be overwritten
            :return Boolean True if yes button was triggered     '''
@@ -255,28 +257,15 @@ class FormSetup(QtWidgets.QWidget):
             return False
         else:
             return True
-    def setupExists(self):
-        '''
 
-        :return: Boolean True if a setup file is found in the specified setup folder
-        '''
-        try:
-            setupfolder = self.setupFolder
-        except AttributeError as a:
 
-            setupfolder = self.uihandler.findSetupFolder(self.project)
-        finally:
-            if os.path.exists(os.path.join(setupfolder, self.project + 'Setup.xml')):
-                return True
-            else:
-                return False
     #searches for and loads existing project data - database, setupxml,descriptors, DataClass pickle, Component pickle netcdf,previously run model results, previous optimization results
     def functionForLoadButton(self):
         '''The load function reads the designated setup xml, looks for descriptor xmls,
         looks for an existing project database and a pickled data object.'''
 
         #if we were already working on a project its state gets saved and  new project is loaded
-        if (self.dbhandler.getProjectPath() != '') & (self.dbhandler.getProjectPath() is not None):
+        if (self.controller.dbhandler.getProjectPath() != '') & (self.controller.dbhandler.getProjectPath() is not None):
             switchProject(self)
 
 
@@ -285,77 +274,50 @@ class FormSetup(QtWidgets.QWidget):
         if (setupFile == ('','')) | (setupFile is None):
             return
 
-        self.loadSetup(setupFile[0])
+        self.controller.loadProject(setupFile[0])
 
-        # now that setup data is set display it in the form
-        #self.displayModelData() this should be done with binding
+        self.displayModelData() #update the form with loaded data
+        self.updateFormProjectDataStatus()
 
-        #Look for an existing project database and replace the default one with it
-        if os.path.exists(os.path.join(self.projectFolder,'project_manager')):
-            print('An existing project database was found for %s.' %self.project)
-
-            replaceDefaultDatabase(os.path.join(self.projectFolder, 'project_manager'))
-            self.projectDatabase = True
-        else:
-            self.projectDatabase = False
-            print('An existing project database was not found for %s.' % self.project)
-        # record the current project
-
-        i = self.dbhandler.updateRecord('project', ['project_name'],[self.project],['project_path'],[
-                                        getFilePath('Project',setupFolder=os.path.dirname(setupFile[0]))])
-
-        # look for an existing data pickle
-        self.inputData= self.uihandler.loadInputData(
-            os.path.join(self.setupFolder, self.project + 'Setup.xml'))
-
-        self.dataLoaded() #check that data exists and inform its dependents
-
-        #TODO this part of the code always sets setsRun to false, need to implement check for models run
         #boolean indicator of whether or not model sets have already been run
-
         #make the data blocks editable if there are no sets already created
         #if sets have been created then input data is not editable from the interface
         if self.setsRun():
             self.showAlert("Analysis in Progress","Analysis results were detected. You cannot edit input data after analysis has begun.")
         else:
             self.tabs.setEnabled(True)
-            print('Loaded %s:' % self.project)
+            print('Loaded %s:' % self.controller.project)
 
         #set the project name on the GUI form
-        self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.project)
+        self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.controller.project)
 
         return
+
     def setsRun(self):
-        if self.dbhandler.modelsRun():
+        '''Checks the database for existing run data
+        If data is found returns true, otherwsie false'''
+        if self.controller.dbhandler.modelsRun():
             return True
         return False
 
     def makeComponentList(self):
-        loc = self.dbhandler.makeComponents()
+        '''Gets a list of all components in the component table'''
+        loc = self.controller.dbhandler.makeComponents()
         return loc
+
     def showAlert(self,title,msg):
         msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,title ,msg
                                     )
         msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
         msg.exec()
-    def listNetCDFs(self):
-        '''
-        produces a list of netcdf files located in the Processed folder of a project TimeSeries folder
-        :return: List of Strings of names of netCDF files
-        '''
-        try:
-            lof = [f for f in os.listdir(getFilePath('Processed',setupFolder=self.setupFolder,)) if f[-2:] =='nc']
-            return lof
-        except FileNotFoundError as e:
-            print('No netcdf model files found.')
-            return []
-    def displayModelData(self,setupInfo):
+
+    def displayModelData(self):
         """creates a tab for each input directory specified the SetupModelInformation model inputFileDir attribute.
         Each tab contains a FileBlock object to interact with the data input
         Each FileBlock is filled with data specific to the input directory"""
         self.tabs.removeTab(0)
         #the number of directories listed in inputFileDir indicates how many tabs are required
-        tab_count = len(setupInfo['inputFileDir.value'].split(' '))
+        tab_count = len(self.controller.dbhandler.getAllRecords('input_files'))
         #if directories have been entered then replace the first tab and create a tab for each directory
         if tab_count > 0:
             self.tabs.removeTab(0)
@@ -364,6 +326,7 @@ class FormSetup(QtWidgets.QWidget):
         else:
             self.newTab(1)
         return
+
     def buildWizardTree(self, dlist):
         '''
         Builds a QWizard based on a list of inputs
@@ -382,12 +345,13 @@ class FormSetup(QtWidgets.QWidget):
         #disconnect(btn,SIGNAL(clicked()),self, SLOT(accept()))
         btn.clicked.connect(self.saveTreeInput)
         return wiztree
-    def assignProjectPath(self, name):
-            self.project = name
-            self.setupFolder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', self.project, 'InputData','Setup'])
-            self.componentFolder = getFilePath('Components', setupFolder=self.setupFolder)
-            projectFolder = getFilePath('Project', setupFolder=self.setupFolder)
-            self.projectFolder = projectFolder
+    def assignProjectPath(self):
+        #TODO move to setup handler
+            self.controller.project = self.dbhandler.getProject()
+            self.controller.setupFolder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', self.controller.project, 'InputData','Setup'])
+            self.controller.componentFolder = getFilePath('Components', setupFolder=self.controller.setupFolder)
+            projectFolder = getFilePath('Project', setupFolder=self.controller.setupFolder)
+            self.controller.projectFolder = projectFolder
 
             #if there isn't a setup folder then its a new project
             if not os.path.exists(self.setupFolder):
@@ -402,22 +366,23 @@ class FormSetup(QtWidgets.QWidget):
         save the input in the wizard tree attribute to the database
         :return: None
         '''
+        self.controller.setupValid = False
         projectPath = self.assignProjectPath(self.WizardTree.field('project'))
         if self.procedeToSetup():
             project_id = self.dbhandler.insertRecord("project",['project_name','project_path'],[self.WizardTree.field('project'),projectPath])
-            _id = self.dbhandler.insertRecord("setup",['_id','project_id','timestepvalue','timestepunit','date_start','date_end'],[project_id,1,self.WizardTree.field('timestepvalue'),self.WizardTree.field('timestepunit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
+            _id = self.controller.dbhandler.insertRecord("setup",['_id','project_id','timestepvalue','timestepunit','date_start','date_end'],[project_id,1,self.WizardTree.field('timestepvalue'),self.WizardTree.field('timestepunit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
             if _id == -1: #record was not inserted, try updating
-                self.dbhandler.updateRecord("setup","_id",1,['project_id','timestepvalue','timestepunit','date_start','date_end','runtimestepvalue'],
+                self.controller.dbhandler.updateRecord("setup","_id",1,['project_id','timestepvalue','timestepunit','date_start','date_end','runtimestepvalue'],
                                        [project_id,  self.WizardTree.field('timestepvalue'),
                                         self.WizardTree.field('timestepunit'), self.WizardTree.field('sdate'),
                                         self.WizardTree.field('edate'), str.join(" ",[self.WizardTree.field('sdate'),
                                         self.WizardTree.field('edate')])])
-                _id = self.dbhandler.getId('setup','_id',1)[0]
-            lot = self.dbhandler.getComponentTypes()
+                _id = self.controller.dbhandler.getId('setup','_id',1)[0]
+            lot = self.controller.dbhandler.getComponentTypes()
             for t in lot:
                 cnt = self.WizardTree.field(t[0]+'count')
                 for i in range(0,cnt):
-                    comp_id = self.dbhandler.insertRecord('component',['componentnamevalue','componenttype'],[t[0] + str(i),t[0]])
+                    comp_id = self.controller.dbhandler.insertRecord('component',['componentnamevalue','componenttype'],[t[0] + str(i),t[0]])
                     #self.dbhandler.insertRecord('set_components',['component_id','set_id','tag'],[comp_id,_id,None])
                     #the delegate for componentname in the component table should also be updated
                     if comp_id != -1:
@@ -425,76 +390,85 @@ class FormSetup(QtWidgets.QWidget):
                         for f in loFileBlock:
                            f.updateComponentNameList()
 
-            self.uihandler.makeSetup()
+            self.uihandler.makeSetup() #make setup will also validate
+
             self.WizardTree.close()
         return
     def createInputFiles(self):
         '''
         Create a dataframe of input data based on importing files within each SetupModelInformation.inputFileDir
         '''
-
-
-        #self.sendSetupInputToModel()
-        # check all the required fields are filled
-
-        # start with the setupxml
-
-        self.uihandler.makeSetup()
-        if not self.setupValid():
+        if not self.controller.setupValid:
             #if required fields are not filled in return to setup page.
             self.showAlert("Missing Required Fields",
                                         "Please fill in all required fields before generating input files.")
 
             return
-        if not self.dataValid():
-            #when thread finishes self.inputData and self.components are set
-            self.myThread = ThreadedDataCreate(self.setupFolder,self.project)
 
-            self.myThread.notifyCreateProgress.connect(self.onProgress)
+        progressBar = CustomProgressBar('Data fixing')
+        try:
+            #when thread finishes self.inputData and self.components are set
+            self.myThread = ThreadedDataCreate(self.controller)
+
+            self.myThread.notifyCreateProgress.connect(progressBar.onProgress)
             self.myThread.catchComponents.connect(self.gotComponents)
             self.myThread.catchData.connect(self.gotData)
-            self.myThread.finished.connect(self.dataLoaded)
+            self.myThread.finished.connect(self.loadProjectData)
             self.myThread.start()
+        except Exception as e:
+            print(e)
+        finally:
+            progressBar.hide()
+            del progressBar
 
-
-        else:
-            self.inputData = self.findDataObject()
-            self.components = self.findComponents()
-            self.dataLoaded()
-
+        if not self.validator.validate(ValidatorTypes.DataObject,self.inputData): #this will set dataobjectvalid to its current state
+            self.showAlert("Could not create a valid data object.")
         return
 
-    def dataLoaded(self):
-        # look for an existing component pickle or create one from information in setup xml
-        self.components = self.uihandler.loadComponents(os.path.join(self.setupFolder, self.project + 'Setup.xml'))
-        if self.components is None:
-            self.components = self.makeComponentList()
-
-        if self.inputData:
-            self.inputDataLoaded()
-        else:
-            self.netCdfsLoaded()
-        return
+    # def loadProjectData(self):
+    #     progressBar = CustomProgressBar("Data loading")
+    #
+    #     self.uihandler.sender.notifyProgress.connect(progressBar.onProgress)
+    #     try:
+    #         # look for an existing component pickle or create one from information in setup xml
+    #         self.components = self.uihandler.loadComponents(os.path.join(self.setupFolder, self.project + 'Setup.xml'))
+    #         if self.components is None:
+    #             self.components = self.makeComponentList()
+    #         self.uihandler.sender.notifyProgress(2,'loading')
+    #         if self.inputData:
+    #             self.updateFormProjectDataStatus()
+    #             self.uihandler.sender.notifyProgress(3,'loading')
+    #         else:
+    #             self.netCdfsLoaded()
+    #             self.uihandler.sender.notifyProgress(5,'loading')
+    #     except Exception as e:
+    #         print(e)
+    #     finally:
+    #         progressBar.hide()
+    #         return
 
     def netCdfsLoaded(self):
-        # list netcdf files previously generated
-        self.currentNetcdfs.setText('Processed Files: ' + ', '.join(self.listNetCDFs()))
+        '''list netcdf files previously generated
+        :returns True if necdfs are found
+        '''
+        self.currentNetcdfs.setText('Processed Files: ' + ', '.join(self.controller.netcdfs))
         self.updateDependents()
-        if not self.listNetCDFs():
-            return False
-        return True
+        return
 
-    def inputDataLoaded(self):
+    def updateFormProjectDataStatus(self):
+        '''updates the setup form to reflect project data (DataClass object, Component info, netcdfs)status
+        '''
         # indicate that the data has loaded
-        self.dataLoadedOutput.setText('data loaded')
-        # make sure the date range is valid
-        self.validateRunTimeSteps()
+        if self.controller.dataObjectValid:
+            self.dataLoadedOutput.setText('data loaded')
+
         # update the Model tab with set information
-        self.updateDependents(self.inputData)
+        self.updateDependents(self.controller.inputData)
         # refresh the plot or processed data
         self.refreshDataPlot()
-        self.progressBar.setRange(0, 1)
-        if not self.netCdfsLoaded():
+        #self.progressBar.setRange(0, 1)
+
+        if not self.controller.netcdfsValid:
             # generate netcdf files if requested
             msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Time Series loaded",
                                     "Do you want to generate netcdf files?.")
@@ -503,36 +477,13 @@ class FormSetup(QtWidgets.QWidget):
             # if yes create netcdf files, Otherwise this can be done after the data is reviewed.
             if result == QtWidgets.QMessageBox.Ok:
                 self.makeNetcdfs()
+        else:
+            self.netCdfsLoaded()
 
-    def validateRunTimeSteps(self):
-        #run time steps need to either equal the range of the data set or be a subset within the dataset
-        def indexValue(lodf, minmax):
-            if minmax == 'min':
-                return min([min(df.index) for df in lodf])
-            else:
-                return max([max(df.index) for df in lodf])
 
-        dataStart = indexValue(self.inputData.fixed,'min').replace(tzinfo=None)
-        dataEnd = indexValue(self.inputData.fixed,'max').replace(tzinfo=None)
-        apparentStart,apparentEnd = self.dbhandler.getSetupDateRange()
-        s = self.dbhandler.getAllRecords('setup')
-        print(s)
-        if (apparentStart == None):
-            # update Start
-            self.dbhandler.updateRecord('setup',['_id'],[1],['date_start'],[dataStart])
-        elif (dataStart.date() > qdateFromString(apparentStart).toPyDate()):
-            self.dbhandler.updateRecord('setup', ['_id'], [1], ['date_start'], [dataStart])
-        if (apparentEnd ==  None):
-            #update End
-            self.dbhandler.updateRecord('setup', ['_id'], [1], ['date_end'], [dataEnd])
-        elif (dataEnd.date() < qdateFromString(apparentEnd).toPyDate()):
-            self.dbhandler.updateRecord('setup', ['_id'], 1, ['date_end'], [dataEnd])
-
-        apparentStart, apparentEnd = self.dbhandler.getSetupDateRange()
-        print(apparentStart)
-        return
     def refreshDataPlot(self):
         resultDisplay = self.parent().findChild(ResultsSetup)
+        resultDisplay.setDataObject(self.controller.inputData)
         resultDisplay.defaultPlot()
 
     def makeNetcdfs(self):
@@ -562,18 +513,15 @@ class FormSetup(QtWidgets.QWidget):
         self.updateModelInputDependents(values)
 
     def updateModelInputDependents(self, values):
-        self.dbhandler.insertFirstSet(values)
-        self.dbhandler.insertAllComponents('Set0')
+        if len(self.controller.sets)<=0:
+            self.controller.dbhandler.insertFirstSet(values)
+            self.controller.dbhandler.insertAllComponents('Set0')
         # Deliver appropriate info to the ModelForm
         modelForms = self.window().findChildren(SetsAttributeEditorBlock)
         [m.loadSetData() for m in modelForms] #load data individually for each set
 
     def updateInputDataDependents(self, data = None):
         ''':return dictionary of values relevant to a setup file'''
-        # each dataframe needs a datetime index
-        if data != None:
-            for df in data.fixed:
-                assert ((type(df.index[0]) == pd.Timestamp) | (type(df.index[0]) == pd.datetime))
 
         def getDefaults(listDf, defaultStart=pd.datetime.today().date(), defaultEnd=pd.datetime.today().date()):
             '''
@@ -606,7 +554,7 @@ class FormSetup(QtWidgets.QWidget):
         values['date_start'] = [values['date_start']]
         values['date_end'] = [values['date_end']]
         values['set_name'] = ['Set0']
-        info = self.dbhandler.getSetUpInfo()
+        info = self.controller.dbhandler.getSetUpInfo()
         values['timestepvalue'] = [info['timeStep.value']]
         values['timestepunit'] = [info['timeStep.unit']]
         values['project_id'] = [1]  # always 1, only 1 project per database
@@ -614,6 +562,7 @@ class FormSetup(QtWidgets.QWidget):
         # deliver the data to the ResultsSetup form so it can be plotted
         if data != None:
             resultsForm = self.window().findChild(ResultsSetup)
+            resultsForm.setDataObject(self.controller.inputData)
             resultsForm.setPlotData(data)
             resultsForm.defaultPlot()
 
@@ -632,24 +581,6 @@ class FormSetup(QtWidgets.QWidget):
             page = self.tabs.widget(i)
             page.close()
 
-    def addProgressBar(self):
-        self.progressBar = QtWidgets.QProgressBar(self)
-        self.progressBar.setObjectName('progresBar')
-        self.progressBar.setGeometry(100,100,100,50)
-
-
-        self.progressBar.setAlignment(QtCore.Qt.AlignLeft);
-        return
-
-    def onProgress(self, i,task):
-        self.progressBar.setValue(i)
-        if i < 10:
-            self.progressBar.setRange(0, 10)
-            self.progressBar.setFormat(task + "...");
-            self.progressBar.setTextVisible(True)
-        else:
-            self.progressBar.setTextVisible(False);
-            self.progressBar.setRange(0,1)
 
     def newTab(self,i=0):
         # get the set count
@@ -671,305 +602,81 @@ class FormSetup(QtWidgets.QWidget):
         button.setText("Generate netCDF inputs")
         button.clicked.connect(self.generateModelInput)
         return button
-    def setupValid(self):
-        #TODO implement function to check if setup contains all the required input
-        return True
+
     def generateModelInput(self):
         '''Checks if setup of file is valid, looks for existing model netcdf files, and dataclass objects
         if no netcdf files are found attempts to create them from dataclass object
         if no dataclass object is found attempts to create a dataclass object then create netcdfs
         :return boolean True if there is a netcdf file for each component'''
-        if self.setupValid():
-            if self.netcdfValid():
+        if self.controller.setupValid:
+            if self.controller.netcdfsValid:
                 #don't need to do anything because model inputs already generated
                 if self.checkOverride("NetCDF Inputs Already Exist", "Do you want to re-write these files?") == False:
-                    return True
-            if self.dataValid():
+                    return
+
+            if not self.controller.dataObjectValid:
+                self.controller.inputData = self.makeData()
                 #make netcdf from dataclass object
-                data = self.findDataObject()
-                self.generateNetcdf(data)
-                return self.netcdfValid()
-            else:
-                data = self.makeData()
-                self.generateNetcdf(data)
-                return self.netcdfValid()
+            self.generateNetcdf(self.controller.inputData)
+            return
         else:
             self.fixSetup()
             self.generateModelInput()
-    def dataValid(self):
-        if self.findDataObject() != None:
-            return True
-        else:
-            return False
+
     def fixSetup(self):
         '''warns the user the setup file is not valid and re-opens the setup wizard so inputs can be corrected.'''
         self.showAlert("Setup file invalid","Please correct your setup input")
-        self.showSetup()
-    def netcdfValid(self):
-        '''
-        Checks to make sure there is a valid netcdf file for each component.
-        :return: boolean True if all components have a valid netcdf file
-        '''
-        #TODO implement validity and file count check
-        netList = self.listNetCDFs()
-        if len(netList)>1:
-            return True
-        else:
-            return False
-    def findDataObject(self):
-        '''looks for and returns dataclas object if found in InputData Folder
-        :return DataClass object'''
+        self.prePopulateSetupWizard()
 
-
-        # df gets read in from TimeSeries processed data folder
-        # component dictionary comes from setupXML's
-        if 'setupFolder' in self.__dict__.keys():
-            setupFile = os.path.join(self.setupFolder, self.project + 'Setup.xml')
-            # From the setup file read the location of the input pickle
-            # by replacing the current pickle with the loaded one the user can manually edit the input and
-            #  then return to working with the interface
-            return self.uihandler.loadInputData(setupFile)
-        print('no data object found')
-        return None
-    def findComponents(self):
-        '''Creates a list of components based on database input
-        :return List of Components object'''
-        return self.dbhandler.makeComponents()
     def generateNetcdf(self, data):
         '''uses a dataclass object to generate model input netcdf files
         netcdf files are written to the processed data folder'''
         #MainWindow = self.window()
        # setupForm = MainWindow.findChild(QtWidgets.QWidget, 'setupDialog')
         #componentModel = setupForm.findChild(QtWidgets.QWidget, 'components').model()
-        handler = UIHandler()
+
         if data:
             df = data.fixed
         componentDict = {}
         if 'components' not in self.__dict__.keys():
             #generate components
-            self.components = self.makeComponentList()
-        elif self.components == None:
-            self.components = self.makeComponentList()
+            self.controller.components = self.makeComponentList()
+        elif self.controller.components == None:
+            self.controller.components = self.makeComponentList()
         for c in self.components:
             componentDict[c.column_name] = c.toDictionary()
 
         #filesCreated is a list of netcdf files that were generated
-        self.ncs = handler.createNetCDF(df, componentDict,self.setupFolder)
+        self.ncs = self.controller.setupHandler.createNetCDF(df, componentDict,self.controller.setupFolder)
         self.netCdfsLoaded()
-    def getProjectFolder(self):
-        return self.dbhandler.getProjectPath()
-    def revalidate(self):
-        # df gets read in from TimeSeries processed data folder
-        # component dictionary comes from setupXML's
-        if 'setupFolder' in self.__dict__.keys():
-            setupFile = os.path.join(self.setupFolder, self.project + 'Setup.xml')
-
-        self.loadSetup(setupFile)
-        return True
 
     @QtCore.pyqtSlot()
     def gotData(self,data):
-        self.inputData = data
+        self.controller.inputData = data
 
     @QtCore.pyqtSlot()
     def gotComponents(self,loc):
-        self.components = loc
-
-#classes used for displaying wizard inputs
-class WizardPage(QtWidgets.QWizardPage):
-    def __init__(self, inputdict,parent,**kwargs):
-        super().__init__(parent)
-        self.first = kwargs.get('first')
-        self.last = kwargs.get('last')
-        self.initUI(inputdict)
-        self.dbhandler = ProjectSQLiteHandler()
-
-    # initialize the form
-    def initUI(self, inputdict):
-        self.d = inputdict
-        self.setTitle(self.d['title'])
-        self.input = self.setInput()
-        self.input.setObjectName(self.d['name'])
-        self.label = QtWidgets.QLabel()
-        self.label.setText(self.d['prompt'])
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addWidget(self.input)
-        self.setLayout(layout)
+        self.controller.components = loc
 
 
-        return
-
-    def setInput(self):
-        wid = QtWidgets.QLineEdit()
-        try:
-            value = self.parent().__getattribute__(self.d['name'])
-
-        except AttributeError as a:
-            print(a)
-            value = ''
-        finally:
-            if ( value == ''):
-                self.registerField(self.d['name'] + "*", wid) #defualt input is required
-            else:
-                self.registerField(self.d['name'], wid)
-            wid.setText(value)
-            self.setField(self.d['name'],value)
-        return wid
-
-    def getInput(self):
-        return self.input.text()
-
-class ComponentSelect(WizardPage):
-    def __init__(self,d,parent):
-        super().__init__(d,parent)
-        self.d = d
-
-    def setInput(self):
-        grp = QtWidgets.QGroupBox()
-        layout = QtWidgets.QGridLayout()
-
-        handler = ProjectSQLiteHandler()
-        lot = handler.getCurrentComponentTypeCount() #all possible component types, tuples with three values type code, description, count
-
-        for i,t in enumerate(lot):
-            label = QtWidgets.QLabel()
-            label.setText(t[1])
-            comp = QtWidgets.QSpinBox()
-            comp.setObjectName(t[0] + 'count')
-            comp.setValue(t[2])
-            layout.addWidget(label,i,0,1,1)
-            layout.addWidget(comp,i,1,1,1)
-            self.registerField(comp.objectName(), comp)
-
-        grp.setLayout(layout)
-        return grp
-
-
-class TwoDatesDialog(WizardPage):
-    def __init__(self,d,parent):
-        super().__init__(d,parent)
-        self.d = d
-
-    def setInput(self):
-        handler = ProjectSQLiteHandler()
-        grp = QtWidgets.QGroupBox()
-        box = QtWidgets.QHBoxLayout()
-        self.startDate = QtWidgets.QDateEdit()
-        self.startDate.setObjectName('start')
-        self.startDate.setDisplayFormat('yyyy-MM-dd')
-        self.startDate.setCalendarPopup(True)
-        self.endDate = QtWidgets.QDateEdit()
-        self.endDate.setObjectName('end')
-        self.endDate.setDisplayFormat('yyyy-MM-dd')
-        self.endDate.setCalendarPopup(True)
-        box.addWidget(self.startDate)
-        box.addWidget(self.endDate)
-        grp.setLayout(box)
-        self.registerField('sdate', self.startDate,"text")
-        self.registerField('edate',self.endDate,"text")
-        try:
-            #if the setup info has already been set dates will be in the database table set
-            print(handler.getFieldValue('setup', 'date_start', '_id',1))
-            self.startDate.setDate(QtCore.QDate.fromString(handler.getFieldValue('setup', 'date_start', '_id', 1),"yyyy-MM-dd"))
-            self.endDate.setDate(QtCore.QDate.fromString(handler.getFieldValue('setup', 'date_end',  '_id', 1),"yyyy-MM-dd"))
-        except AttributeError as a:
-            print(a)
-        except TypeError as a:
-            print(a)
-        except Exception as e:
-            print(e)
-        return grp
-
-    def getInput(self):
-        return " - ".join([self.startDate.text(),self.endDate.text()])
-
-class DropDown(WizardPage):
-    def __init__(self,d,parent):
-        super().__init__(d,parent)
-
-    def setInput(self):
-        self.input = QtWidgets.QComboBox()
-        self.input.setItems(self.getItems())
-        return
-    def getInput(self):
-        return self.breakItems(self.input.itemText(self.input.currentIndex()))
-
-    def getItems(self):
-
-        items = self.dbhandler.getCodes(self.d['reftable'])
-        return items
-    def breakItems(self,str):
-        item = str.split(' - ')[0]
-        return item
-
-
-class TextWithDropDown(WizardPage):
-    def __init__(self, d,parent):
-        super().__init__(d,parent)
-        self.d = d
-
-    def setInput(self):
-        grp = QtWidgets.QGroupBox()
-        box = QtWidgets.QHBoxLayout()
-        self.combo = QtWidgets.QComboBox()
-        handler = ProjectSQLiteHandler()
-        self.combo.addItems(self.getItems())
-        self.textInput = QtWidgets.QLineEdit()
-        self.textInput.setValidator(QtGui.QIntValidator())
-        box.addWidget(self.textInput)
-        box.addWidget(self.combo)
-        grp.setLayout(box)
-        #self.registerField(self.d['name'],self.combo,"currentText",self.combo.currentIndexChanged)
-        self.registerField('timestepvalue', self.textInput)
-        self.registerField('timestepunit',self.combo,"currentText")
-        try:
-            #if the setup info has already been set dates will be in the database table set
-            self.textInput.setText(handler.getFieldValue('setup', 'timestepvalue', '_id', 1))
-            self.combo.setCurrentText(handler.getFieldValue('setup', 'timestepunit', '_id', 1))
-        except AttributeError as a:
-            print(a)
-        return grp
-
-    def getInput(self):
-        input = self.textInput.text()
-        item = self.breakItems(self.input.itemText(self.input.currentIndex()))
-        strInput = ' '.join([input,item])
-        return strInput
-    def getItems(self):
-        dbhandler = ProjectSQLiteHandler()
-        items = dbhandler.getCodes(self.d['reftable'])
-        dbhandler.closeDatabase()
-        return items
-
-    def breakItems(self, str):
-        item = str.split(' - ')[0]
-        return item
-
-class ThreadedDataLoad(QtCore.QThread):
-    notifyLoadProgress = QtCore.pyqtSignal(int)
-    def run(self):
-        for i in range(101):
-            self.notifyLoadProgress.emit(i)
 
 class ThreadedDataCreate(QtCore.QThread):
     notifyCreateProgress = QtCore.pyqtSignal(int,str)
     catchData = QtCore.pyqtSignal(DataClass)
     catchComponents = QtCore.pyqtSignal(list)
 
-    def __init__(self,setupFolder, project):
+    def __init__(self,controller):
         QtCore.QThread.__init__(self)
-        self.setupFolder = setupFolder
-        self.project = project
+        self.controller = controller
 
     def __del__(self):
         self.wait()
 
     def run(self):
-        handler = UIHandler()
-        handler.sender.notifyProgress.connect(self.notify)
-        cleaned_data, components = handler.createCleanedData(
-            os.path.join(self.setupFolder, self.project + 'Setup.xml'))\
+
+        self.controller.sender.notifyProgress.connect(self.notify)
+        cleaned_data, components = self.controller.createCleanedData(
+            os.path.join(self.controller.setupFolder, self.controller.project + 'Setup.xml'))\
             #.connect(self, QtCore.SIGNAL('notifyProgress'), self.notify)
         self.catchData.emit(cleaned_data)
         self.catchComponents.emit(components)

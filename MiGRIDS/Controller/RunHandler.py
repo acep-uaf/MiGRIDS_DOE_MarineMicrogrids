@@ -5,11 +5,10 @@ import os
 
 import shutil
 from PyQt5 import QtWidgets
-
 from MiGRIDS.Analyzer.DataRetrievers.getAllRuns import getAllRuns
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
 from MiGRIDS.Analyzer.PerformanceAnalyzers.getRunMetaData import getRunMetaData
-from MiGRIDS.Controller.UIToInputHandler import UIHandler
+from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.Model.Operational.runSimulation import runSimulation
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.makeAttributeXML import makeAttributeXML, writeAttributeXML
@@ -82,7 +81,6 @@ class RunHandler(UIHandler):
     def isTagReferenced(self,tag):
         pieces = str(tag).split(".")
         return len([p for p in pieces if not p.isnumeric()]) >0
-
     def loadExistingProjectSet(self,setName):
        #get a setup dictionary - None if setup file not found
        setSetup = self.readInSetupFile(self.findSetupFile(setName))
@@ -102,6 +100,7 @@ class RunHandler(UIHandler):
            return
        self.loadExistingRuns(setName)
        return
+
     def loadExistingRuns(self,setName):
         '''fill in the project database with information found in the set folder'''
         projectDir = self.dbhandler.getProjectPath()
@@ -201,6 +200,7 @@ class RunHandler(UIHandler):
 
         # call to run models
         runSimulation(projectSetDir=setDir)
+        #TODO pass 90% to progress box
         getRunMetaData(setDir,[]) #get metadata for all the runs
 
 
@@ -216,3 +216,11 @@ class RunHandler(UIHandler):
         #and the run_attributes table
         loi = list(setComponentIds)
         [self.dbhandler.insertRecord('run_attributes', ['run_id', 'set_component_id'],[run_id, x]) for x in loi]
+    def getNextRun(self,setName):
+        self.dbhandler.getNextRun(setName)
+
+    def updateRunToStarted(self,setName,runNum):
+        self.dbhandler.updateRunToStarted(setName,runNum)
+
+    def updateRunToFinished(self,setName,runNum):
+        self.dbhandler.updateRunToFinished(setName,runNum)

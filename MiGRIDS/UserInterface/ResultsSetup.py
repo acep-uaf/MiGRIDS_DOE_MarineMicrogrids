@@ -1,10 +1,7 @@
 
-import os
 
-from PyQt5 import QtWidgets, QtCore
-from MiGRIDS.Controller.UIToInputHandler import UIHandler
 from MiGRIDS.UserInterface.ResultsPlot import ResultsPlot
-
+import pandas as pd
 
 class ResultsSetup(ResultsPlot):
 
@@ -19,7 +16,7 @@ class ResultsSetup(ResultsPlot):
     def defaultPlot(self):
         if self.data is not None:
            # combo boxes need to be set with field options
-            options = list(self.data['fixed'].columns.values)
+            options = list(self.dataObject.fixed[0].columns.values)
             options.append('index')
             self.set_XCombo(options)
             self.set_YCombo(options)
@@ -35,6 +32,32 @@ class ResultsSetup(ResultsPlot):
                 df0 = df0.append(d)
             return df0
         self.data = {'raw':data.raw,'fixed':mergedDF(data.fixed)}
+    def setDataObject(self,data):
+        self.dataObject = data
+    def getData(self):
+        xvalue = self.getSelectedX()
+        yvalue = self.getSelectedY()
+
+        def fixedDataMerged(strName):
+            df = pd.Series()
+            for d in self.dataObject.fixed:
+                if strName == 'index':
+                    df = df.append(pd.Series(d.index))
+                else:
+                    df = df.append(d[strName])
+            return df
+
+        if (xvalue == '') | (yvalue == '') | (self.dataObject is None) :
+            return {}
+        if xvalue == 'index':
+            data = {'raw': {'x': self.dataObject.raw.index, 'y': self.dataObject.raw[yvalue]},
+                    'fixed': {'x': fixedDataMerged(xvalue), 'y': fixedDataMerged(yvalue)}
+                    }
+        else:
+            data = {'raw': {'x': self.dataObject.raw[xvalue], 'y': self.dataObject.raw[yvalue]},
+                       'fixed': {'x': fixedDataMerged(xvalue), 'y': fixedDataMerged(yvalue)}
+                       }
+        return data
 
     def revalidate(self):
         return True
