@@ -104,5 +104,24 @@ class Controller:
 
         return
 
+    def newProject(self):
+        '''Creates folders and writes new setup xml'''
+        self.controller.project = self.dbhandler.getProject()
+        self.controller.projectFolder = self.dbhandler.getProjectPath()
+        self.controller.setupFolder = os.path.join(
+                                                   *[self.controller.projectFolder,
+                                                     'InputData', 'Setup'])
+        self.controller.componentFolder = getFilePath('Components', setupFolder=self.controller.setupFolder)
 
+
+
+        # if there isn't a setup folder then its a new project
+        if not os.path.exists(self.setupFolder):
+            # make the project folder
+            os.makedirs(self.setupFolder)
+        if not os.path.exists(self.componentFolder):
+            # make the component
+            os.makedirs(self.componentFolder)
+        self.setupHandler.makeSetup()  # make setup writes the setup file in the setup folder
+        return
         

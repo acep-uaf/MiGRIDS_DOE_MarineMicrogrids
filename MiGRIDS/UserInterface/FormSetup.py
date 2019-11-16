@@ -176,12 +176,11 @@ class FormSetup(QtWidgets.QWidget):
 
     def createNewProject(self):
         # calls the setup wizard to fill the database from wizard information
-        self.resetValidateStatus()
+        self.controller.initializeState()
         self.fillSetup()
 
-
         # if setup is valid enable tabs
-        if self.hasSetup():
+        if self.controller.setupValid:
             # enable the model and optimize pages too
             pages = self.window().findChild(QtWidgets.QTabWidget, 'pages')
             pages.enableTabs()
@@ -204,15 +203,6 @@ class FormSetup(QtWidgets.QWidget):
             return True
         else:
             return False
-    def hasSetup(self):
-        try:
-
-            setupfolder = self.uihandler.findSetupFolder(self.controller.project)
-            if os.path.exists(os.path.join(setupfolder, self.controller.project + 'Setup.xml')):
-                return True
-        except AttributeError as e:
-            return False
-        return False
 
     def prePopulateSetupWizard(self):
             #rebuild the wizard tree with values pre-set
@@ -345,32 +335,22 @@ class FormSetup(QtWidgets.QWidget):
         #disconnect(btn,SIGNAL(clicked()),self, SLOT(accept()))
         btn.clicked.connect(self.saveTreeInput)
         return wiztree
-    def assignProjectPath(self):
-        #TODO move to setup handler
-            self.controller.project = self.dbhandler.getProject()
-            self.controller.setupFolder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', self.controller.project, 'InputData','Setup'])
-            self.controller.componentFolder = getFilePath('Components', setupFolder=self.controller.setupFolder)
-            projectFolder = getFilePath('Project', setupFolder=self.controller.setupFolder)
-            self.controller.projectFolder = projectFolder
 
-            #if there isn't a setup folder then its a new project
-            if not os.path.exists(self.setupFolder):
-                #make the project folder
-                os.makedirs(self.setupFolder)
-            if not os.path.exists(self.componentFolder):
-                #make the component
-                os.makedirs(self.componentFolder)
-            return projectFolder
     def saveTreeInput(self):
         '''
         save the input in the wizard tree attribute to the database
+        It is assumed that the database is empty (cleared on switchproject or never filled)
         :return: None
         '''
-        self.controller.setupValid = False
-        projectPath = self.assignProjectPath(self.WizardTree.field('project'))
-        if self.procedeToSetup():
-            project_id = self.dbhandler.insertRecord("project",['project_name','project_path'],[self.WizardTree.field('project'),projectPath])
-            _id = self.controller.dbhandler.insertRecord("setup",['_id','project_id','timestepvalue','timestepunit','date_start','date_end'],[project_id,1,self.WizardTree.field('timestepvalue'),self.WizardTree.field('timestepunit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
+        projectDefaultPath = os.path.join(os.path.dirname(__file__),
+                                                       *['..', '..', 'MiGRIDSProjects', self.WizardTree.field('project')])
+        if self.procedeToSetup(): #this checks if we are overwriting an existing setup file
+            project_id = self.controller.dbhandler.insertRecord("project",['project_name','project_path'],[self.WizardTree.field('project'),
+                                                                                                           projectDefaultPath])
+
+            _id = self.controller.dbhandler.insertRecord("setup",['_id','project_id','timestepvalue','timestepunit','date_start','date_end'],
+                                                         [project_id,1,self.WizardTree.field('timestepvalue'),self.WizardTree.field('timestepunit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
+
             if _id == -1: #record was not inserted, try updating
                 self.controller.dbhandler.updateRecord("setup","_id",1,['project_id','timestepvalue','timestepunit','date_start','date_end','runtimestepvalue'],
                                        [project_id,  self.WizardTree.field('timestepvalue'),
@@ -378,19 +358,20 @@ class FormSetup(QtWidgets.QWidget):
                                         self.WizardTree.field('edate'), str.join(" ",[self.WizardTree.field('sdate'),
                                         self.WizardTree.field('edate')])])
                 _id = self.controller.dbhandler.getId('setup','_id',1)[0]
+
             lot = self.controller.dbhandler.getComponentTypes()
             for t in lot:
                 cnt = self.WizardTree.field(t[0]+'count')
                 for i in range(0,cnt):
                     comp_id = self.controller.dbhandler.insertRecord('component',['componentnamevalue','componenttype'],[t[0] + str(i),t[0]])
-                    #self.dbhandler.insertRecord('set_components',['component_id','set_id','tag'],[comp_id,_id,None])
+
                     #the delegate for componentname in the component table should also be updated
                     if comp_id != -1:
                         loFileBlock = self.findChildren(FileBlock)
                         for f in loFileBlock:
                            f.updateComponentNameList()
 
-            self.uihandler.makeSetup() #make setup will also validate
+
 
             self.WizardTree.close()
         return
