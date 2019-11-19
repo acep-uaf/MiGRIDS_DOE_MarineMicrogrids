@@ -28,15 +28,12 @@ class CustomProgressBar(QtWidgets.QProgressDialog):
         self.resize(500,100)
         self.show()
         self.setValue(0)
+        self.lastValue = 0
 
     def onProgress(self, i, task):
-        self.setValue(i)
-        if i < 10:
-            self.setRange(0, 10)
-            self.setLabelText(task + "...")
+        self.lastValue += i
+        self.setValue(self.lastValue)
 
-        else:
-            self.setRange(0, 1)
 
     def handleCancel(self):
         #emit cancel signal to all non-ui threads

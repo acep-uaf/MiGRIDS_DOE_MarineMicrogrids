@@ -13,6 +13,7 @@ from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.Controller.Validator import ValidatorTypes
 from MiGRIDS.InputHandler.DataClass import DataClass
 from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
+from MiGRIDS.UserInterface.DetailsWidget import DetailsWidget
 from MiGRIDS.UserInterface.WizardPages import WizardPage, TextWithDropDown, ComponentSelect, TwoDatesDialog
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.ResultsSetup import  ResultsSetup
@@ -115,13 +116,13 @@ class FormSetup(QtWidgets.QWidget):
         # windowLayout.addWidget(makeButtonBlock(self,self.createInputFiles,'Create input files',None,'Create input files to run models'),3)
         hlayout.addWidget(button)
         #make the data log viewing button
-        button = QtWidgets.QPushButton('Details')
-        button.setToolTip('View data fixing log.')
-        button.clicked.connect(lambda: self.onClick(self.viewLogDetails))
-        button.setFixedWidth(200)
-        button.setEnabled(False)
-        # windowLayout.addWidget(makeButtonBlock(self,self.createInputFiles,'Create input files',None,'Create input files to run models'),3)
-        hlayout.addWidget(button)
+        self.detailsBtn = QtWidgets.QPushButton('Details')
+        self.detailsBtn.setToolTip('View data fixing log.')
+        self.detailsBtn.clicked.connect(lambda: self.onClick(self.viewLogDetails))
+        self.detailsBtn.setFixedWidth(200)
+        self.detailsBtn.setEnabled(False)
+        hlayout.addWidget(self.detailsBtn)
+
         dataLoaded = QtWidgets.QLineEdit()
         dataLoaded.setFrame(False)
         dataLoaded.setObjectName('dataloaded')
@@ -153,6 +154,11 @@ class FormSetup(QtWidgets.QWidget):
 
     def viewLogDetails(self):
         '''Opens a window for viewing data fixing metrics and log file'''
+        try:
+            self.details = DetailsWidget('Bad Data Log',self.controller.inputData.badDataDict)
+        except AttributeError as e:
+            print (e)
+            print('no data transformation log found')
         return
 
     def functionForCreateButton(self):
@@ -388,7 +394,7 @@ class FormSetup(QtWidgets.QWidget):
 
         progressBar = CustomProgressBar('Data fixing')
         try:
-            #when thread finishes self.inputData and self.components are set
+            #when thread finishes self.controller.inputData and self.components are set
             self.myThread = ThreadedDataCreate(self.controller)
 
             self.myThread.notifyCreateProgress.connect(progressBar.onProgress)
@@ -402,7 +408,7 @@ class FormSetup(QtWidgets.QWidget):
             progressBar.hide()
             del progressBar
 
-        if not self.validator.validate(ValidatorTypes.DataObject,self.inputData): #this will set dataobjectvalid to its current state
+        if not self.validator.validate(ValidatorTypes.DataObject,self.controller.inputData): #this will set dataobjectvalid to its current state
             self.showAlert("Could not create a valid data object.")
         return
 
@@ -416,7 +422,7 @@ class FormSetup(QtWidgets.QWidget):
     #         if self.components is None:
     #             self.components = self.makeComponentList()
     #         self.uihandler.sender.notifyProgress(2,'loading')
-    #         if self.inputData:
+    #         if self.controller.inputData:
     #             self.updateFormProjectDataStatus()
     #             self.uihandler.sender.notifyProgress(3,'loading')
     #         else:
@@ -445,6 +451,7 @@ class FormSetup(QtWidgets.QWidget):
             # indicate that the data has loaded
             if self.controller.dataObjectValid:
                 self.dataLoadedOutput.setText('data loaded')
+                self.detailsBtn.setEnabled(True)
             progressBar.onProgress(2,'loading project')
             # update the Model tab with set information
             self.updateDependents(self.controller.inputData) #make sure there is data here
@@ -480,7 +487,7 @@ class FormSetup(QtWidgets.QWidget):
         d = {}
         for c in self.components:
             d[c.column_name] = c.toDictionary()
-        self.ncs = self.uihandler.createNetCDF(self.inputData.fixed, d,
+        self.ncs = self.uihandler.createNetCDF(self.controller.inputData.fixed, d,
                                                os.path.join(self.setupFolder, self.project + 'Setup.xml'))
 
     def makeData(self):

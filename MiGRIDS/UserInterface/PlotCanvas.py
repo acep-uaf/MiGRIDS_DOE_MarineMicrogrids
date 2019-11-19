@@ -29,8 +29,6 @@ class PlotCanvas(FigureCanvas):
 
             #data can have more than 1 series to display
             self.lines = {}
-            #TODO remove testline
-            #self.lines['testline'] = ax.plot([190,200,207], [1320,1360,1400], label='testline')
             for k in data.keys():
                 if (data[k]['x'] is not None) & (data[k]['y'] is not None):
                     if(len(data[k]['x'])) > 1:
