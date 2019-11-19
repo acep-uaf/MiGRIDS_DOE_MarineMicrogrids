@@ -32,9 +32,9 @@ class PlotCanvas(FigureCanvas):
             for k in data.keys():
                 if (data[k]['x'] is not None) & (data[k]['y'] is not None):
                     if(len(data[k]['x'])) > 1:
-                         self.lines[k] = ax.plot(data[k]['x'],data[k]['y'], label=k)
+                         self.lines[k] = ax.plot(data[k]['x'],data[k]['y'], label=k,c=data[k]['color'])
                     else:
-                        self.lines[k] = ax.plot(data[k]['x'], data[k]['y'], 'o',label=k)
+                        self.lines[k] = ax.plot(data[k]['x'], data[k]['y'], 'o',label=k, c=data[k]['color'])
 
 
         ax.set_title(self.title)
