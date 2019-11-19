@@ -3,7 +3,7 @@
 from MiGRIDS.InputHandler.isInline import *
 
 from matplotlib.backends.backend_pdf import PdfPages
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import pickle
 import numpy as np
 import os

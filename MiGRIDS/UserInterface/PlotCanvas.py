@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 
 #plot widget
-class PlotResult(FigureCanvas):
+class PlotCanvas(FigureCanvas):
     def __init__(self,parent, data, title = None):
         fig = Figure(figsize=(5, 6), dpi=100)
         self.axes = fig.add_subplot(111)
@@ -29,7 +29,8 @@ class PlotResult(FigureCanvas):
 
             #data can have more than 1 series to display
             self.lines = {}
-            self.lines['testline'] = ax.plot([190,200,207], [1320,1360,1400], label='testline')
+            #TODO remove testline
+            #self.lines['testline'] = ax.plot([190,200,207], [1320,1360,1400], label='testline')
             for k in data.keys():
                 if (data[k]['x'] is not None) & (data[k]['y'] is not None):
                     if(len(data[k]['x'])) > 1:

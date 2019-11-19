@@ -21,7 +21,7 @@ class ResultsModel(ResultsPlot):
         # y is any metadata value
         #optionsX = self.dbhandler.setComponentTag(1)  # TODO this needs to be the setID
 
-        self.setPlotData(self.getData())
+        self.setData(self.getData())
         if self.data is not None:
             self.displayData = self.defaultDisplay()
             self.plotWidget.makePlot(self.displayData)
@@ -43,7 +43,7 @@ class ResultsModel(ResultsPlot):
         self.set_XCombo(optionsX)
         self.set_YCombo(optionsY)
 
-    def setPlotData(self, data):
+    def setData(self, data):
         '''sets the data attribute'''
         self.data = data
         return

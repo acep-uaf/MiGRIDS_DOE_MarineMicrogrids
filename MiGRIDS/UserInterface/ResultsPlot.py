@@ -5,7 +5,7 @@ from PyQt5 import QtWidgets, QtCore, QtSql
 
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
-from MiGRIDS.UserInterface.PlotResult import PlotResult
+from MiGRIDS.UserInterface.PlotCanvas import PlotCanvas
 
 class ResultsPlot(QtWidgets.QWidget):
     def __init__(self,parent,plotName):
@@ -23,9 +23,6 @@ class ResultsPlot(QtWidgets.QWidget):
         #print(self.parent().parent().findChildren(QtWidgets.QWidget))
 
         self.data = None
-
-        #self.displayData = {'fixed': {'x': None, 'y': None}, 'raw': {'x': None, 'y': None}}
-        #TODO data will always be None here?
 
         self.xcombo = self.createCombo('xcombo')
         self.ycombo = self.createCombo('ycombo')
@@ -50,14 +47,14 @@ class ResultsPlot(QtWidgets.QWidget):
 
     def updatePlotData(self):
         #data is the data object
-        self.data = self.getData()
+        return self.getPlotData()
 
     def getSelectedX(self):
         return self.xcombo.currentText()
     def getSelectedY(self):
         return self.ycombo.currentText()
 
-    def getdata(self, field, axis):
+    def getPlotData(self):
         pass
 
     @QtCore.pyqtSlot()
@@ -71,7 +68,7 @@ class ResultsPlot(QtWidgets.QWidget):
 
     def createPlotArea(self):
 
-        plotWidget = PlotResult(self, self.data,self.plotName)
+        plotWidget = PlotCanvas(self, self.data, self.plotName)
         self.navi_toolbar = NavigationToolbar(plotWidget, self)
 
         #self.toolbar.hide()
@@ -88,7 +85,7 @@ class ResultsPlot(QtWidgets.QWidget):
     def refreshPlot(self):
         #update drop downs
 
-        self.plotWidget.makePlot(self.data)
+        self.plotWidget.makePlot(self.getPlotData())
 
     #Navigation
     def home(self):
@@ -105,7 +102,7 @@ class ResultsPlot(QtWidgets.QWidget):
     def defaultPlot(self):
         pass
 
-    def setPlotData(self,data):
+    def setData(self, data):
         '''sets the data attribute'''
         self.data = data
         return

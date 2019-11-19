@@ -439,32 +439,41 @@ class FormSetup(QtWidgets.QWidget):
     def updateFormProjectDataStatus(self):
         '''updates the setup form to reflect project data (DataClass object, Component info, netcdfs)status
         '''
-        # indicate that the data has loaded
-        if self.controller.dataObjectValid:
-            self.dataLoadedOutput.setText('data loaded')
+        progressBar = CustomProgressBar('loading project')
+        progressBar.onProgress(2,'notask')
+        try:
+            # indicate that the data has loaded
+            if self.controller.dataObjectValid:
+                self.dataLoadedOutput.setText('data loaded')
+            progressBar.onProgress(2,'loading project')
+            # update the Model tab with set information
+            self.updateDependents(self.controller.inputData) #make sure there is data here
+            progressBar.onProgress(4, 'loading project')
+            # refresh the plot or processed data
+            self.refreshDataPlot()
+            progressBar.onProgress(2, 'loading project')
+            #self.progressBar.setRange(0, 1)
 
-        # update the Model tab with set information
-        self.updateDependents(self.controller.inputData)
-        # refresh the plot or processed data
-        self.refreshDataPlot()
-        #self.progressBar.setRange(0, 1)
+            if not self.controller.netcdfsValid:
+                # generate netcdf files if requested
+                msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Time Series loaded",
+                                        "Do you want to generate netcdf files?.")
+                msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.No)
+                result = msg.exec()
+                # if yes create netcdf files, Otherwise this can be done after the data is reviewed.
+                if result == QtWidgets.QMessageBox.Ok:
+                    self.makeNetcdfs()
+            else:
+                self.netCdfsLoaded()
 
-        if not self.controller.netcdfsValid:
-            # generate netcdf files if requested
-            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Time Series loaded",
-                                    "Do you want to generate netcdf files?.")
-            msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.No)
-            result = msg.exec()
-            # if yes create netcdf files, Otherwise this can be done after the data is reviewed.
-            if result == QtWidgets.QMessageBox.Ok:
-                self.makeNetcdfs()
-        else:
-            self.netCdfsLoaded()
-
-
+            progressBar.onProgress(2, 'loading project')
+        except Exception as e:
+            print(e)
+        finally:
+            progressBar.hide()
     def refreshDataPlot(self):
         resultDisplay = self.parent().findChild(ResultsSetup)
-        resultDisplay.setDataObject(self.controller.inputData)
+        resultDisplay.setData(self.controller.inputData)
         resultDisplay.defaultPlot()
 
     def makeNetcdfs(self):
@@ -543,8 +552,8 @@ class FormSetup(QtWidgets.QWidget):
         # deliver the data to the ResultsSetup form so it can be plotted
         if data != None:
             resultsForm = self.window().findChild(ResultsSetup)
-            resultsForm.setDataObject(self.controller.inputData)
-            resultsForm.setPlotData(data)
+            resultsForm.setData(self.controller.inputData)
+
             resultsForm.defaultPlot()
 
         return values
