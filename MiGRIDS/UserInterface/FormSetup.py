@@ -457,7 +457,7 @@ class FormSetup(QtWidgets.QWidget):
             self.updateDependents(self.controller.inputData) #make sure there is data here
             progressBar.onProgress(4, 'loading project')
             # refresh the plot or processed data
-            self.refreshDataPlot()
+            #self.refreshDataPlot() #calling get data second time here
             progressBar.onProgress(2, 'loading project')
             #self.progressBar.setRange(0, 1)
 
@@ -552,6 +552,8 @@ class FormSetup(QtWidgets.QWidget):
         values['date_end'] = [values['date_end']]
         values['set_name'] = ['Set0']
         info = self.controller.dbhandler.getSetUpInfo()
+        if info is None:
+            info = self.controller.dbhandler.getSetInfo
         values['timestepvalue'] = [info['timeStep.value']]
         values['timestepunit'] = [info['timeStep.unit']]
         values['project_id'] = [1]  # always 1, only 1 project per database
@@ -561,7 +563,7 @@ class FormSetup(QtWidgets.QWidget):
             resultsForm = self.window().findChild(ResultsSetup)
             resultsForm.setData(self.controller.inputData)
 
-            resultsForm.defaultPlot()
+            resultsForm.defaultPlot()#getting called first time here
 
         return values
     # close event is triggered when the form is closed

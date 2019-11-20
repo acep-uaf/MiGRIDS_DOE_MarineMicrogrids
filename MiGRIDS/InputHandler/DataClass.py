@@ -12,9 +12,12 @@ import pandas as pd
 #constants
 TOTALP = 'total_p'
 MAXMISSING= '14 days'
+DATAFLAGS={1:'normal',2:'missing value'}
 
 class DataClass:
     """A class with access to both raw and fixed dataframes."""
+
+
     #DataFrame, timedelta,list,timedelta -> 
     def __init__(self, raw_df,runTimeSteps=None,maxMissing=MAXMISSING):
         if len(raw_df) > 0:
@@ -47,6 +50,11 @@ class DataClass:
         self.maxMissing = maxMissing
 
         return
+
+    @staticmethod
+    def getFlagName(flag):
+        return DATAFLAGS[flag]
+
     def getattribute(self, a):
         return self.__getattribute__(a)
     

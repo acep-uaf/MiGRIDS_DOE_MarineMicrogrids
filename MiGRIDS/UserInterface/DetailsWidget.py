@@ -16,7 +16,6 @@ class DetailsWidget(QtWidgets.QDockWidget):
         self.initUI(title,details)
 
     def initUI(self, title,details):
-
         self.setWindowTitle(title)
         textWindow = QtWidgets.QLabel()
         textWindow.setWordWrap(True)

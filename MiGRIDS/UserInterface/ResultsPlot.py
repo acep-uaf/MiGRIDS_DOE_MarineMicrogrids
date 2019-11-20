@@ -41,7 +41,7 @@ class ResultsPlot(QtWidgets.QWidget):
     def createCombo(self,name):
         combo = QtWidgets.QComboBox(self)
         combo.setObjectName(name)
-        combo.currentIndexChanged.connect(self.updatePlotData)
+        #combo.currentIndexChanged.connect(self.updatePlotData)
         return combo
 
 

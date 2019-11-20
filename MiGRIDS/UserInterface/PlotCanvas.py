@@ -32,9 +32,9 @@ class PlotCanvas(FigureCanvas):
             for k in data.keys():
                 if (data[k]['x'] is not None) & (data[k]['y'] is not None):
                     if(len(data[k]['x'])) > 1:
-                         self.lines[k] = ax.plot(data[k]['x'],data[k]['y'], label=k,c=data[k]['color'])
+                         self.lines[k] = ax.plot(data[k]['x'],data[k]['y'], label=k,c=data[k]['color'],picker=5)
                     else:
-                        self.lines[k] = ax.plot(data[k]['x'], data[k]['y'], 'o',label=k, c=data[k]['color'])
+                        self.lines[k] = ax.plot(data[k]['x'], data[k]['y'], 'o',label=k, c=data[k]['color'],picker=5)
 
 
         ax.set_title(self.title)
@@ -50,10 +50,24 @@ class PlotCanvas(FigureCanvas):
     def onpick(self,event):
         legline = event.artist
         origline = self.lines[legline._label][0]
-        vis = not origline.get_visible() #swap the visibility
-        origline.set_visible(vis)
-        if vis:
-            legline.set_alpha(1.0)
+        if (len(legline.get_xdata())) == 2 & (len(legline.get_xdata()) != len(origline.get_xdata())): #legend line was clicked
+            vis = not origline.get_visible() #swap the visibility
+            origline.set_visible(vis)
+            if vis:
+                legline.set_alpha(1.0)
+            else:
+                legline.set_alpha(0.2) #dim if not displayed in plot
+            self.draw()
+            return True
         else:
-            legline.set_alpha(0.2) #dim if not displayed in plot
-        self.draw()
+
+            N = len(event.ind)
+            if not N:
+                return True
+
+            xdata, ydata = origline.get_data()
+            xdata = xdata[event.ind]
+            ydata = ydata[event.ind]
+            print(xdata)
+            print(ydata)
+
