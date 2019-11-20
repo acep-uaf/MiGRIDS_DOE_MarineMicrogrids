@@ -54,6 +54,8 @@ class Validator:
             return True
         except KeyError as k:
             return False
+        except AttributeError as a:
+            return False
 
         return False #if it gets to here, something is not valid
 

@@ -8,6 +8,7 @@ from PyQt5 import QtWidgets
 from MiGRIDS.Analyzer.DataRetrievers.getAllRuns import getAllRuns
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
 from MiGRIDS.Analyzer.PerformanceAnalyzers.getRunMetaData import getRunMetaData
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.Model.Operational.runSimulation import runSimulation
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
@@ -82,8 +83,10 @@ class RunHandler(UIHandler):
         pieces = str(tag).split(".")
         return len([p for p in pieces if not p.isnumeric()]) >0
     def loadExistingProjectSet(self,setName):
+        #New handler because this function is called from thread
        #get a setup dictionary - None if setup file not found
        setSetup = self.readInSetupFile(self.findSetupFile(setName))
+
        if setSetup != None:
            #update the database based on info in the set setup file, this includes adding components to set_components if not already there
            self.dbhandler.updateSetSetup(setName, setSetup)

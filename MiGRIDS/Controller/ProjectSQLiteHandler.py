@@ -41,7 +41,8 @@ class ProjectSQLiteHandler:
     def tableExists(self, table):
         try:
             self.cursor.execute("select * from " + table + " limit 1").fetchall()
-        except:
+        except Exception as e:
+            e
             return False
         return True
 

@@ -269,8 +269,20 @@ class FormSetup(QtWidgets.QWidget):
         setupFile = QtWidgets.QFileDialog.getOpenFileName(self,"Select your setup file", os.path.join(os.path.dirname(__file__),'..','..','MiGRIDSProjects'), "*xml" )
         if (setupFile == ('','')) | (setupFile is None):
             return
+        
+        progressBar = CustomProgressBar('Loading Project')
+        try:
+            # when thread finishes self.controller.inputData and self.components are set
+            self.myThread = ThreadedProjectLoad(setupFile[0])
+            self.myThread.notifyCreateProgress.connect(progressBar.onProgress)
+            self.myThread.finished.connect(self.onProjectLoaded)
+            self.myThread.start()
+        except Exception as e:
+            print(e)
+        finally:
+            progressBar.hide()
 
-        self.controller.loadProject(setupFile[0])
+    def onProjectLoaded(self):
 
         self.displayModelData() #update the form with loaded data
         self.updateFormProjectDataStatus()
@@ -445,21 +457,15 @@ class FormSetup(QtWidgets.QWidget):
     def updateFormProjectDataStatus(self):
         '''updates the setup form to reflect project data (DataClass object, Component info, netcdfs)status
         '''
-        progressBar = CustomProgressBar('loading project')
-        progressBar.onProgress(2,'notask')
+
         try:
             # indicate that the data has loaded
             if self.controller.dataObjectValid:
                 self.dataLoadedOutput.setText('data loaded')
                 self.detailsBtn.setEnabled(True)
-            progressBar.onProgress(2,'loading project')
+
             # update the Model tab with set information
             self.updateDependents(self.controller.inputData) #make sure there is data here
-            progressBar.onProgress(4, 'loading project')
-            # refresh the plot or processed data
-            #self.refreshDataPlot() #calling get data second time here
-            progressBar.onProgress(2, 'loading project')
-            #self.progressBar.setRange(0, 1)
 
             if not self.controller.netcdfsValid:
                 # generate netcdf files if requested
@@ -473,28 +479,13 @@ class FormSetup(QtWidgets.QWidget):
             else:
                 self.netCdfsLoaded()
 
-            progressBar.onProgress(2, 'loading project')
         except Exception as e:
             print(e)
-        finally:
-            progressBar.hide()
+
     def refreshDataPlot(self):
         resultDisplay = self.parent().findChild(ResultsSetup)
         resultDisplay.setData(self.controller.inputData)
         resultDisplay.defaultPlot()
-
-    def makeNetcdfs(self):
-        d = {}
-        for c in self.components:
-            d[c.column_name] = c.toDictionary()
-        self.ncs = self.uihandler.createNetCDF(self.controller.inputData.fixed, d,
-                                               os.path.join(self.setupFolder, self.project + 'Setup.xml'))
-
-    def makeData(self):
-        # import datafiles
-        #TODO remove and call thread
-
-        return
 
     def updateDependents(self, data = None):
         '''
@@ -579,7 +570,6 @@ class FormSetup(QtWidgets.QWidget):
         for i in range(self.tabs.count()):
             page = self.tabs.widget(i)
             page.close()
-
 
     def newTab(self,i=0):
         # get the set count
@@ -692,3 +682,28 @@ class ThreadedNetcdfCreate(QtCore.QThread):
     def run(self):
         for i in range(101):
             self.notifyNetcdfProgress.emit(i)
+            
+class ThreadedProjectLoad(QtCore.QThread):
+    notifyCreateProgress = QtCore.pyqtSignal(int,str)
+    
+    def __init__(self,setupFile):
+        QtCore.QThread.__init__(self)
+        self.controller = Controller() #will attach to the existing instance
+        self.setupFile = setupFile
+    
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+
+        self.controller.sender.notifyProgress.connect(self.notify)
+        self.notify(1,'NoTask')
+        self.controller.loadProject(self.setupFile)
+       
+        return
+
+    def done(self):
+        QtGui.QMessageBox.information(self, "Done!", "Done loading data!")
+
+    def notify(self,i,task):
+        self.notifyCreateProgress.emit(i,task)

@@ -47,7 +47,11 @@ class Controller:
         self.projectFolder = None # Path to the project folder
         self.sets=[] # list of set folders
 
-    def loadProject(self,setupFile):
+    def loadProject(self, setupFile):
+        #load project gets run on a seperate thread so it uses a newly initialized handlers
+        setupHandler = SetupHandler()
+        dbHandler = ProjectSQLiteHandler()
+        runHandler = RunHandler()
 
         # local assistants
         def listNetCDFs():
@@ -70,50 +74,63 @@ class Controller:
             # From the setup file read the location of the input pickle
             # by replacing the current pickle with the loaded one the user can manually edit the input and
             #  then return to working with the interface
-            return self.setupHandler.loadInputData(os.path.dirname(setupFile))
+            return setupHandler.loadInputData(os.path.dirname(setupFile))
 
         # different load pathways depending on whether or not a project database is found
-        projectFolder = getFilePath('Project', setupFolder=os.path.dirname(setupFile))
+        self.projectFolder = getFilePath('Project', setupFolder=os.path.dirname(setupFile))
+        self.project = os.path.basename(self.projectFolder)
         # Look for an existing project database and replace the default one with it
-        if os.path.exists(os.path.join(projectFolder, 'project_manager')):
+        if os.path.exists(os.path.join(self.projectFolder, 'project_manager')):
             print('An existing project database was found.')
 
-            replaceDefaultDatabase(os.path.join(projectFolder, 'project_manager'))
+            replaceDefaultDatabase(os.path.join(self.projectFolder, 'project_manager'))
             self.projectDatabase = True
+            self.sender.update(1,'Data loading')
 
         else:
             print('An existing project database was not found.')
             # load setup information
-            setupDictionary = self.setupHandler.readInSetupFile(setupFile)
+            setupDictionary = setupHandler.readInSetupFile(setupFile)
             self.setupValid = self.validator.validate(ValidatorTypes.SetupXML, setupFile)
-            self.dbhandler.updateSetupInfo(setupDictionary, setupFile)
+            dbHandler.insertRecord('project', ['project_name', 'project_path', 'setupfile'], [self.project, self.projectFolder, setupFile])
+            dbHandler.updateSetupInfo(setupDictionary, setupFile)
+            self.sender.update(1, 'Project loading')
             # load Sets - this loads attribute xmls, set setups, set descriptors, setmodel selectors and run result metadata
             self.sets = getAllSets(getFilePath('OutputData', setupFolder=os.path.dirname(setupFile)))
-            [self.runHandler.loadExistingProjectSet(os.path.dirname(s).split('\\')[-1]) for s in self.sets]
+            [runHandler.loadExistingProjectSet(os.path.dirname(s).split('\\')[-1]) for s in self.sets]
+        self.sender.update(3, 'Project loading')
 
-        self.project = self.dbhandler.getProject()
-        self.projectFolder = self.dbhandler.getProjectPath()
+        self.projectFolder = dbHandler.getProjectPath()
 
         # get input data object
         self.inputData = findDataObject()
         self.dataObjectValid = self.validator.validate(ValidatorTypes.DataObject, self.inputData)
-
+        self.sender.update(3, 'Project loading')
         # get model input netcdfs
         self.netcdfs = listNetCDFs()
         self.netcdfsValid = self.validator.validate(ValidatorTypes.NetCDFList, self.netcdfs)
-
+        self.sender.update(3, 'Project loading')
+        del setupHandler
+        del dbHandler
+        del runHandler
         return
 
     def newProject(self):
         '''Creates folders and writes new setup xml'''
-        self.controller.project = self.dbhandler.getProject()
-        self.controller.projectFolder = self.dbhandler.getProjectPath()
-        self.controller.setupFolder = os.path.join(
-                                                   *[self.controller.projectFolder,
+        self.project = self.dbhandler.getProject()
+        self.projectFolder = self.dbhandler.getProjectPath()
+        self.setupFolder = os.path.join(
+                                                   *[self.projectFolder,
                                                      'InputData', 'Setup'])
-        self.controller.componentFolder = getFilePath('Components', setupFolder=self.controller.setupFolder)
+        self.componentFolder = getFilePath('Components', setupFolder=self.setupFolder)
 
+    def makeNetcdfs(self):
+        d = {}
+        for c in self.components:
+            d[c.column_name] = c.toDictionary()
 
+        self.netcdfs = self.setupHandler.createNetCDF(d,self.inputData.fixed,
+                                               os.path.join(self.setupFolder, self.project + 'Setup.xml'))
 
         # if there isn't a setup folder then its a new project
         if not os.path.exists(self.setupFolder):

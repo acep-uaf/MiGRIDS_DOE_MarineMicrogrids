@@ -29,8 +29,8 @@ def getRunMetaData(projectSetDir,runs):
     :param projectSetDir String path to directory for a specified set
     :param runs list of integers indicating the run numbers to process. If empty will process all runs within a set'''
     # get the set number
-    dir_path = os.path.basename(projectSetDir)
-    setNum = str(dir_path[3:])
+    setName = os.path.basename(projectSetDir)
+    setNum = str(setName[3:])
     dbhandler = ProjectSQLiteHandler()
     dbhandler.prepareForResults(projectSetDir)
     # read the input parameter sql database

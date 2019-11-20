@@ -13,6 +13,7 @@ class PlotCanvas(FigureCanvas):
         self.setParent(parent)
         self.title = title
         self.figure = fig
+        self.editable = False #needs to be set to true by parent widget
         FigureCanvas.setSizePolicy(self,QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
 
          #make plot
@@ -60,14 +61,14 @@ class PlotCanvas(FigureCanvas):
             self.draw()
             return True
         else:
+            if self.editable:
+                N = len(event.ind)
+                if not N:
+                    return True
 
-            N = len(event.ind)
-            if not N:
-                return True
-
-            xdata, ydata = origline.get_data()
-            xdata = xdata[event.ind]
-            ydata = ydata[event.ind]
-            print(xdata)
-            print(ydata)
+                xdata, ydata = origline.get_data()
+                xdata = xdata[event.ind]
+                ydata = ydata[event.ind]
+                print(xdata)
+                print(ydata)
 
