@@ -1,6 +1,8 @@
 # Projet: MiGRIDS
 # Created by: # Created on: 11/15/2019
 import os
+from PyQt5 import QtCore, QtGui
+
 from MiGRIDS.Controller.GenericSender import GenericSender
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.RunHandler import RunHandler
@@ -8,6 +10,7 @@ from MiGRIDS.Controller.SetupHandler import SetupHandler
 from MiGRIDS.Controller.Validator import Validator,ValidatorTypes
 
 from MiGRIDS.Analyzer.DataRetrievers.getAllRuns import getAllSets
+from MiGRIDS.InputHandler.DataClass import DataClass
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.replaceDefaultDatabase import replaceDefaultDatabase
 
@@ -141,4 +144,74 @@ class Controller:
             os.makedirs(self.componentFolder)
         self.setupHandler.makeSetup()  # make setup writes the setup file in the setup folder
         return
-        
+
+    def generateNetcdf(self, data):
+        '''uses a dataclass object to generate model input netcdf files
+        netcdf files are written to the processed data folder'''
+        # MainWindow = self.window()
+        # setupForm = MainWindow.findChild(QtWidgets.QWidget, 'setupDialog')
+        # componentModel = setupForm.findChild(QtWidgets.QWidget, 'components').model()
+
+        if data:
+            df = data.fixed
+        componentDict = {}
+        if 'components' not in self.__dict__.keys():
+            # generate components
+
+            self.components = self.dbhandler.makeComponents()
+        elif self.components == None:
+            self.components = self.dbhandler.makeComponents()
+        for c in self.components:
+            componentDict[c.column_name] = c.toDictionary()
+
+        # filesCreated is a list of netcdf files that were generated
+        self.netcdfs = self.setupHandler.createNetCDF(df, componentDict, self.controller.setupFolder)
+        self.netcdfsValid = self.validator.validateNetCDFList(self.netcdfs)
+
+    def createInputData(self):
+        self.myThread = ThreadedDataCreate()
+        self.myThread.notifyCreateProgress.connect(self.sender.update)
+        self.myThread.catchComponents.connect(self.gotComponents)
+        self.myThread.catchData.connect(self.gotData)
+        self.myThread.finished.connect(self.loadProject)
+        self.myThread.start()
+
+    @QtCore.pyqtSlot()
+    def gotData(self,data):
+        self.inputData = data
+
+    @QtCore.pyqtSlot()
+    def gotComponents(self,loc):
+        self.components = loc
+
+class ThreadedDataCreate(QtCore.QThread):
+    notifyCreateProgress = QtCore.pyqtSignal(int,str)
+    catchData = QtCore.pyqtSignal(DataClass)
+    catchComponents = QtCore.pyqtSignal(list)
+
+    def __init__(self,setupFile):
+        QtCore.QThread.__init__(self)
+        self.setupFile = setupFile
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        setupHandler = SetupHandler()
+        cleaned_data, components = setupHandler.createCleanedData(self.setupFile)
+
+        self.catchData.emit(cleaned_data)
+        self.catchComponents.emit(components)
+        return
+
+    def done(self):
+        QtGui.QMessageBox.information(self, "Done!", "Done loading data!")
+
+    def notify(self,i,task):
+        self.notifyCreateProgress.emit(i,task)
+
+class ThreadedNetcdfCreate(QtCore.QThread):
+    notifyProgress = QtCore.pyqtSignal(int)
+    def run(self):
+        for i in range(101):
+            self.notifyNetcdfProgress.emit(i)

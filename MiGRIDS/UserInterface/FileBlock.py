@@ -525,10 +525,6 @@ class FileBlock(QtWidgets.QGroupBox):
         :return: boolean - True if required fields have been set, otherwise false.
         '''
         #validate the file input fields before allowing component information to be collected
-        #TODO remove debug code
-        print("Database has:")
-        print(self.dbhandler.getAllRecords("input_files"))
-
         try:
             if (len(self.preview.header) <=0):
                 self.validated = False

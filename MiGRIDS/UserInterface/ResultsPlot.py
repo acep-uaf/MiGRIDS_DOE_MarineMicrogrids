@@ -36,8 +36,14 @@ class ResultsPlot(QtWidgets.QWidget):
 
         self.setLayout(self.layout)
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.makePlotArea()
         self.defaultPlot()
-
+    def makePlotArea(self):
+        '''
+        Fill xy combos and static text or titles
+        :return:
+        '''
+        pass
     def createCombo(self,name):
         combo = QtWidgets.QComboBox(self)
         combo.setObjectName(name)
@@ -71,7 +77,7 @@ class ResultsPlot(QtWidgets.QWidget):
         plotWidget = PlotCanvas(self, self.data, self.plotName)
         self.navi_toolbar = NavigationToolbar(plotWidget, self)
 
-        #self.toolbar.hide()
+
         return plotWidget
 
     #->QPushButton
@@ -84,7 +90,6 @@ class ResultsPlot(QtWidgets.QWidget):
     #refresh the data plot with currently set data
     def refreshPlot(self):
         #update drop downs
-
         self.plotWidget.makePlot(self.getPlotData())
 
     #Navigation
@@ -150,3 +155,10 @@ class ResultsPlot(QtWidgets.QWidget):
         return
     def revalidate(self):
         pass
+    def pickColor(self,starter):
+        r = starter/10
+        bg = 1 - r
+        b = 0.5 * bg
+        g = 0.5 * bg
+        #return "({:.2f},{:.2f},{:.2f},0.8)".format(r,b,g)
+        return (r,b,g,0.8)

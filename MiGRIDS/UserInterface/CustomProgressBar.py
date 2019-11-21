@@ -33,6 +33,7 @@ class CustomProgressBar(QtWidgets.QProgressDialog):
     def onProgress(self, i, task):
         self.lastValue += i
         self.setValue(self.lastValue)
+        self.setLabelText(task)
 
 
     def handleCancel(self):

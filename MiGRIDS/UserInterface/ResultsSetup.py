@@ -11,14 +11,18 @@ class ResultsSetup(ResultsPlot):
                        'fixed': {'x':self.data['fixed'].index, 'y':self.data['fixed'].total_p}
                        }
         return displayData
-
-    def defaultPlot(self):
+    def makePlotArea(self):
         if self.data is not None:
-           # combo boxes need to be set with field options
+
             options = list(self.data['fixed'].columns.values)
             options.append('index')
             self.set_XCombo(options)
             self.set_YCombo(options)
+
+    def defaultPlot(self):
+        if self.data is not None:
+           # combo boxes need to be set with field options
+
 
             self.plotWidget.makePlot(self.getPlotData())
 

@@ -3,6 +3,7 @@ import os
 import sqlite3 as lite
 from MiGRIDS.InputHandler.Component import Component
 from MiGRIDS.Controller.makeXMLFriendly import xmlToString, stringToXML
+from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.qdateFromString import asDate
 import pandas as pd
 
@@ -540,7 +541,6 @@ class ProjectSQLiteHandler:
 
         else:
             self.insertRecord('set_components', ['set_id', 'component_id', 'tag', 'tag_value'],[setId, record[0], record[1] + "." + record[2], record[3]])
-
     def insertRecord(self, table, fields, values):
         '''
         Insert a record in a specified table
@@ -607,7 +607,7 @@ class ProjectSQLiteHandler:
             return pd.Series(names).tolist()
         return []
     def getSetComponentTags(self,set_id):
-        lot = self.cursor.execute("SELECT _id from set_components where set_id = ?",[set_id]).fetchall()
+        lot = self.cursor.execute("SELECT _id from set_components where set_id = ? and tag_value != 'None' ",[set_id]).fetchall()
         return [self.getRecordDictionary('set_components',i[0]) for i in lot]
     def createStatements(self,componentList,setId):
 
@@ -877,7 +877,6 @@ class ProjectSQLiteHandler:
         if path is not None:
            return path[0]
         return
-    '''gets a list of possible component types from the ref_component_type table'''
     def getComponentTypes(self):
         loT = self.cursor.execute("select code,description from ref_component_type").fetchall()
 
@@ -980,7 +979,7 @@ class ProjectSQLiteHandler:
         '''
 
         ids = self.insertDictionaryRow('component_files', filecomponents)
-        print(self.getAllRecords('component_files'))
+
         return ids
     def extractComponentNamesOnly(self, components,setupDict):
         '''
@@ -1015,7 +1014,6 @@ class ProjectSQLiteHandler:
             return os.path.join(self.getProjectPath(),*aslist[1:])
         else:
             return os.path.join(*aslist)
-
     def inferComponentType(self,componentname):
         import re
         try:
@@ -1152,7 +1150,6 @@ class ProjectSQLiteHandler:
     def getSetResults(self,setNum):
         #returns a dataframe of run table
         set_id = self.getSetId(setNum)
-        print(self.getAllRecords('run'))
         tups = self.cursor.execute("SELECT * from run where set_id = ?",[set_id]).fetchall()
         col_name_list = [tuple[0] for tuple in self.cursor.description]
         if tups:
@@ -1162,10 +1159,6 @@ class ProjectSQLiteHandler:
     def insertCompletedRun(self,setId,runNum):
         id = self.insertRecord('run',['set_id','run_num','started','finished'],[setId,runNum,1,1])
         return id
-    def getSetAttributes(self,setNum):
-        #returns a dataframe of component tag values by run
-        #TODO write function
-        return pd.DataFrame()
     def insertRunComponent(self,run_id,set_component_id):
         id = self.insertRecord('run_attributes', ['run_id', 'set_component_id'], [run_id,set_component_id])
         return id
@@ -1180,21 +1173,48 @@ class ProjectSQLiteHandler:
             if not lot:
                 return d
             else:
-                if (lot[0][0] + " " + lot[0][1]) in d.keys():
-                    d[lot[0][0] + " " + lot[0][1]]['x'].append(lot[0][2])
-                    d[lot[0][0] + " " + lot[0][1]]['y'].append(lot[0][3])
+                if (lot[0][4] + " " + lot[0][5]) in d.keys():
+                    d[lot[0][4] + " " + lot[0][5]]['x'].append(lot[0][1])
+                    d[lot[0][4] + " " + lot[0][5]]['y'].append(lot[0][2])
                 else:
-                    d[lot[0][0] + " " + lot[0][1]] = {}
-                    d[lot[0][0] + " " + lot[0][1]]['x']=[lot[0][2]]
-                    d[lot[0][0] + " " + lot[0][1]]['y']=[lot[0][3]]
+                    d[lot[0][4] + " " + lot[0][5]] = {}
+                    d[lot[0][4] + " " + lot[0][5]]['x']=[lot[0][1]]
+                    d[lot[0][4] + " " + lot[0][5]]['y']=[lot[0][2]]
                 lot.pop(0)
                 return dict_from_tuple(lot,d)
 
         tag = tag.split(" ")[1]
-        resultTuples = self.cursor.execute("SELECT set_name, 'Run' || run_num,tag_value," + metric + " FROM "
+        resultTuples = self.cursor.execute("SELECT * FROM (SELECT run_id,tag_value," + metric + " FROM "
                              "run JOIN run_attributes ON run._id = run_attributes.run_id "
                               "JOIN set_components ON run_attributes.set_component_id = set_components._id "
                               "JOIN component on set_components.component_id = component._id "
                               "JOIN set_ on set_components.set_id = set_._id "
-                              "WHERE componentnamevalue || '.' || tag = ?",[tag]).fetchall()
+                              "WHERE componentnamevalue || '.' || tag = ?) as tagvalues "
+"JOIN (SELECT run_id,tag, tag_value FROM run_attributes "
+"JOIN set_components ON run_attributes.set_component_id = set_components._id "
+                              "JOIN component on set_components.component_id = component._id "
+                              "JOIN set_ on set_components.set_id = set_._id "
+ "WHERE componentnamevalue || '.' || tag != ? GROUP BY run_id HAVING count(tag) > 1) as seriesValues "
+"on tagvalues.run_id = seriesValues.run_id GROUP BY tagvalues.tag_value,seriesValues.tag,seriesValues.tag_value ORDER BY tagvalues.tag_value",[tag,tag]).fetchall()
+
         return dict_from_tuple(resultTuples,{})
+
+    def exportRunMetadata(self,setName):
+        exportPath = getFilePath(setName, projectFolder=self.getProjectPath())
+
+        strSQL = "SELECT * FROM run LEFT JOIN (SELECT run_id, " \
+        "group_concat(componentnamevalue ||'.' || tag || ' = ' || tag_value) from run_attributes " \
+        "JOIN set_components ON set_components._id = run_attributes.set_component_id " \
+        "JOIN component on set_components.component_id = component._id WHERE " \
+        "set_components.set_id = " + str(self.setId) + ") as ra ON run._id = ra.run_id " \
+                                                       "GROUP BY run_id"
+        self.exportView(strSQL,exportPath)
+        return
+    def exportView(self,strSql,exportPath):
+        records = self.cursor.execute(strSql).fetchall()
+        col_name_list = [tuple[0] for tuple in self.cursor.description]
+        with open(exportPath,'w+') as csvFile:
+            csvFile.write(col_name_list)
+            csvFile.write("/n")
+            for r in records:
+                csvFile.write(r)

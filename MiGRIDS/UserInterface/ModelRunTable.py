@@ -72,7 +72,8 @@ class RunTableModel(QtSql.QSqlQueryModel):
                       "group_concat(componentnamevalue ||'.' || tag || ' = ' || tag_value) from run_attributes " \
                       "JOIN set_components ON set_components._id = run_attributes.set_component_id " \
                       "JOIN component on set_components.component_id = component._id WHERE " \
-                      "set_components.set_id = " + str(self.setId) + ") as ra ON run._id = ra.run_id "
+                      "set_components.set_id = " + str(self.setId) + " GROUP BY run_attributes.run_id) as ra ON run._id = ra.run_id " \
+                      "GROUP BY run_id"
 
         self.setQuery(self.strsql)
         self.query()

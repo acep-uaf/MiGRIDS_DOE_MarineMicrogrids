@@ -21,7 +21,7 @@ class ResultsModel(ResultsPlot):
         # y is any metadata value
         #optionsX = self.dbhandler.setComponentTag(1)  # TODO this needs to be the setID
 
-        self.setData(self.getData())
+        self.setData(self.getPlotData())
         if self.data is not None:
             self.displayData = self.defaultDisplay()
             self.plotWidget.makePlot(self.displayData)
@@ -30,18 +30,19 @@ class ResultsModel(ResultsPlot):
     def makePlotArea(self):
         optionsX = QtSql.QSqlQueryModel()
         strsql = "SELECT " \
-                      "group_concat(set_name ||' ' || componentnamevalue ||'.' || tag) from run_attributes " \
+                      "set_name ||' ' || componentnamevalue ||'.' || tag from run_attributes " \
                       "JOIN set_components ON set_components._id = run_attributes.set_component_id " \
                       "JOIN component on set_components.component_id = component._id "\
-                      "JOIN set_ on set_components.set_id = set_._id"
+                      "JOIN set_ on set_components.set_id = set_._id GROUP BY set_name, componentnamevalue, tag"
 
         optionsX.setQuery(strsql)
         optionsX.query()
-        r = optionsX.rowCount()
+
 
         optionsY = [name for name, member in RunFields.__members__.items()][6:]
         self.set_XCombo(optionsX)
         self.set_YCombo(optionsY)
+        return
 
     def setData(self, data):
         '''sets the data attribute'''
@@ -49,35 +50,32 @@ class ResultsModel(ResultsPlot):
         return
 
 
-    def getData(self):
+    def getPlotData(self):
         tag = self.getSelectedX()
         metric = self.getSelectedY()
         #x is values for tag changes
         data = self.getXYData(tag,metric)
-        data = self.validate(data)
+        data =self.validate(data)
+
         return data
 
     def validate(self,dataDict):
-        handler = RunHandler()
-
-        def lookup(v, runfolder):
-            if not handler.isTagReferenced(v):
-                return v
-            else:
-                return handler.getReferencedValue(v,runfolder)[0]
-
-        def fixReferenced(k):
-            '''converts tag refenced values in x lists for each series in the data dictionary to actual numbers '''
-            x = dataDict[k]['x']
-            runFolder = self.getRunFolder(k)
-            trueX = [lookup(i,runFolder) for i in x]
-            dataDict[k]['x'] = trueX
+        #TODO implement
+        starter = 0
         if dataDict is not None:
-            [fixReferenced(d) for d in dataDict.keys()]
+            for k in dataDict.keys():
+                if 'color' not in dataDict[k].keys():
+                    dataDict[k]['color'] = self.pickColor(starter)
+                    starter += 1
+                if 'x' not in dataDict[k].keys():
+                    return {}
+                if 'y' not in dataDict[k].keys():
+                    return {}
+
         return dataDict
 
     def getRunFolder(self,setRun):
-        import re
+
         setName = setRun.split(' ')[0]
 
         runName = setRun.split(' ')[1]
@@ -85,15 +83,17 @@ class ResultsModel(ResultsPlot):
         setDir = getFilePath(setName,projectFolder=projectDir)
         runDir = getFilePath(runName, set=setDir)
         return runDir
+
     def refreshPlot(self):
         super(ResultsModel, self).refreshPlot()
-        self.makePlotArea()
+
 
     def getXYData(self,tag,metric):
         if (tag =='')|(metric==''):
             return
         else:
             return self.dbhandler.getRunXYValues(tag,metric) #[run1:40,run2:100,run3:20]
+
 
 
     def revalidate(self):

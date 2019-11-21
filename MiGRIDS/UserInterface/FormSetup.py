@@ -270,35 +270,39 @@ class FormSetup(QtWidgets.QWidget):
         if (setupFile == ('','')) | (setupFile is None):
             return
         
-        progressBar = CustomProgressBar('Loading Project')
+        self.progressBar = CustomProgressBar('Loading Project')
         try:
             # when thread finishes self.controller.inputData and self.components are set
             self.myThread = ThreadedProjectLoad(setupFile[0])
-            self.myThread.notifyCreateProgress.connect(progressBar.onProgress)
+            self.myThread.notifyCreateProgress.connect(self.progressBar.onProgress)
             self.myThread.finished.connect(self.onProjectLoaded)
             self.myThread.start()
         except Exception as e:
             print(e)
-        finally:
-            progressBar.hide()
+
+
 
     def onProjectLoaded(self):
 
-        self.displayModelData() #update the form with loaded data
-        self.updateFormProjectDataStatus()
+        try:
+            self.displayModelData() #update the form with loaded data
+            self.updateFormProjectDataStatus()
 
-        #boolean indicator of whether or not model sets have already been run
-        #make the data blocks editable if there are no sets already created
-        #if sets have been created then input data is not editable from the interface
-        if self.setsRun():
-            self.showAlert("Analysis in Progress","Analysis results were detected. You cannot edit input data after analysis has begun.")
-        else:
-            self.tabs.setEnabled(True)
-            print('Loaded %s:' % self.controller.project)
+            #boolean indicator of whether or not model sets have already been run
+            #make the data blocks editable if there are no sets already created
+            #if sets have been created then input data is not editable from the interface
+            if self.setsRun():
+                self.showAlert("Analysis in Progress","Analysis results were detected. You cannot edit input data after analysis has begun.")
+            else:
+                self.tabs.setEnabled(True)
+                print('Loaded %s:' % self.controller.project)
 
-        #set the project name on the GUI form
-        self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.controller.project)
-
+            #set the project name on the GUI form
+            self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.controller.project)
+        except Exception as e:
+            print("project not loaded successfully")
+        finally:
+            self.progressBar.hide()
         return
 
     def setsRun(self):
@@ -407,13 +411,8 @@ class FormSetup(QtWidgets.QWidget):
         progressBar = CustomProgressBar('Data fixing')
         try:
             #when thread finishes self.controller.inputData and self.components are set
-            self.myThread = ThreadedDataCreate(self.controller)
+            self.controller.createInputData()
 
-            self.myThread.notifyCreateProgress.connect(progressBar.onProgress)
-            self.myThread.catchComponents.connect(self.gotComponents)
-            self.myThread.catchData.connect(self.gotData)
-            self.myThread.finished.connect(self.loadProjectData)
-            self.myThread.start()
         except Exception as e:
             print(e)
         finally:
@@ -606,7 +605,7 @@ class FormSetup(QtWidgets.QWidget):
             if not self.controller.dataObjectValid:
                 self.controller.inputData = self.makeData()
                 #make netcdf from dataclass object
-            self.generateNetcdf(self.controller.inputData)
+            self.controller.generateNetcdf(self.controller.inputData)
             return
         else:
             self.fixSetup()
@@ -617,71 +616,13 @@ class FormSetup(QtWidgets.QWidget):
         self.showAlert("Setup file invalid","Please correct your setup input")
         self.prePopulateSetupWizard()
 
-    def generateNetcdf(self, data):
-        '''uses a dataclass object to generate model input netcdf files
-        netcdf files are written to the processed data folder'''
-        #MainWindow = self.window()
-       # setupForm = MainWindow.findChild(QtWidgets.QWidget, 'setupDialog')
-        #componentModel = setupForm.findChild(QtWidgets.QWidget, 'components').model()
-
-        if data:
-            df = data.fixed
-        componentDict = {}
-        if 'components' not in self.__dict__.keys():
-            #generate components
-            self.controller.components = self.makeComponentList()
-        elif self.controller.components == None:
-            self.controller.components = self.makeComponentList()
-        for c in self.components:
-            componentDict[c.column_name] = c.toDictionary()
-
-        #filesCreated is a list of netcdf files that were generated
-        self.ncs = self.controller.setupHandler.createNetCDF(df, componentDict,self.controller.setupFolder)
-        self.netCdfsLoaded()
-
-    @QtCore.pyqtSlot()
-    def gotData(self,data):
-        self.controller.inputData = data
-
-    @QtCore.pyqtSlot()
-    def gotComponents(self,loc):
-        self.controller.components = loc
 
 
 
-class ThreadedDataCreate(QtCore.QThread):
-    notifyCreateProgress = QtCore.pyqtSignal(int,str)
-    catchData = QtCore.pyqtSignal(DataClass)
-    catchComponents = QtCore.pyqtSignal(list)
 
-    def __init__(self,controller):
-        QtCore.QThread.__init__(self)
-        self.controller = controller
 
-    def __del__(self):
-        self.wait()
 
-    def run(self):
 
-        self.controller.sender.notifyProgress.connect(self.notify)
-        cleaned_data, components = self.controller.createCleanedData(
-            os.path.join(self.controller.setupFolder, self.controller.project + 'Setup.xml'))\
-            #.connect(self, QtCore.SIGNAL('notifyProgress'), self.notify)
-        self.catchData.emit(cleaned_data)
-        self.catchComponents.emit(components)
-        return
-
-    def done(self):
-        QtGui.QMessageBox.information(self, "Done!", "Done loading data!")
-
-    def notify(self,i,task):
-        self.notifyCreateProgress.emit(i,task)
-
-class ThreadedNetcdfCreate(QtCore.QThread):
-    notifyProgress = QtCore.pyqtSignal(int)
-    def run(self):
-        for i in range(101):
-            self.notifyNetcdfProgress.emit(i)
             
 class ThreadedProjectLoad(QtCore.QThread):
     notifyCreateProgress = QtCore.pyqtSignal(int,str)

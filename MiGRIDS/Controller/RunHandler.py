@@ -7,13 +7,33 @@ import shutil
 from PyQt5 import QtWidgets
 from MiGRIDS.Analyzer.DataRetrievers.getAllRuns import getAllRuns
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
-from MiGRIDS.Analyzer.PerformanceAnalyzers.getRunMetaData import getRunMetaData
+from MiGRIDS.Analyzer.PerformanceAnalyzers.getRunMetaData import fillRunMetaData
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.Model.Operational.runSimulation import runSimulation
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.makeAttributeXML import makeAttributeXML, writeAttributeXML
 
+METADATANAMES = {'Generator Import kWh':'genptot',
+                'Generator Charging kWh':'genpch',
+'Generator Switching':'gensw',
+'Generator Loading':'genloadingmean',
+'Generator Online Capacity':'gencapacitymean',
+'Generator Fuel Consumption kg':'genfuelcons',
+'Diesel-off time h':'gentimeoff',
+'Generator Cumulative Run time h':'gentimeruntot',
+'Generator Cumulative Capacity Run Time kWh':'genruntimeruntotkwh',
+'Generator Overloading Time h':'genoverloadingtime',
+'Generator Overloading kWh':'genoverLoadingkwh',
+'Wind Power Import kWh':'wtgpimporttot',
+'Wind Power Spill kWh':'wtgpspilltot',
+'Wind Power Charging kWh':'wtgpchtot',
+'Energy Storage Discharge kWh':'eesspdistot',
+'Energy Storage Charge kWh':'eesspchtot',
+ 'Energy Storage SRC kWh':'eesssrctot',
+'Energy Storage Overloading Time h':'eessoverloadingtime',
+'Energy Storage Overloading kWh':'eessoverloadingkwh',
+'Thermal Energy Storage Throughput kWh':'tessptot'}
 
 
 class RunHandler(UIHandler):
@@ -94,6 +114,7 @@ class RunHandler(UIHandler):
            compList = setSetup['componentNames.value'].split(" ")
            #add components to the set_component table (base case, tag set to None)
            self.dbhandler.updateSetComponents(setName, compList)
+
         #look for existing runs and update the database
 
        #read attribute xml and put new tags in set_component table
@@ -111,7 +132,9 @@ class RunHandler(UIHandler):
         runs = getAllRuns(projectSetDir)
 
         setId = self.dbhandler.getSetId(setName)
+          # fills in metadata results
         [self.updateRunStartFinishMeta(projectSetDir,setId,r) for r in runs]
+        fillRunMetaData(projectSetDir, []) #fills in metadata for all runs
         return
 
     def updateRunStartFinishMeta(self,setDir,setId,runNum):
@@ -122,7 +145,7 @@ class RunHandler(UIHandler):
             self.dbhandler.insertCompletedRun(setId, runNum) #puts minimal info in database
             runId = self.dbhandler.getId('run', ['run_num', 'set_id'], [runNum, setId])
             self.setRunComponentsFromFolder(setId,runPath,runId) #fill in the run_attribute table
-            getRunMetaData(setDir, []) #fills in metadata results
+
 
     def hasOutPutData(self,runPath):
         '''checks if there are any netcdf files in the output folder
@@ -134,25 +157,40 @@ class RunHandler(UIHandler):
             return True
         else:
             return False
+
     def setRunComponentsFromFolder(self,setId,runPath,runId):
         def setComponentName(d):
             d['component_name'] = self.dbhandler.getFieldValue('component','componentnamevalue','_id',d['component_id'])
             return d
         possibleComponentAttributesDict = self.dbhandler.getSetComponentTags(setId)
         possibleComponentAttributesDict =[setComponentName(p) for p in possibleComponentAttributesDict]
-        searchPath = os.path.join(*[runPath,'Components','*.xml'])
+        [self.addToRunAttribute(t,runId,runPath) for t in possibleComponentAttributesDict]
+
+    def addToRunAttribute(self,d,runId,runPath):
+        import re
+        def xmlMatched(xmlName,componentName):
+            filename = os.path.basename(xmlName)
+            if re.findall("[a-z]+[0-9]+", filename, re.IGNORECASE)[0] == componentName:
+                return xmlName
+        searchPath = os.path.join(*[runPath, 'Components', '*.xml'])
         xmls = glob.glob(searchPath)
+        selectedXML = [xmlMatched(x,d['component_name']) for x in xmls][0]
+        t, a = self.splitAttribute(d['tag'])
+        xmlValue = readXmlTag(os.path.basename(selectedXML),t ,a, os.path.dirname(selectedXML))
+        def actualValue(tagv):
+            if self.isTagReferenced(tagv):
+                t, a = self.splitAttribute(tagv)
+                temp = readXmlTag(os.path.basename(selectedXML), t, a, os.path.dirname(selectedXML))
+                return readXmlTag(os.path.basename(selectedXML), t, a, os.path.dirname(selectedXML))
+            else:
+                return tagv
 
-        [self.insertIfContainsComponentTag(x,possibleComponentAttributesDict,runId) for x in xmls]
-
-    def insertIfContainsComponentTag(self,xml,loAT,runId):
-        def hasTag(d):
-            t,a = self.splitAttribute(d['tag'])
-            return readXmlTag(os.path.basename(xml),t ,a, os.path.dirname(xml)) != None
-
-        #does not position arguments correctly
-        [self.dbhandler.insertRunComponent(runId,t['_id']) for t in loAT if
-         (hasTag(t) & (t['component_name'] in xml))]
+        if ((isinstance(xmlValue,list)) & (actualValue(d['tag_value']) in xmlValue)) | \
+                ((not isinstance(xmlValue,list)) & (actualValue(d['tag_value']) == xmlValue)) | \
+                ((isinstance(xmlValue, list)) & (actualValue(d['tag_value']) == xmlValue)):
+           # put the record into the run_attribute table
+            self.dbhandler.insertRunComponent(runId, d['_id'])
+            return
 
     def updateFromAttributeXML(self,setName):
         #the attribute xml is set up different from other files.
@@ -204,7 +242,7 @@ class RunHandler(UIHandler):
         # call to run models
         runSimulation(projectSetDir=setDir)
         #TODO pass 90% to progress box
-        getRunMetaData(setDir,[]) #get metadata for all the runs
+        fillRunMetaData(setDir, []) #get metadata for all the runs
 
 
     def createRun(self, setComponentIds, run,setName):
