@@ -1,6 +1,8 @@
 import pandas as pd
 import os
 import sqlite3 as lite
+
+from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import getReferencedValue, isTagReferenced
 from MiGRIDS.InputHandler.Component import Component
 from MiGRIDS.Controller.makeXMLFriendly import xmlToString, stringToXML
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
@@ -1169,17 +1171,32 @@ class ProjectSQLiteHandler:
         :param metric: The metadata metric to display
         :return: dictionary of series and x y values
         '''
+        def getRunFolder(runid):
+            run_num = self.getFieldValue('run','run_num','_id',runid)
+            setFolder = getFilePath(self.getFieldValue('set_','set_name','_id',self.getFieldValue('run','set_id','_id',runid)),projectFolder = self.getProjectPath())
+            runFolder = getFilePath('Run'+run_num, set=setFolder)
+
+            return runFolder
+
+        def getActualValue(runid, v):
+            if isTagReferenced(v):
+                av = getReferencedValue(v,getRunFolder(runid))
+                if isinstance(av,list):
+                    return av[0]
+                return av
+            return v
+
         def dict_from_tuple(lot,d):
             if not lot:
                 return d
             else:
-                if (lot[0][4] + " " + lot[0][5]) in d.keys():
-                    d[lot[0][4] + " " + lot[0][5]]['x'].append(lot[0][1])
-                    d[lot[0][4] + " " + lot[0][5]]['y'].append(lot[0][2])
+                if (lot[0][4]) in d.keys():
+                    d[lot[0][4]]['x'].append(getActualValue(lot[0][0],lot[0][1]))
+                    d[lot[0][4]]['y'].append(getActualValue(lot[0][0],lot[0][2]))
                 else:
-                    d[lot[0][4] + " " + lot[0][5]] = {}
-                    d[lot[0][4] + " " + lot[0][5]]['x']=[lot[0][1]]
-                    d[lot[0][4] + " " + lot[0][5]]['y']=[lot[0][2]]
+                    d[lot[0][4]] = {}
+                    d[lot[0][4]]['x']=[getActualValue(lot[0][0],lot[0][1])]
+                    d[lot[0][4]]['y']=[getActualValue(lot[0][0],lot[0][2])]
                 lot.pop(0)
                 return dict_from_tuple(lot,d)
 
@@ -1190,12 +1207,12 @@ class ProjectSQLiteHandler:
                               "JOIN component on set_components.component_id = component._id "
                               "JOIN set_ on set_components.set_id = set_._id "
                               "WHERE componentnamevalue || '.' || tag = ?) as tagvalues "
-"JOIN (SELECT run_id,tag, tag_value FROM run_attributes "
+"JOIN (SELECT run_id,group_concat(tag || tag_value) as seriesname FROM run_attributes "
 "JOIN set_components ON run_attributes.set_component_id = set_components._id "
                               "JOIN component on set_components.component_id = component._id "
                               "JOIN set_ on set_components.set_id = set_._id "
  "WHERE componentnamevalue || '.' || tag != ? GROUP BY run_id HAVING count(tag) > 1) as seriesValues "
-"on tagvalues.run_id = seriesValues.run_id GROUP BY tagvalues.tag_value,seriesValues.tag,seriesValues.tag_value ORDER BY tagvalues.tag_value",[tag,tag]).fetchall()
+"on tagvalues.run_id = seriesValues.run_id GROUP BY tagvalues.tag_value,seriesValues.seriesname ORDER BY CAST(tagvalues.tag_value as real) ASC",[tag,tag]).fetchall()
 
         return dict_from_tuple(resultTuples,{})
 

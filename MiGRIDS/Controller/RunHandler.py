@@ -6,7 +6,7 @@ import os
 import shutil
 from PyQt5 import QtWidgets
 from MiGRIDS.Analyzer.DataRetrievers.getAllRuns import getAllRuns
-from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
+from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag, splitAttribute, isTagReferenced
 from MiGRIDS.Analyzer.PerformanceAnalyzers.getRunMetaData import fillRunMetaData
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIHandler import UIHandler
@@ -71,7 +71,7 @@ class RunHandler(UIHandler):
         for sc in setCompId:
 
             setCompRecord = self.dbhandler.getRecordDictionary('set_components',sc)
-            if self.isTagReferenced(setCompRecord['tag_value']):
+            if isTagReferenced(setCompRecord['tag_value']):
                 #keep the record for later
                 holdRecord.append(setCompRecord)
                 pass
@@ -89,19 +89,8 @@ class RunHandler(UIHandler):
             self.writeTag(descFile, r['tag'], self.getReferencedValue(r['tag_value'],runFolder))
 
         return
-    def getReferencedValue(self, tag, runFolder):
-        '''looks for a file and tag within a specified folder. Returns the value of the tag if found
-        tag uses the format [component].[tag].[attribute]'''
-        sourceFile = [os.path.join(*[runFolder,'Components', xml]) for xml in os.listdir(os.path.join(runFolder,'Components')) if tag.split(".")[0] in xml]
-        if len(sourceFile) >= 1:
-            sourceFile = sourceFile[0]
-            t, a = self.splitAttribute(tag)
-            return readXmlTag(os.path.basename(sourceFile), t, a, os.path.dirname(sourceFile))
-        else:
-            return None
-    def isTagReferenced(self,tag):
-        pieces = str(tag).split(".")
-        return len([p for p in pieces if not p.isnumeric()]) >0
+
+
     def loadExistingProjectSet(self,setName):
         #New handler because this function is called from thread
        #get a setup dictionary - None if setup file not found
@@ -175,11 +164,11 @@ class RunHandler(UIHandler):
         searchPath = os.path.join(*[runPath, 'Components', '*.xml'])
         xmls = glob.glob(searchPath)
         selectedXML = [xmlMatched(x,d['component_name']) for x in xmls][0]
-        t, a = self.splitAttribute(d['tag'])
+        t, a = splitAttribute(d['tag'])
         xmlValue = readXmlTag(os.path.basename(selectedXML),t ,a, os.path.dirname(selectedXML))
         def actualValue(tagv):
-            if self.isTagReferenced(tagv):
-                t, a = self.splitAttribute(tagv)
+            if isTagReferenced(tagv):
+                t, a = splitAttribute(tagv)
                 temp = readXmlTag(os.path.basename(selectedXML), t, a, os.path.dirname(selectedXML))
                 return readXmlTag(os.path.basename(selectedXML), t, a, os.path.dirname(selectedXML))
             else:

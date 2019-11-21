@@ -82,13 +82,14 @@ class Controller:
         # different load pathways depending on whether or not a project database is found
         self.projectFolder = getFilePath('Project', setupFolder=os.path.dirname(setupFile))
         self.project = os.path.basename(self.projectFolder)
+        self.sender.update(1, 'Data loading')
         # Look for an existing project database and replace the default one with it
         if os.path.exists(os.path.join(self.projectFolder, 'project_manager')):
             print('An existing project database was found.')
 
             replaceDefaultDatabase(os.path.join(self.projectFolder, 'project_manager'))
             self.projectDatabase = True
-            self.sender.update(1,'Data loading')
+
 
         else:
             print('An existing project database was not found.')
@@ -97,22 +98,22 @@ class Controller:
             self.setupValid = self.validator.validate(ValidatorTypes.SetupXML, setupFile)
             dbHandler.insertRecord('project', ['project_name', 'project_path', 'setupfile'], [self.project, self.projectFolder, setupFile])
             dbHandler.updateSetupInfo(setupDictionary, setupFile)
-            self.sender.update(1, 'Project loading')
+            self.sender.update(1, 'Loading Set Results')
             # load Sets - this loads attribute xmls, set setups, set descriptors, setmodel selectors and run result metadata
             self.sets = getAllSets(getFilePath('OutputData', setupFolder=os.path.dirname(setupFile)))
             [runHandler.loadExistingProjectSet(os.path.dirname(s).split('\\')[-1]) for s in self.sets]
-        self.sender.update(3, 'Project loading')
+        self.sender.update(3, 'Validating Data')
 
         self.projectFolder = dbHandler.getProjectPath()
 
         # get input data object
         self.inputData = findDataObject()
         self.dataObjectValid = self.validator.validate(ValidatorTypes.DataObject, self.inputData)
-        self.sender.update(3, 'Project loading')
+        self.sender.update(3, 'Loading NetCDFs')
         # get model input netcdfs
         self.netcdfs = listNetCDFs()
         self.netcdfsValid = self.validator.validate(ValidatorTypes.NetCDFList, self.netcdfs)
-        self.sender.update(3, 'Project loading')
+        self.sender.update(3, 'Project Loaded')
         del setupHandler
         del dbHandler
         del runHandler

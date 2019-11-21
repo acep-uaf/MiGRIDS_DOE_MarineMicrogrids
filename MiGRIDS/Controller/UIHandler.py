@@ -6,6 +6,7 @@ import pickle
 import numpy as np
 from bs4 import BeautifulSoup
 
+from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import splitAttribute
 from MiGRIDS.InputHandler.getSetupInformation import setupToDictionary
 
 from MiGRIDS.Controller.GenericSender import GenericSender
@@ -21,10 +22,7 @@ class UIHandler():
         self.sender = GenericSender() #used to send signals to pyqt objects
         self.dbhandler = ProjectSQLiteHandler()
 
-    def splitAttribute(self,tag):
-        a = tag.split(".")[len(tag.split(".")) - 1]
-        tag = tag.split(".")[len(tag.split(".")) - 2]
-        return tag, a
+
     def writeSoup(self,soup,file):
 
         if not os.path.exists(os.path.dirname(file)):
@@ -35,10 +33,7 @@ class UIHandler():
         f.close()
 
     def writeTag(self,file,tag,value):
-        def splitAttribute(tag):
-            a = tag.split(".")[len(tag.split(".")) -1]
-            tag =  tag.split(".")[len(tag.split(".")) -2]
-            return tag,a
+
         tag, a = splitAttribute(tag)
 
         writeXmlTag(file, tag, a, value)
@@ -126,12 +121,6 @@ class UIHandler():
 
         self.writeSetup(setupSoup,setName)
     def updateSoup(self,soup,tag,value):
-
-        def splitAttribute(mytag):
-            a = mytag.split(".")[len(mytag.split(".")) -1]
-            t =  mytag.split(".")[len(mytag.split(".")) -2]
-            return t,a
-
 
         def findTag(soup,mytag):
             '''matches a tag in soup regardless of case'''

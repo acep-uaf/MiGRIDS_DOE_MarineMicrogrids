@@ -2,17 +2,15 @@
 # Author: Jeremy VanderMeer, jbvandermeer@alaska.edu
 # Date: November 21, 2017
 # License: MIT License (see LICENSE file of this package for more information)
+import os
+from bs4 import BeautifulSoup
 
 # read a value from an xml tag
 def readXmlTag(fileName,tag,attr,fileDir='',returnDtype = ''):
     # general imports
     # returnDtype specifies if the data type of the output is returned as float or int. If left empty, returns strings
-    import os
-    from bs4 import BeautifulSoup
 
-
-
-    # open file and read into soup
+   # open file and read into soup
     infile_child = open(os.path.join(fileDir,fileName), "r")  # open
     contents_child = infile_child.read()
     infile_child.close()
@@ -42,5 +40,21 @@ def readXmlTag(fileName,tag,attr,fileDir='',returnDtype = ''):
 
     return tagValues
 
+def getReferencedValue(tag, runFolder):
+    '''looks for a file and tag within a specified folder. Returns the value of the tag if found
+    tag uses the format [component].[tag].[attribute]'''
+    sourceFile = [os.path.join(*[runFolder,'Components', xml]) for xml in os.listdir(os.path.join(runFolder,'Components')) if tag.split(".")[0] in xml]
+    if len(sourceFile) >= 1:
+        sourceFile = sourceFile[0]
+        t, a = splitAttribute(tag)
+        return readXmlTag(os.path.basename(sourceFile), t, a, os.path.dirname(sourceFile))
+    else:
+        return None
+def isTagReferenced(tag):
+    pieces = str(tag).split(".")
+    return len([p for p in pieces if not p.isnumeric()]) >0
 
-
+def splitAttribute(tag):
+    a = tag.split(".")[len(tag.split(".")) - 1]
+    tag = tag.split(".")[len(tag.split(".")) - 2]
+    return tag, a
