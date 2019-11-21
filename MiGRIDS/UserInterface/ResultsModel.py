@@ -60,7 +60,7 @@ class ResultsModel(ResultsPlot):
         return data
 
     def validate(self,dataDict):
-        #TODO implement
+        #TODO implement further tests
         starter = 0
         if dataDict is not None:
             for k in dataDict.keys():

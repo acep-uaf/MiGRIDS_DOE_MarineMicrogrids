@@ -452,6 +452,8 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         return
     def updateDependents(self):
         self.refreshDataPlot()
+
+    #TODO this should be make plot
     # the run table shows ??
     def createRunTable(self,setId):
         gb = QtWidgets.QGroupBox('Runs')
@@ -479,7 +481,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         '''finds the plot object and calls its default method'''
         resultDisplay = self.window().findChild(ResultsModel)
         resultDisplay.makePlotArea()
-        resultDisplay.refreshPlot()
         resultDisplay.showPlot()
 
 
