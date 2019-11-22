@@ -6,11 +6,13 @@ The FormSetup widget has 3 purposes.
 wind turbine components can have either an associated power time series or a windspeed file that a power time series will be generated from
 In the case of a windspeed file a windspeed netcdf file will be generated and power time series will be generated once the model is run based
 on each wtg components descriptor file.'''
+import glob
 import os
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.Controller.Validator import ValidatorTypes
+from MiGRIDS.Controller.loadProjectOffUIThread import loadProjectOffUIThread
 from MiGRIDS.InputHandler.DataClass import DataClass
 from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
 from MiGRIDS.UserInterface.DetailsWidget import DetailsWidget
@@ -36,6 +38,7 @@ class FormSetup(QtWidgets.QWidget):
     #initialize the form
     def initUI(self):
         self.controller = Controller()
+        self.controller.sender.statusChanged.connect(self.onControllerStateChange)
         self.setObjectName("setupDialog")
 
         #the main layout is oriented vertically
@@ -56,7 +59,8 @@ class FormSetup(QtWidgets.QWidget):
         self.setLayout(windowLayout)
         #title is setup
         self.setWindowTitle('Input Files')
-        #self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
+        self.grantPermissions()
         #show the form
         self.showMaximized()
 
@@ -87,7 +91,7 @@ class FormSetup(QtWidgets.QWidget):
         #add button to launch the setup wizard for setting up the setup xml file
         hlayout.addWidget(
             makeButtonBlock(self,self.functionForCreateButton,
-                                 'Create setup XML', None, 'Start the setup wizard to create a new setup file','createProject'))
+                                 'New Project', None, 'Start the setup wizard to create a new setup file','createProject'))
         #force the buttons to the left side of the layout
         hlayout.addStretch(1)
 
@@ -109,12 +113,12 @@ class FormSetup(QtWidgets.QWidget):
         # layout object name
         hlayout.setObjectName('buttonLayout')
         # add the button to load a setup xml
-        button = QtWidgets.QPushButton('Create input files')
-        button.setToolTip('Create input files to run models')
-        button.clicked.connect(lambda: self.onClick(self.createInputFiles))
-        button.setFixedWidth(200)
+        self.createInputButton = QtWidgets.QPushButton('Create input files')
+        self.createInputButton.setToolTip('Create input files to run models')
+        self.createInputButton.clicked.connect(lambda: self.onClick(self.createInputFiles))
+        self.createInputButton.setFixedWidth(200)
         # windowLayout.addWidget(makeButtonBlock(self,self.createInputFiles,'Create input files',None,'Create input files to run models'),3)
-        hlayout.addWidget(button)
+        hlayout.addWidget(self.createInputButton)
         #make the data log viewing button
         self.detailsBtn = QtWidgets.QPushButton('Details')
         self.detailsBtn.setToolTip('View data fixing log.')
@@ -123,21 +127,18 @@ class FormSetup(QtWidgets.QWidget):
         self.detailsBtn.setEnabled(False)
         hlayout.addWidget(self.detailsBtn)
 
-        dataLoaded = QtWidgets.QLineEdit()
-        dataLoaded.setFrame(False)
-        dataLoaded.setObjectName('dataloaded')
-        dataLoaded.setText('No data loaded')
-        dataLoaded.setFixedWidth(200)
-        self.dataLoadedOutput = dataLoaded
+        self.dataLoadedOutput = QtWidgets.QLineEdit()
+        self.dataLoadedOutput.setFrame(False)
+        self.dataLoadedOutput.setFixedWidth(200)
         hlayout.addWidget(self.dataLoadedOutput)
 
         # generate netcd button
-        netCDFButton = self.createSubmitButton()
-        hlayout.addWidget(netCDFButton)
-        button.setFixedWidth(200)
+        self.netCDFButton = self.createSubmitButton()
+        hlayout.addWidget(self.netCDFButton)
+        self.netCDFButton.setFixedWidth(200)
         self.currentNetcdfs  = QtWidgets.QLineEdit()
         self.currentNetcdfs.setFrame(False)
-        self.currentNetcdfs.setText("none")
+
         hlayout.addWidget(self.currentNetcdfs)
         #hlayout.addStretch(1)
         self.BottomButtons.setLayout(hlayout)
@@ -168,7 +169,7 @@ class FormSetup(QtWidgets.QWidget):
         '''
         #if a project is already started save it before starting a new one
         try:
-            if (self.project != '') & (self.project is not None):
+            if (self.controller.project != '') & (self.controller.project is not None):
                 if self.validateProjectSwitch() != True:
                     return
 
@@ -192,7 +193,7 @@ class FormSetup(QtWidgets.QWidget):
             pages.enableTabs()
             self.tabs.setEnabled(True)
             #FileBlock mapper needs to be set to a new records so information can be saved
-            self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.project)
+            self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.controller.project)
 
     def validateProjectSwitch(self):
         '''
@@ -210,6 +211,20 @@ class FormSetup(QtWidgets.QWidget):
         else:
             return False
 
+    def onControllerStateChange(self):
+        self.grantPermissions()
+
+    def grantPermissions(self):
+        self.tabs.setEnabled(self.controller.setupValid)
+        self.createInputButton.setEnabled(self.controller.rawDataValid)
+        if self.controller.dataObjectValid:
+            self.dataLoadedOutput.setText('Data Loaded')
+        else:
+            self.dataLoadedOutput.setText('')
+        self.netCDFButton.setEnabled(self.controller.dataObjectValid)
+        self.detailsBtn.setEnabled(self.controller.dataObjectValid)
+        self.currentNetcdfs.setText(",".join(self.controller.netcdfs))
+
     def prePopulateSetupWizard(self):
             #rebuild the wizard tree with values pre-set
             self.WizardTree = self.buildWizardTree(dlist)
@@ -222,14 +237,14 @@ class FormSetup(QtWidgets.QWidget):
         '''
         self.WizardTree.exec_()
 
-    def procedeToSetup(self):
+    def procedeToSetup(self,pathToCheck):
         '''Evaluates whether or not the setup input should be generated. If a setup file already exists then the user needs to
         indicate they are willing to overwrite that file
         :return Boolean True if the input should be written to a file. False if the input needs to be altered.'''
 
         # If the project already exists wait to see if it should be overwritten
         # assign project has already been called at this point so the directory is created
-        if self.controller.setupValid:
+        if self.hasSetup(pathToCheck):
             overwrite = self.checkOverride("Project Aready Exists",
                                     "Do you want to overwrite existing setup files?.")
             if not overwrite:
@@ -253,7 +268,11 @@ class FormSetup(QtWidgets.QWidget):
             return False
         else:
             return True
-
+    def hasSetup(self,pathToCheck):
+        setupFolder = getFilePath('Setup',projectFolder=pathToCheck)
+        if glob.glob(os.path.join(setupFolder,'*etup.xml')):
+            return True
+        return False
 
     #searches for and loads existing project data - database, setupxml,descriptors, DataClass pickle, Component pickle netcdf,previously run model results, previous optimization results
     def functionForLoadButton(self):
@@ -273,12 +292,13 @@ class FormSetup(QtWidgets.QWidget):
         self.progressBar = CustomProgressBar('Loading Project')
         try:
             # when thread finishes self.controller.inputData and self.components are set
-            self.myThread = ThreadedProjectLoad(setupFile[0])
+            self.myThread = ThreadedProjectLoad(setupFile[0],self.controller)
             self.myThread.notifyCreateProgress.connect(self.progressBar.onProgress)
             self.myThread.finished.connect(self.onProjectLoaded)
             self.myThread.start()
         except Exception as e:
             print(e)
+            self.progressBar.hide()
 
 
 
@@ -366,7 +386,7 @@ class FormSetup(QtWidgets.QWidget):
         '''
         projectDefaultPath = os.path.join(os.path.dirname(__file__),
                                                        *['..', '..', 'MiGRIDSProjects', self.WizardTree.field('project')])
-        if self.procedeToSetup(): #this checks if we are overwriting an existing setup file
+        if self.procedeToSetup(projectDefaultPath): #this checks if we are overwriting an existing setup file
             project_id = self.controller.dbhandler.insertRecord("project",['project_name','project_path'],[self.WizardTree.field('project'),
                                                                                                            projectDefaultPath])
 
@@ -393,9 +413,8 @@ class FormSetup(QtWidgets.QWidget):
                         for f in loFileBlock:
                            f.updateComponentNameList()
 
-
-
             self.WizardTree.close()
+            self.controller.newProject()
         return
     def createInputFiles(self):
         '''
@@ -445,28 +464,23 @@ class FormSetup(QtWidgets.QWidget):
     #         progressBar.hide()
     #         return
 
-    def netCdfsLoaded(self):
-        '''list netcdf files previously generated
-        :returns True if necdfs are found
-        '''
-        self.currentNetcdfs.setText('Processed Files: ' + ', '.join(self.controller.netcdfs))
-        self.updateDependents()
-        return
+    # def netCdfsLoaded(self):
+    #     '''list netcdf files previously generated
+    #     :returns True if necdfs are found
+    #     '''
+    #
+    #     self.updateDependents()
+    #     return
 
     def updateFormProjectDataStatus(self):
         '''updates the setup form to reflect project data (DataClass object, Component info, netcdfs)status
         '''
 
         try:
-            # indicate that the data has loaded
-            if self.controller.dataObjectValid:
-                self.dataLoadedOutput.setText('data loaded')
-                self.detailsBtn.setEnabled(True)
-
-            # update the Model tab with set information
+           # update the Model tab with set information
             self.updateDependents(self.controller.inputData) #make sure there is data here
 
-            if not self.controller.netcdfsValid:
+            if (not self.controller.netcdfsValid) & (self.controller.dataObjectValid):
                 # generate netcdf files if requested
                 msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Time Series loaded",
                                         "Do you want to generate netcdf files?.")
@@ -476,7 +490,7 @@ class FormSetup(QtWidgets.QWidget):
                 if result == QtWidgets.QMessageBox.Ok:
                     self.makeNetcdfs()
             else:
-                self.netCdfsLoaded()
+                self.updateDependents()
 
         except Exception as e:
             print(e)
@@ -627,9 +641,9 @@ class FormSetup(QtWidgets.QWidget):
 class ThreadedProjectLoad(QtCore.QThread):
     notifyCreateProgress = QtCore.pyqtSignal(int,str)
     
-    def __init__(self,setupFile):
+    def __init__(self,setupFile,controller):
         QtCore.QThread.__init__(self)
-        self.controller = Controller() #will attach to the existing instance
+        self.controller = controller #will attach to the existing instance
         self.setupFile = setupFile
     
     def __del__(self):
@@ -639,7 +653,7 @@ class ThreadedProjectLoad(QtCore.QThread):
 
         self.controller.sender.notifyProgress.connect(self.notify)
 
-        self.controller.loadProject(self.setupFile)
+        loadProjectOffUIThread(self.setupFile,self.controller)
        
         return
 

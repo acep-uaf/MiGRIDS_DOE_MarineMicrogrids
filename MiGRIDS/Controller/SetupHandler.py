@@ -33,10 +33,10 @@ class SetupHandler(UIHandler):
         setupFolder = os.path.join(os.path.dirname(__file__), *['..','..','MiGRIDSProjects', project, 'InputData','Setup'])
         #components are all possible components
         components = self.dbhandler.getComponentNames()
-        buildProjectSetup(project, setupFolder,components)
+        setupXML = buildProjectSetup(project, setupFolder,components)
         #fill in project data into the setup xml and create descriptor xmls if they don't exist
         fillProjectData()
-        return
+        return setupXML
 
     def writeComponentSoup(self, component, soup):
         from MiGRIDS.InputHandler.createComponentDescriptor import createComponentDescriptor

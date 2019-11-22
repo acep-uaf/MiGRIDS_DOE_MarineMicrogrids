@@ -420,14 +420,14 @@ class ProjectSQLiteHandler:
             #We use a left join for input files to components so the input file directories will still get listed even if no components have been added
             values = self.cursor.execute(
             "select group_concat(COALESCE(REPLACE(inputfiledirvalue,' ','_'),'None'),' '), group_concat(COALESCE(REPLACE(inputfiletypevalue,' ','_'),'None'),' '),group_concat(componentnamevalue,' '),"
-            "group_concat(REPLACE(headernamevalue,' ','_'), ' '),group_concat(REPLACE(componentattributevalue,' ',' '), ' '), group_concat(REPLACE(componentattributeunit,' ',' '), ' '),group_concat(COALESCE(REPLACE(datechannelvalue,' ','_'),'None'), ' '),group_concat(COALESCE(REPLACE(timechannelvalue,' ','_'),'None'),' '),"
+            "group_concat(REPLACE(headernamevalue,' ','_'),' '),group_concat(REPLACE(componentattributevalue,' ',' '), ' '), group_concat(REPLACE(componentattributeunit,' ',' '), ' '),group_concat(COALESCE(REPLACE(datechannelvalue,' ','_'),'None'), ' '),group_concat(COALESCE(REPLACE(timechannelvalue,' ','_'),'None'),' '),"
             "group_concat(COALESCE(REPLACE(datechannelformat,' ','_'),'None'), ' '),group_concat(COALESCE(REPLACE(timechannelformat,' ','_'),'None'), ' '), "
             "group_concat(COALESCE(REPLACE(timezonevalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(usedstvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(inpututcoffsetvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(flexibleyearvalue,' ','_'),'None'), ' ') "
             "from input_files Left JOIN "
             "(select component._id as component_id, inputfile_id, COALESCE(REPLACE(componentnamevalue,' ','_'),'None') as componentnamevalue, COALESCE(REPLACE(headernamevalue,' ',' '),'None') as headernamevalue, COALESCE(REPLACE(componentattributevalue,' ','_'),'None') as componentattributevalue, COALESCE(componentattributeunit,'None') as componentattributeunit from component_files "
             "LEFT JOIN component on component._id = component_files.component_id ORDER BY component_id ) as components"
             " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
-
+            #These are the input file specific info - should be none if data not entered
             if values is not None:
                 setDict['inputFileDir.value'] = values[0]
                 setDict['inputFileType.value'] = values[1]

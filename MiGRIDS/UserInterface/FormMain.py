@@ -2,6 +2,7 @@
 #it consists of a navigation tree and pages
 from PyQt5 import QtWidgets, QtCore, QtGui,QtSql
 
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface import FormContainer
 from MiGRIDS.UserInterface.ConsoleDisplay import ConsoleDisplay
 
@@ -155,7 +156,6 @@ class MainForm(QtWidgets.QMainWindow):
             focusObject = self.focusObjects[name]
 
             if type(focusObject) is str:
-                childs = self.pageBlock.currentWidget().findChildren(QtWidgets.QWidget)
                 focusWidget = self.pageBlock.currentWidget().findChild(QtWidgets.QWidget,focusObject)
                 focusWidget.setFocus(True)
             else:
@@ -193,15 +193,19 @@ class MainForm(QtWidgets.QMainWindow):
 
     def closeEvent(self,event):
         import os
-        import shutil
+
         setupForm = self.findChild(QtWidgets.QWidget, 'setupDialog')
         setupForm.closeEvent(event)
 
         # copy the project database to the project folder and save xmls
-        if 'projectFolder' in setupForm.__dict__.keys():
+        dbhandler = ProjectSQLiteHandler()
+        if len(dbhandler.getAllRecords('project')) > 0 :
+             dbhandler.closeDatabase()
              saveProject(setupForm.projectFolder)
 
         else:
+            dbhandler.closeDatabase()
+            del dbhandler
             # if a project was never set then just close and remove the default database
             os.remove('project_manager')
 

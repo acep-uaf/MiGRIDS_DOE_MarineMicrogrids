@@ -34,4 +34,4 @@ def buildProjectSetup(projectName,saveDir,componentNames):
         f = open(saveName, "w")
         f.write(soup.prettify())
         f.close()
-    return
+    return saveName

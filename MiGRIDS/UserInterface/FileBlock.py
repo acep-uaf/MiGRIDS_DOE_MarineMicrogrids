@@ -1,3 +1,4 @@
+from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.Controller.Exceptions.NoValidFilesError import NoValidFilesError
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 import MiGRIDS.UserInterface.ModelComponentTable as T
@@ -25,7 +26,7 @@ class FileBlock(QtWidgets.QGroupBox):
         self.init(tabPosition)
     # creates a single form for entering individual file type information
     def init(self, tabPosition):
-        self.dbhandler = ProjectSQLiteHandler()
+        self.controller = Controller()
         self.tabPosition = tabPosition
         self.tabName = "Input " + str(self.tabPosition)
         windowLayout = self.createFileTab()
@@ -38,7 +39,6 @@ class FileBlock(QtWidgets.QGroupBox):
 
     def createFileTab(self):
 
-        #print(self.dbhandler.getDataTypeCodes())
         windowLayout = QtWidgets.QVBoxLayout()
         self.createTopBlock('Setup',self.assignFileBlock)
         l = self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name)
@@ -122,7 +122,7 @@ class FileBlock(QtWidgets.QGroupBox):
         :param preview: A Preview object
         :return: A Preview object with date channel, time channel and format default values reset to database values if they exist
         '''
-        row = self.dbhandler.getRecordDictionary('input_files',self.tabPosition)
+        row = self.controller.dbhandler.getRecordDictionary('input_files',self.tabPosition)
 
         for k in list(row.keys()):
             if(row[k] == 'infer') | (row[k] == '') | (row[k] == None) :
@@ -171,7 +171,7 @@ class FileBlock(QtWidgets.QGroupBox):
 
     def updateComponentNameList(self):
         tableHandler = TableHandler(self)
-        tableHandler.updateComponentDelegate(self.dbhandler.getAsRefTable('component', '_id', 'componentnamevalue'),
+        tableHandler.updateComponentDelegate(self.controller.dbhandler.getAsRefTable('component', '_id', 'componentnamevalue'),
                                              self.ComponentTable, 'componentnamevalue')
     def createTopBlock(self,title, fn):
         '''The top block is where file information is set (format, date and time channels and file type)
@@ -369,7 +369,7 @@ class FileBlock(QtWidgets.QGroupBox):
         handler = TableHandler(self)
         filedir = self.FileBlock.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
         self.saveInput()
-        id = self.dbhandler.getId('input_files','inputfiledirvalue',filedir)[0][0]
+        id = self.controller.dbhandler.getId('input_files',['inputfiledirvalue'],[filedir])
         handler.functionForNewRecord(table,fields=[1],values=[id])
 
     # delete the selected record from the specified datatable
@@ -400,7 +400,7 @@ class FileBlock(QtWidgets.QGroupBox):
                     if r.row() not in removedRows:
                         if table == 'components':
                             # remove the xml files too
-                            componentFolder = getFilePath('Components',projectFolder=self.dbhandler.getProjectPath())
+                            componentFolder = getFilePath('Components',projectFolder=self.controller.dbhandler.getProjectPath())
                             handler.removeDescriptor(model.data(model.index(r.row(), 3)),
                                                      componentFolder)
                         removedRows.append(r.row())
@@ -454,8 +454,8 @@ class FileBlock(QtWidgets.QGroupBox):
         #     setupFields, setupValues = self.getSetupInfo()
         #     '''
         #     # update database table
-        #     if not self.dbhandler.insertRecord('input_files', setupFields, setupValues):
-        #         self.dbhandler.updateRecord('input_files', [F.InputFileFields._id.name], [str(setupValues[0])],
+        #     if not self.controller.dbhandler.insertRecord('input_files', setupFields, setupValues):
+        #         self.controller.dbhandler.updateRecord('input_files', [F.InputFileFields._id.name], [str(setupValues[0])],
         #                                setupFields[1:],
         #                                setupValues[1:])
         #                                '''
@@ -559,7 +559,7 @@ class FileBlock(QtWidgets.QGroupBox):
     def filterTables(self):
         tables = self.findChildren(QtWidgets.QTableView)
         filedir = self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).text()
-        id = self.dbhandler.getId("input_files",['inputfiledirvalue'],[filedir])
+        id = self.controller.dbhandler.getId("input_files",['inputfiledirvalue'],[filedir])
         self.filter = filedir
         for t in tables:
             m = t.model()
@@ -585,8 +585,8 @@ class FileBlock(QtWidgets.QGroupBox):
             setupFields, setupValues = self.getSetupInfo()
 
             # update database table
-            if not self.dbhandler.insertRecord('input_files', setupFields, setupValues):
-                self.dbhandler.updateRecord('input_files', ['_id'], [setupFields[0]],
+            if not self.controller.dbhandler.insertRecord('input_files', setupFields, setupValues):
+                self.controller.dbhandler.updateRecord('input_files', ['_id'], [setupFields[0]],
                                        setupFields[1:],
                                        setupValues[1:])
             self.saveTables()
@@ -594,4 +594,4 @@ class FileBlock(QtWidgets.QGroupBox):
             handler = UIHandler()
             handler.makeSetup()
 
-        self.dbhandler.closeDatabase()
+        self.controller.dbhandler.closeDatabase()

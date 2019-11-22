@@ -32,11 +32,13 @@ def fillProjectDataFromDb():
             if len(tags)>1:
                 attr = tags[len(tags)-1] #the last value after '.' is the attr
                 value = generalSetupInfo[k]
-                writeXmlTag(os.path.join(setupFolder,projectSetup), tags[len(tags) -2], attr, value)
+                if value != 'None' and value is not None:
+                    writeXmlTag(os.path.join(setupFolder,projectSetup), tags[len(tags) -2], attr, value)
             else:
                 attr = k # the last value after '.' is the attr
                 value = generalSetupInfo[k]
-                writeXmlTag(os.path.join(setupFolder,projectSetup), k, attr, value)
+                if value != 'None' and value is not None:
+                    writeXmlTag(os.path.join(setupFolder,projectSetup), k, attr, value)
 
         #look for component descriptor files for all componentName
         componentDir = os.path.join(setupFolder, *['..','Components'])

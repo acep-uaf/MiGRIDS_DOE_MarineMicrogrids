@@ -35,7 +35,7 @@ def createComponentDescriptor(component, saveDir, soup = None):
     if soup is None:
         fileName = os.path.join(componentPath, typeOfComponent(component)+ 'Descriptor.xml')
         with open(fileName, "r") as template:# open
-            print('creating from template')
+            print('creating component from template')
             contents_child = template.read()
             template.close()
             soup = BeautifulSoup(contents_child, 'xml') # turn into soup

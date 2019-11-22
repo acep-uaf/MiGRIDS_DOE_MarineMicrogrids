@@ -41,16 +41,17 @@ class Controller:
     def initializeState(self):
         self.project = None
         self.inputData = None  # dataclass object that can be used to create netcdf files
-        self.netcdfs = None  # list of netcdf files to feed into model
+        self.netcdfs = []  # list of netcdf files to feed into model
         self.setupValid = False  # does the setup xml contain all the required inputs with valid filepaths
         self.dataObjectValid = False  # is the dataclass object valid for producing netcdfs
-        self.rawDataValid = False  # are the input files valid for producting the dataclass object
+        self.rawDataValid = False  # are the input files valid for producing the dataclass object
         self.netcdfsValid = False  # are all the netcdf files valid as model inputs
         self.projectDatabase = False #is there a project specific database
         self.projectFolder = None # Path to the project folder
         self.sets=[] # list of set folders
 
     def loadProject(self, setupFile):
+        #TODO thread needs to be called from controller not calling controller
         #load project gets run on a seperate thread so it uses a newly initialized handlers
         setupHandler = SetupHandler()
         dbHandler = ProjectSQLiteHandler()
@@ -95,7 +96,8 @@ class Controller:
             print('An existing project database was not found.')
             # load setup information
             setupDictionary = setupHandler.readInSetupFile(setupFile)
-            self.setupValid = self.validator.validate(ValidatorTypes.SetupXML, setupFile)
+            self.validate(ValidatorTypes.SetupXML, setupFile)
+
             dbHandler.insertRecord('project', ['project_name', 'project_path', 'setupfile'], [self.project, self.projectFolder, setupFile])
             dbHandler.updateSetupInfo(setupDictionary, setupFile)
             self.sender.update(1, 'Loading Set Results')
@@ -108,16 +110,25 @@ class Controller:
 
         # get input data object
         self.inputData = findDataObject()
-        self.dataObjectValid = self.validator.validate(ValidatorTypes.DataObject, self.inputData)
+        self.validate(ValidatorTypes.DataObject,self.inputData)
         self.sender.update(3, 'Loading NetCDFs')
         # get model input netcdfs
         self.netcdfs = listNetCDFs()
-        self.netcdfsValid = self.validator.validate(ValidatorTypes.NetCDFList, self.netcdfs)
+        self.validate(ValidatorTypes.NetCDFList,self.netcdfs)
         self.sender.update(3, 'Project Loaded')
         del setupHandler
         del dbHandler
         del runHandler
         return
+
+    def validate(self,validatorType,input=None):
+        if validatorType == ValidatorTypes.SetupXML:
+           self.setupValid = self.validator.validate(validatorType, input)
+        elif validatorType == ValidatorTypes.NetCDFList:
+           self.netcdfsValid =self.validator.validate(ValidatorTypes.NetCDFList, input)
+        elif validatorType == ValidatorTypes.DataObject:
+            self.inputData = self.validator.validate(ValidatorTypes.DataObject, input)
+        self.sender.callStatusChanged()
 
     def newProject(self):
         '''Creates folders and writes new setup xml'''
@@ -127,6 +138,9 @@ class Controller:
                                                    *[self.projectFolder,
                                                      'InputData', 'Setup'])
         self.componentFolder = getFilePath('Components', setupFolder=self.setupFolder)
+        #create the setup xml and validate it
+        setupXML = self.setupHandler.makeSetup()
+        self.validate(ValidatorTypes.SetupXML,input=setupXML)
 
     def makeNetcdfs(self):
         d = {}
@@ -167,7 +181,7 @@ class Controller:
 
         # filesCreated is a list of netcdf files that were generated
         self.netcdfs = self.setupHandler.createNetCDF(df, componentDict, self.controller.setupFolder)
-        self.netcdfsValid = self.validator.validateNetCDFList(self.netcdfs)
+        self.validate(ValidatorTypes.NetCDFList,input=self.netcdfs)
 
     def createInputData(self):
         self.myThread = ThreadedDataCreate()
