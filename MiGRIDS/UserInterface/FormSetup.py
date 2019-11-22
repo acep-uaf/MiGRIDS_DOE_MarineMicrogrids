@@ -56,7 +56,7 @@ class FormSetup(QtWidgets.QWidget):
         self.setLayout(windowLayout)
         #title is setup
         self.setWindowTitle('Input Files')
-        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        #self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         #show the form
         self.showMaximized()
 
@@ -93,7 +93,7 @@ class FormSetup(QtWidgets.QWidget):
 
         self.ButtonBlock.setLayout(hlayout)
 
-        self.ButtonBlock.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
+        #self.ButtonBlock.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
         projectTitlewdg = QtWidgets.QLabel()
         projectTitlewdg.setObjectName('projectTitle')
         hlayout.addWidget(projectTitlewdg)

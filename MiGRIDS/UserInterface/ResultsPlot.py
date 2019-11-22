@@ -19,23 +19,27 @@ class ResultsPlot(QtWidgets.QWidget):
         self.setObjectName(plotName)
         self.plotName = plotName
         self.refreshButton = self.createRefreshButton()
+        self.refreshButton.setFixedWidth(300)
         #get the current data object
         #print(self.parent().parent().findChildren(QtWidgets.QWidget))
 
         self.data = None
 
         self.xcombo = self.createCombo('xcombo')
+        #self.xcombo.setFixedWidth(100)
         self.ycombo = self.createCombo('ycombo')
+        #self.ycombo.setFixedWidth(50)
 
         self.plotWidget = self.createPlotArea()
         self.layout.addWidget(self.plotWidget, 1, 0, 5, 5)
         self.layout.addWidget(self.refreshButton, 0,0,1,2)
-        self.layout.addWidget(self.navi_toolbar,1,2,1,2)
+        self.layout.addWidget(self.navi_toolbar,1,2,1,3)
+
         self.layout.addWidget(self.xcombo,7,2,1,1)
         self.layout.addWidget(self.ycombo,3,6,1,1)
 
         self.setLayout(self.layout)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
         self.makePlotArea()
         self.defaultPlot()
     def makePlotArea(self):
@@ -76,7 +80,7 @@ class ResultsPlot(QtWidgets.QWidget):
 
         plotWidget = PlotCanvas(self, self.data, self.plotName)
         self.navi_toolbar = NavigationToolbar(plotWidget, self)
-
+        self.navi_toolbar.locLabel.setFixedWidth(200)
 
         return plotWidget
 

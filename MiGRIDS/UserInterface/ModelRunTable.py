@@ -1,10 +1,8 @@
 #subclass of QTableView for displaying component information
 from enum import Enum
 
-from IPython.core.inputtransformer import tr
-from PyQt5 import QtWidgets, QtSql, QtCore, QtGui
-from PyQt5.QtCore import QAbstractTableModel
 
+from PyQt5 import QtWidgets, QtSql, QtCore, QtGui
 from MiGRIDS.Controller.RunHandler import METADATANAMES
 from MiGRIDS.UserInterface.Delegates import QueryCheckBoxDelegate
 
@@ -40,7 +38,6 @@ class RunFields(Enum):
 class customTableView(QtWidgets.QTableView):
     def __init__(self, *args, **kwargs):
         QtWidgets.QTableView.__init__(self, *args, **kwargs)
-        #self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.resizeColumnsToContents()
         self.hiddenColumns = [0]
         self.columns = []
@@ -90,7 +87,6 @@ class RunTableModel(QtSql.QSqlQueryModel):
                 return nkey[0]
             return n
 
-        #QtSql.QSqlQueryModel.__init__(self, parent)
         self.setId = setId
         self.header = [getFancyName(name) for name, member in RunFields.__members__.items()]
         self.header.append("run_id")
