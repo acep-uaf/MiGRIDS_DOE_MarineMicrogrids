@@ -4,6 +4,7 @@ from enum import Enum
 from MiGRIDS.Controller.RunHandler import RunHandler
 from MiGRIDS.UserInterface.Delegates import TextDelegate, ComboDelegate, RelationDelegate
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.UserInterface.ModelRunTable import customTableView
 
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
@@ -25,14 +26,13 @@ class SetFields(Enum):
     timestepunit=6
 
 #subclass of QTableView for displaying set information
-class SetTableView(QtWidgets.QTableView):
+class SetTableView(customTableView):
     def __init__(self, *args, **kwargs):
+        super(SetTableView, self).__init__()
         self.tabPosition = kwargs.get('position')
-        QtWidgets.QTableView.__init__(self, *args)
         self.dbhandler = ProjectSQLiteHandler()
         self.uihandler = RunHandler()
-        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
-        self.resizeColumnsToContents()
+
         attributes = QtCore.QStringListModel([])
         self.setItemDelegateForColumn(1, TextDelegate(self))
         cdel = RelationDelegate(self, 'componentname',filter="_id in (SELECT component_id from set_components WHERE set_id = " + str(self.tabPosition + 1) + ")") #"_id in ('1')", "_id in (SELECT component_id from set_components)"
@@ -41,8 +41,6 @@ class SetTableView(QtWidgets.QTableView):
         self.setItemDelegateForColumn(SetComponentFields.component_id.value, cdel)
         #attributes (column 3)get updated when component Name gets selected (column 2)
         self.setItemDelegateForColumn(3, ComboDelegate(self, attributes,'componentAttribute'))
-
-
 
     def updateTagList(self,compname):
         if compname != '':
@@ -60,7 +58,7 @@ class SetTableModel(QtSql.QSqlRelationalTableModel):
     def __init__(self, parent,position):
         super(SetTableModel,self).__init__(parent)
         QtSql.QSqlTableModel.__init__(self, parent)
-
+        self.hide_headers_mode = True
         self.header = ['ID','Set', 'Component', 'Tag', 'Value']
         self.setTable('set_components')
 
@@ -75,10 +73,22 @@ class SetTableModel(QtSql.QSqlRelationalTableModel):
         self.select()
 
 
+    def hideHeaders(self):
+        self.hide_headers_mode = True
+
+    def unhideHeaders(self):
+        self.hide_headers_mode = False
 
     def headerData(self, section: int, orientation, role):
-        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
-            return QtCore.QVariant(self.header[section])
-        return QtCore.QVariant()
+        if role != QtCore.Qt.DisplayRole:
+            return None
+        if orientation != QtCore.Qt.Horizontal:
+            return None
+        if section < 0 or section >= len(self.header):
+            return None
+        if self.hide_headers_mode == True:
+            return None
+        else:
+            return self.header[section]
 
 

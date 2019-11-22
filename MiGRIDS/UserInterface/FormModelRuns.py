@@ -81,14 +81,15 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
 
 
         #main layouts
-        tableGroup = QtWidgets.QVBoxLayout()
+        #tableGroup = QtWidgets.QVBoxLayout()
+        tableGroup = QtWidgets.QGridLayout()
 
         #setup info for a set
         self.setInfo = self.makeSetInfoCollector() #edits on setup attributes
-        tableGroup.addWidget(self.infoBox)
+        tableGroup.addWidget(self.infoBox,0,0,1,10)
 
         #buttons for adding and deleting component attribute edits - edits to descriptor files
-        tableGroup.addWidget(self.dataButtons('sets'))
+        tableGroup.addWidget(self.dataButtons('sets'),1,0,1,3)
 
         #table of descriptor file changes to be made
         #the table view filtered to the specific set for each tab
@@ -97,18 +98,20 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.set_componentsModel = SetTableModel(self,self.set)
         self.set_componentsModel.setFilter('set_id = ' + str(self.set + 1) + " and tag != 'None'")
         tv.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
+
         self.set_componentsModel.select()
 
         tv.setModel(self.set_componentsModel)
 
         #hide the id column
-        tv.hideColumn(0)
-        tv.hideColumn(1)
-        tableGroup.addWidget(tv, 1)
+        tv.hiddenColumns = [0,1]
+        tv.reFormat()
+
+        tableGroup.addWidget(tv,2,0,8,4)
 
         #xmlEditing block
         self.xmlEditor = XMLEditorHolder(self, self.set)
-        tableGroup.addWidget(self.xmlEditor)
+        tableGroup.addWidget(self.xmlEditor,2,4,8,6)
         self.setLayout(tableGroup)
         if set is not None:
             self.fillSetInfo(set)
@@ -116,8 +119,8 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
             self.fillSetInfo()
 
        #make the run result table
-        tableGroup.addWidget(self.createRunTable(str(self.setId))) #Set Id will be negative 1 at creation
-        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        tableGroup.addWidget(self.createRunTable(str(self.setId)),11,0,10,10) #Set Id will be negative 1 at creation
+        #self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
     def updateForm(self):
         '''refreshes data displayed in form based on any changes made in database or xml model files'''
@@ -465,16 +468,15 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.run_Model = RunTableModel(self,setId)
 
         # hide the id columns
-        tv.hideColumn(0)
-        tv.hideColumn(1)
-        tv.hideColumn(26)
-
+        tv.hiddenColumns = [0,1,4,5,26]
         self.run_Model.query()
         tv.setModel(self.run_Model)
         tv.updateRunBaseCase.connect(self.receiveUpdateRunBaseCase)
+        tv.reFormat()
         tableGroup.addWidget(tv, 1)
         gb.setLayout(tableGroup)
-        gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        #gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        #gb.setSizePolicy((QtWidgets.QSizePolicy.Fixed,QtWidgets.QSizePolicy.Fixed))
 
         return gb
     def refreshDataPlot(self):

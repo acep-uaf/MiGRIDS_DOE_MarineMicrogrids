@@ -1102,12 +1102,12 @@ class ProjectSQLiteHandler:
         Otherwise queries are performed and True is returned'''
         originalBase = self.getId('run',['set_id','base_case'],[setID,1])
         if originalBase != runId and isBase:
-            self.updateRecord('run', ['set_id'], [setID], ['basecase'],
+            self.updateRecord('run', ['set_id'], [setID], ['base_case'],
                               [0])  # all base cases set to 0 for the specified set
-            self.updateRecord('run', ['_id'], [runId], ['basecase'], [1])  # new base case selected
+            self.updateRecord('run', ['_id'], [runId], ['base_case'], [1])  # new base case selected
             return True
         elif originalBase == runId and not isBase:
-            self.updateRecord('run', ['_id'], [runId], ['basecase'], [0])  # base case removed
+            self.updateRecord('run', ['_id'], [runId], ['base_case'], [0])  # base case removed
             return True
         else:
             return False

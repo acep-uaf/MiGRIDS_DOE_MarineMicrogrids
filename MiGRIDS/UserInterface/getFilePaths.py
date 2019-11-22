@@ -25,6 +25,8 @@ def getFilePath(designator,**kwargs):
             return os.path.realpath(os.path.join(setupFolder,*['..','..','..']))
         elif designator == 'Setup':
             return setupFolder
+        elif designator == 'Optimize':
+            return setupFolder
         else:
             raise NoMatchException
     else: #directories are referenced from project setup folder
@@ -43,6 +45,8 @@ def getFilePath(designator,**kwargs):
         elif designator == 'Project':
             return os.path.realpath(os.path.join(setupFolder,*['..','..']))
         elif designator == 'Setup':
+            return setupFolder
+        elif designator == 'Optimize':
             return setupFolder
         else:
             raise NoMatchException

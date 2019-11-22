@@ -1,7 +1,7 @@
 from PyQt5 import QtSql
 
 
-from MiGRIDS.Controller.RunHandler import RunHandler
+from MiGRIDS.Controller.RunHandler import RunHandler, METADATANAMES
 from MiGRIDS.UserInterface.ModelRunTable import RunFields
 from MiGRIDS.UserInterface.ResultsPlot import ResultsPlot
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
@@ -39,7 +39,7 @@ class ResultsModel(ResultsPlot):
         optionsX.query()
 
 
-        optionsY = [name for name, member in RunFields.__members__.items()][6:]
+        optionsY = list(METADATANAMES.keys())
         self.set_XCombo(optionsX)
         self.set_YCombo(optionsY)
         return
@@ -92,7 +92,7 @@ class ResultsModel(ResultsPlot):
         if (tag =='')|(metric==''):
             return
         else:
-            return self.dbhandler.getRunXYValues(tag,metric) #[run1:40,run2:100,run3:20]
+            return self.dbhandler.getRunXYValues(tag,METADATANAMES[metric]) #[run1:40,run2:100,run3:20]
 
 
 

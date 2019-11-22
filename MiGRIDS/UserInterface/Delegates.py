@@ -230,7 +230,7 @@ class QueryCheckBoxDelegate(QtWidgets.QStyledItemDelegate):
         return False
 
     def setModelData(self, editor: QtWidgets.QWidget, model: QtCore.QAbstractItemModel, index: QtCore.QModelIndex):
-        modelValue = index.model().data(index, QtCore.Qt.DisplayRole)
+
         checked = not bool(index.model().data(index, QtCore.Qt.DisplayRole))
 
         id = index.model().data(model.index(index.row(),0),QtCore.Qt.DisplayRole)

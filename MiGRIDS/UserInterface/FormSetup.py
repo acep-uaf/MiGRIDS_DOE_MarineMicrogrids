@@ -638,7 +638,7 @@ class ThreadedProjectLoad(QtCore.QThread):
     def run(self):
 
         self.controller.sender.notifyProgress.connect(self.notify)
-        self.notify(1,'NoTask')
+
         self.controller.loadProject(self.setupFile)
        
         return
