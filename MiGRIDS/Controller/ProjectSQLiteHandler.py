@@ -1207,7 +1207,7 @@ class ProjectSQLiteHandler:
                               "JOIN component on set_components.component_id = component._id "
                               "JOIN set_ on set_components.set_id = set_._id "
                               "WHERE componentnamevalue || '.' || tag = ?) as tagvalues "
-"JOIN (SELECT run_id,group_concat(tag || tag_value) as seriesname FROM run_attributes "
+"JOIN (SELECT run_id,group_concat(tag || ' ' || tag_value) as seriesname FROM run_attributes "
 "JOIN set_components ON run_attributes.set_component_id = set_components._id "
                               "JOIN component on set_components.component_id = component._id "
                               "JOIN set_ on set_components.set_id = set_._id "

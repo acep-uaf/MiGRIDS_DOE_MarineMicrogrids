@@ -12,7 +12,7 @@ def displayComponentXML(component_name):
     uihandler = UIHandler()
     projectFolder = dbHandler.getProjectPath()
     componentDir = getFilePath('Components', projectFolder=projectFolder)
-    component_id = dbHandler.getId("component","componentnamevalue",component_name)[0]
+    component_id = dbHandler.getId("component",["componentnamevalue"],[component_name])
     component = dbHandler.getRecordDictionary("component",component_id)
 
     try:

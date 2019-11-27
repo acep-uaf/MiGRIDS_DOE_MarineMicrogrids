@@ -26,11 +26,14 @@ class Controller:
     def __new__(cls):
         if not hasattr(cls, 'instance'):
             cls.instance = super(Controller, cls).__new__(cls)
-
+            cls.instance.init()
         return cls.instance
 
     def __init__(self):
 
+        return
+
+    def init(self):
         self.dbhandler = ProjectSQLiteHandler()
         self.runHandler = RunHandler()
         self.setupHandler = SetupHandler()
@@ -50,76 +53,76 @@ class Controller:
         self.projectFolder = None # Path to the project folder
         self.sets=[] # list of set folders
 
-    def loadProject(self, setupFile):
-        #TODO thread needs to be called from controller not calling controller
-        #load project gets run on a seperate thread so it uses a newly initialized handlers
-        setupHandler = SetupHandler()
-        dbHandler = ProjectSQLiteHandler()
-        runHandler = RunHandler()
-
-        # local assistants
-        def listNetCDFs():
-            '''
-            produces a list of netcdf files located in the Processed folder of a project TimeSeries folder
-            :return: List of Strings of names of netCDF files
-            '''
-            try:
-                lof = [f for f in os.listdir(getFilePath('Processed', setupFolder=os.path.dirname(setupFile))) if
-                       f[-2:] == 'nc']
-                return lof
-            except FileNotFoundError as e:
-                print('No netcdf model files found.')
-            return []
-
-        def findDataObject():
-            '''looks for and returns dataclas object if found in InputData Folder
-            :return DataClass object'''
-
-            # From the setup file read the location of the input pickle
-            # by replacing the current pickle with the loaded one the user can manually edit the input and
-            #  then return to working with the interface
-            return setupHandler.loadInputData(os.path.dirname(setupFile))
-
-        # different load pathways depending on whether or not a project database is found
-        self.projectFolder = getFilePath('Project', setupFolder=os.path.dirname(setupFile))
-        self.project = os.path.basename(self.projectFolder)
-        self.sender.update(1, 'Data loading')
-        # Look for an existing project database and replace the default one with it
-        if os.path.exists(os.path.join(self.projectFolder, 'project_manager')):
-            print('An existing project database was found.')
-
-            replaceDefaultDatabase(os.path.join(self.projectFolder, 'project_manager'))
-            self.projectDatabase = True
-
-
-        else:
-            print('An existing project database was not found.')
-            # load setup information
-            setupDictionary = setupHandler.readInSetupFile(setupFile)
-            self.validate(ValidatorTypes.SetupXML, setupFile)
-
-            dbHandler.insertRecord('project', ['project_name', 'project_path', 'setupfile'], [self.project, self.projectFolder, setupFile])
-            dbHandler.updateSetupInfo(setupDictionary, setupFile)
-            self.sender.update(1, 'Loading Set Results')
-            # load Sets - this loads attribute xmls, set setups, set descriptors, setmodel selectors and run result metadata
-            self.sets = getAllSets(getFilePath('OutputData', setupFolder=os.path.dirname(setupFile)))
-            [runHandler.loadExistingProjectSet(os.path.dirname(s).split('\\')[-1]) for s in self.sets]
-        self.sender.update(3, 'Validating Data')
-
-        self.projectFolder = dbHandler.getProjectPath()
-
-        # get input data object
-        self.inputData = findDataObject()
-        self.validate(ValidatorTypes.DataObject,self.inputData)
-        self.sender.update(3, 'Loading NetCDFs')
-        # get model input netcdfs
-        self.netcdfs = listNetCDFs()
-        self.validate(ValidatorTypes.NetCDFList,self.netcdfs)
-        self.sender.update(3, 'Project Loaded')
-        del setupHandler
-        del dbHandler
-        del runHandler
-        return
+    # def loadProject(self, setupFile):
+    #     #TODO thread needs to be called from controller not calling controller
+    #     #load project gets run on a seperate thread so it uses a newly initialized handlers
+    #     setupHandler = SetupHandler()
+    #     dbHandler = ProjectSQLiteHandler()
+    #     runHandler = RunHandler()
+    #
+    #     # local assistants
+    #     def listNetCDFs():
+    #         '''
+    #         produces a list of netcdf files located in the Processed folder of a project TimeSeries folder
+    #         :return: List of Strings of names of netCDF files
+    #         '''
+    #         try:
+    #             lof = [f for f in os.listdir(getFilePath('Processed', setupFolder=os.path.dirname(setupFile))) if
+    #                    f[-2:] == 'nc']
+    #             return lof
+    #         except FileNotFoundError as e:
+    #             print('No netcdf model files found.')
+    #         return []
+    #
+    #     def findDataObject():
+    #         '''looks for and returns dataclas object if found in InputData Folder
+    #         :return DataClass object'''
+    #
+    #         # From the setup file read the location of the input pickle
+    #         # by replacing the current pickle with the loaded one the user can manually edit the input and
+    #         #  then return to working with the interface
+    #         return setupHandler.loadInputData(os.path.dirname(setupFile))
+    #
+    #     # different load pathways depending on whether or not a project database is found
+    #     self.projectFolder = getFilePath('Project', setupFolder=os.path.dirname(setupFile))
+    #     self.project = os.path.basename(self.projectFolder)
+    #     self.sender.update(1, 'Data loading')
+    #     # Look for an existing project database and replace the default one with it
+    #     if os.path.exists(os.path.join(self.projectFolder, 'project_manager')):
+    #         print('An existing project database was found.')
+    #
+    #         replaceDefaultDatabase(os.path.join(self.projectFolder, 'project_manager'))
+    #         self.projectDatabase = True
+    #
+    #
+    #     else:
+    #         print('An existing project database was not found.')
+    #         # load setup information
+    #         setupDictionary = setupHandler.readInSetupFile(setupFile)
+    #         self.validate(ValidatorTypes.SetupXML, setupFile)
+    #
+    #         dbHandler.insertRecord('project', ['project_name', 'project_path', 'setupfile'], [self.project, self.projectFolder, setupFile])
+    #         dbHandler.updateSetupInfo(setupDictionary, setupFile)
+    #         self.sender.update(1, 'Loading Set Results')
+    #         # load Sets - this loads attribute xmls, set setups, set descriptors, setmodel selectors and run result metadata
+    #         self.sets = getAllSets(getFilePath('OutputData', setupFolder=os.path.dirname(setupFile)))
+    #         [runHandler.loadExistingProjectSet(os.path.dirname(s).split('\\')[-1]) for s in self.sets]
+    #     self.sender.update(3, 'Validating Data')
+    #
+    #     self.projectFolder = dbHandler.getProjectPath()
+    #
+    #     # get input data object
+    #     self.inputData = findDataObject()
+    #     self.validate(ValidatorTypes.DataObject,self.inputData)
+    #     self.sender.update(3, 'Loading NetCDFs')
+    #     # get model input netcdfs
+    #     self.netcdfs = listNetCDFs()
+    #     self.validate(ValidatorTypes.NetCDFList,self.netcdfs)
+    #     self.sender.update(3, 'Project Loaded')
+    #     del setupHandler
+    #     del dbHandler
+    #     del runHandler
+    #     return
 
     def validate(self,validatorType,input=None):
         if validatorType == ValidatorTypes.SetupXML:
@@ -182,14 +185,26 @@ class Controller:
         # filesCreated is a list of netcdf files that were generated
         self.netcdfs = self.setupHandler.createNetCDF(df, componentDict, self.controller.setupFolder)
         self.validate(ValidatorTypes.NetCDFList,input=self.netcdfs)
-
+    def setMyAttribute(self,attr,value):
+        try:
+            setattr(self, attr, value)
+        except Exception as e:
+            print(e)
     def createInputData(self):
         self.myThread = ThreadedDataCreate()
         self.myThread.notifyCreateProgress.connect(self.sender.update)
+        self.myThread.signalAttributeUpdate.connect(self.updateAttribute)
         self.myThread.catchComponents.connect(self.gotComponents)
         self.myThread.catchData.connect(self.gotData)
-        self.myThread.finished.connect(self.loadProject)
+        #TODO update the gui to reflect input data was created
+        #self.myThread.finished.connect(self.loadProject)
         self.myThread.start()
+
+    @QtCore.pyqtSlot()
+    def updateAttribute(self,className,attr,value):
+        if className == 'Controller':
+           self.setMyAttribute(attr,value)
+
 
     @QtCore.pyqtSlot()
     def gotData(self,data):

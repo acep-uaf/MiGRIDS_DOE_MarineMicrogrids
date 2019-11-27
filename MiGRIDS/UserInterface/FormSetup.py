@@ -12,8 +12,8 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 
 from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.Controller.Validator import ValidatorTypes
-from MiGRIDS.Controller.loadProjectOffUIThread import loadProjectOffUIThread
-from MiGRIDS.InputHandler.DataClass import DataClass
+from MiGRIDS.Controller.loadProjectOffUIThread import ThreadedProjectLoad
+
 from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
 from MiGRIDS.UserInterface.DetailsWidget import DetailsWidget
 from MiGRIDS.UserInterface.WizardPages import WizardPage, TextWithDropDown, ComponentSelect, TwoDatesDialog
@@ -35,6 +35,7 @@ class FormSetup(QtWidgets.QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.initUI()
+
     #initialize the form
     def initUI(self):
         self.controller = Controller()
@@ -292,12 +293,14 @@ class FormSetup(QtWidgets.QWidget):
         self.progressBar = CustomProgressBar('Loading Project')
         try:
             # when thread finishes self.controller.inputData and self.components are set
-            self.myThread = ThreadedProjectLoad(setupFile[0],self.controller)
+            self.myThread = ThreadedProjectLoad(setupFile[0])
             self.myThread.notifyCreateProgress.connect(self.progressBar.onProgress)
+            self.myThread.signalUpdateAttribute.connect(self.controller.updateAttribute)
             self.myThread.finished.connect(self.onProjectLoaded)
             self.myThread.start()
         except Exception as e:
             print(e)
+        finally:
             self.progressBar.hide()
 
 
@@ -631,34 +634,3 @@ class FormSetup(QtWidgets.QWidget):
         self.prePopulateSetupWizard()
 
 
-
-
-
-
-
-
-            
-class ThreadedProjectLoad(QtCore.QThread):
-    notifyCreateProgress = QtCore.pyqtSignal(int,str)
-    
-    def __init__(self,setupFile,controller):
-        QtCore.QThread.__init__(self)
-        self.controller = controller #will attach to the existing instance
-        self.setupFile = setupFile
-    
-    def __del__(self):
-        self.wait()
-
-    def run(self):
-
-        self.controller.sender.notifyProgress.connect(self.notify)
-
-        loadProjectOffUIThread(self.setupFile,self.controller)
-       
-        return
-
-    def done(self):
-        QtGui.QMessageBox.information(self, "Done!", "Done loading data!")
-
-    def notify(self,i,task):
-        self.notifyCreateProgress.emit(i,task)

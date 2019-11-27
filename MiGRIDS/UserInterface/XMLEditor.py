@@ -225,7 +225,7 @@ class TitleBar(QtWidgets.QWidget):
         self.btn_show = QtWidgets.QPushButton("+")
         self.btn_show.setFixedSize(btn_size, btn_size)
         self.btn_show.setStyleSheet(" QPushButton { text-align: center; background-color: green;}")
-        self.btn_show.setVisible(True)
+        self.btn_show.setVisible(True) #TODO this is causing layout error
 
         bar.addWidget(self.btn_hide)
         bar.addWidget(self.btn_show)

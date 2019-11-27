@@ -4,6 +4,7 @@ class GenericSender(QtCore.QObject):
     msg = QtCore.pyqtSignal(str,str)
     statusChanged = QtCore.pyqtSignal() #str is the attribute name, bool is its state
 
+
     def update(self,value,task):
         self.notifyProgress.emit(value, task)
 
@@ -12,3 +13,6 @@ class GenericSender(QtCore.QObject):
 
     def message(self,type,msgtext):
         self.msg.emit(type,msgtext)
+
+    def updateAttribute(self,className,attr,value):
+        self.signalUpdateAttribute(className,attr,value)
