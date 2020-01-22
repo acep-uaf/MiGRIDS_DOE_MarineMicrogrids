@@ -40,7 +40,11 @@ class ProjectSQLiteHandler:
             if project is not None:
                 return project[0]
         return None
-
+    def makeDummyTable(self):
+        self.cursor.execute("DROP TABLE IF EXISTS dummy")
+        self.cursor.execute("""CREATE TABLE dummy (_id integer primary key, field1 text)""")
+        self.connection.commit()
+        print("I made dummy")
     def tableExists(self, table):
         try:
             self.cursor.execute("select * from " + table + " limit 1").fetchall()

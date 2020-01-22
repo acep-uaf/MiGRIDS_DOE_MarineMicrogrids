@@ -59,7 +59,7 @@ class optimize:
         # Setup key parameters
         self.thisPath = os.path.dirname(os.path.realpath(__file__))
         self.projectName = projectName
-        self.rootProjectPath = os.path.join(self.thisPath, '../../GBSProjects/', self.projectName) # root path to project files relative to this file location
+        self.rootProjectPath = os.path.join(self.thisPath, '../../MiGRIDSProjects/', self.projectName) # root path to project files relative to this file location
 
         # Pull in inputArgs for potential later processing
         self.inputArgs = inputArgs

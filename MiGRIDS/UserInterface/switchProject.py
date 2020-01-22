@@ -1,14 +1,16 @@
 import shutil
 import os
+
+import time
 from PyQt5 import QtWidgets
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit, ComboDelegate
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.ModelRunTable import RunTableModel
-def switchProject(caller):
+def switchProject(caller,pathTo):
     '''saves an existing project, clears the database and initiates a new project'''
-    dbhandler = ProjectSQLiteHandler()
-    pathTo = dbhandler.getProjectPath()
+
     saveProject(pathTo)
+
     clearProjectDatabase(caller)
     return
 
@@ -16,20 +18,24 @@ def saveProject(pathTo):
     '''saves the current project database to the specified path'''
     path = os.path.dirname(__file__)
     shutil.copy(os.path.join(path, '../project_manager'),
-                os.path.join(pathTo, 'project_manager'))
+                 os.path.join(pathTo, 'project_manager'))
+
     print('Database was saved to %s' % os.path.realpath(pathTo))
+
     return
 
 def clearProjectDatabase(caller=None):
-    handler = ProjectSQLiteHandler()
+
+    dbhandler = ProjectSQLiteHandler()
+    dbhandler.makeDummyTable()
+    pathTo = dbhandler.getProjectPath()
     # get the name of the last project worked on
-    lastProjectPath = handler.getProjectPath()
-    handler.makeDatabase()
-    handler.closeDatabase()
+    dbhandler.makeDatabase()
+    dbhandler.closeDatabase() #also closes the connection
     #the forms need to be cleared or data will get re-written to database
     if caller is not None:
         clearAppForms(caller)
-    return lastProjectPath
+    return pathTo
 
 def clearAppForms(caller):
     '''clears forms associated with the caller'''

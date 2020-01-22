@@ -34,6 +34,10 @@ class CustomProgressBar(QtWidgets.QProgressDialog):
         self.lastValue += i
         self.setValue(self.lastValue)
         self.setLabelText(task)
+        if self.lastValue > 10:
+            self.hide()
+            self.close()
+
 
 
     def handleCancel(self):

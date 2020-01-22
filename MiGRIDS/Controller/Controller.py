@@ -40,89 +40,22 @@ class Controller:
         self.validator = Validator()
         self.sender = GenericSender()
         self.initializeState()
+        #self.sender.statusChanged.connect(self.updateAttribute)
 
+    def createDatabaseConnection(self):
+        self.dbhandler = ProjectSQLiteHandler()
     def initializeState(self):
         self.project = None
         self.inputData = None  # dataclass object that can be used to create netcdf files
         self.netcdfs = []  # list of netcdf files to feed into model
         self.setupValid = False  # does the setup xml contain all the required inputs with valid filepaths
         self.dataObjectValid = False  # is the dataclass object valid for producing netcdfs
-        self.rawDataValid = False  # are the input files valid for producing the dataclass object
+        self.inputDataValid = False  # are the input files valid for producing the dataclass object
         self.netcdfsValid = False  # are all the netcdf files valid as model inputs
         self.projectDatabase = False #is there a project specific database
         self.projectFolder = None # Path to the project folder
         self.sets=[] # list of set folders
 
-    # def loadProject(self, setupFile):
-    #     #TODO thread needs to be called from controller not calling controller
-    #     #load project gets run on a seperate thread so it uses a newly initialized handlers
-    #     setupHandler = SetupHandler()
-    #     dbHandler = ProjectSQLiteHandler()
-    #     runHandler = RunHandler()
-    #
-    #     # local assistants
-    #     def listNetCDFs():
-    #         '''
-    #         produces a list of netcdf files located in the Processed folder of a project TimeSeries folder
-    #         :return: List of Strings of names of netCDF files
-    #         '''
-    #         try:
-    #             lof = [f for f in os.listdir(getFilePath('Processed', setupFolder=os.path.dirname(setupFile))) if
-    #                    f[-2:] == 'nc']
-    #             return lof
-    #         except FileNotFoundError as e:
-    #             print('No netcdf model files found.')
-    #         return []
-    #
-    #     def findDataObject():
-    #         '''looks for and returns dataclas object if found in InputData Folder
-    #         :return DataClass object'''
-    #
-    #         # From the setup file read the location of the input pickle
-    #         # by replacing the current pickle with the loaded one the user can manually edit the input and
-    #         #  then return to working with the interface
-    #         return setupHandler.loadInputData(os.path.dirname(setupFile))
-    #
-    #     # different load pathways depending on whether or not a project database is found
-    #     self.projectFolder = getFilePath('Project', setupFolder=os.path.dirname(setupFile))
-    #     self.project = os.path.basename(self.projectFolder)
-    #     self.sender.update(1, 'Data loading')
-    #     # Look for an existing project database and replace the default one with it
-    #     if os.path.exists(os.path.join(self.projectFolder, 'project_manager')):
-    #         print('An existing project database was found.')
-    #
-    #         replaceDefaultDatabase(os.path.join(self.projectFolder, 'project_manager'))
-    #         self.projectDatabase = True
-    #
-    #
-    #     else:
-    #         print('An existing project database was not found.')
-    #         # load setup information
-    #         setupDictionary = setupHandler.readInSetupFile(setupFile)
-    #         self.validate(ValidatorTypes.SetupXML, setupFile)
-    #
-    #         dbHandler.insertRecord('project', ['project_name', 'project_path', 'setupfile'], [self.project, self.projectFolder, setupFile])
-    #         dbHandler.updateSetupInfo(setupDictionary, setupFile)
-    #         self.sender.update(1, 'Loading Set Results')
-    #         # load Sets - this loads attribute xmls, set setups, set descriptors, setmodel selectors and run result metadata
-    #         self.sets = getAllSets(getFilePath('OutputData', setupFolder=os.path.dirname(setupFile)))
-    #         [runHandler.loadExistingProjectSet(os.path.dirname(s).split('\\')[-1]) for s in self.sets]
-    #     self.sender.update(3, 'Validating Data')
-    #
-    #     self.projectFolder = dbHandler.getProjectPath()
-    #
-    #     # get input data object
-    #     self.inputData = findDataObject()
-    #     self.validate(ValidatorTypes.DataObject,self.inputData)
-    #     self.sender.update(3, 'Loading NetCDFs')
-    #     # get model input netcdfs
-    #     self.netcdfs = listNetCDFs()
-    #     self.validate(ValidatorTypes.NetCDFList,self.netcdfs)
-    #     self.sender.update(3, 'Project Loaded')
-    #     del setupHandler
-    #     del dbHandler
-    #     del runHandler
-    #     return
 
     def validate(self,validatorType,input=None):
         if validatorType == ValidatorTypes.SetupXML:
@@ -131,7 +64,7 @@ class Controller:
            self.netcdfsValid =self.validator.validate(ValidatorTypes.NetCDFList, input)
         elif validatorType == ValidatorTypes.DataObject:
             self.inputData = self.validator.validate(ValidatorTypes.DataObject, input)
-        self.sender.callStatusChanged()
+        self.sender.callStatusChanged() #this notifies the other forms after control attributes have been set
 
     def newProject(self):
         '''Creates folders and writes new setup xml'''
@@ -190,6 +123,9 @@ class Controller:
             setattr(self, attr, value)
         except Exception as e:
             print(e)
+    def importData(self):
+        return
+
     def createInputData(self):
         self.myThread = ThreadedDataCreate()
         self.myThread.notifyCreateProgress.connect(self.sender.update)
@@ -216,20 +152,23 @@ class Controller:
 
 class ThreadedDataCreate(QtCore.QThread):
     notifyCreateProgress = QtCore.pyqtSignal(int,str)
+    signalAttributeUpdate = QtCore.pyqtSignal(str,str,object)
     catchData = QtCore.pyqtSignal(DataClass)
     catchComponents = QtCore.pyqtSignal(list)
 
-    def __init__(self,setupFile):
+    def __init__(self):
         QtCore.QThread.__init__(self)
-        self.setupFile = setupFile
+
 
     def __del__(self):
         self.wait()
 
     def run(self):
         setupHandler = SetupHandler()
-        cleaned_data, components = setupHandler.createCleanedData(self.setupFile)
-
+        #connect the setupHandlers sender to the controllers sender to relay messages
+        setupHandler.sender.notifyProgress.connect(self.notify)
+        cleaned_data, components = setupHandler.createCleanedData()
+        self.notify(10,'done')
         self.catchData.emit(cleaned_data)
         self.catchComponents.emit(components)
         return
@@ -242,6 +181,13 @@ class ThreadedDataCreate(QtCore.QThread):
 
 class ThreadedNetcdfCreate(QtCore.QThread):
     notifyProgress = QtCore.pyqtSignal(int)
+    def __init__(self,setupFile):
+        QtCore.QThread.__init__(self)
+        self.setupFile = setupFile
+
+    def __del__(self):
+        self.wait()
+
     def run(self):
         for i in range(101):
             self.notifyNetcdfProgress.emit(i)

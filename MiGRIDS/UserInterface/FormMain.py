@@ -50,9 +50,6 @@ class MainForm(QtWidgets.QMainWindow):
         self.console.showMessage("This is where messages will appear")
 
         self.setCentralWidget(self.pageBlock)
-
-
-
         # Main title
         self.setWindowTitle('MiGRIDS')
         #self.resized.connect(self.screenMoved)
@@ -96,9 +93,9 @@ class MainForm(QtWidgets.QMainWindow):
                 ('Results',[])
 
             ]),
-            ('Optimize',[
-
-            ])
+            # ('Optimize',[
+            #
+            # ])
         ]
         self.focusObjects = {'Setup File':FormSetup.prePopulateSetupWizard,
                              'Input Files':'fileInput',
@@ -244,10 +241,10 @@ class PageBlock(QtWidgets.QTabWidget):
 
         self.addTab(FormContainer(self,[FormSetup(self), ResultsSetup(self,'setupResult')],'Setup',screen=self.screen), 'Setup')
         self.addTab(FormContainer(self, [FormModelRun(self), ResultsModel(self,'modelResult')],'Model',screen=self.screen), 'Model')
-        self.addTab(FormContainer(self, [FormOptimize(self), ResultsOptimize(self,'optimizeResult')],'Optimize',screen=self.screen), 'Optimize')
+        #self.addTab(FormContainer(self, [FormOptimize(self), ResultsOptimize(self,'optimizeResult')],'Optimize',screen=self.screen), 'Optimize')
 
         self.findChild(FormContainer,'Model').hide()
-        self.findChild(FormContainer, 'Optimize').hide()
+        #self.findChild(FormContainer, 'Optimize').hide()
 
     def makeSize(self,myGeom):
         '''

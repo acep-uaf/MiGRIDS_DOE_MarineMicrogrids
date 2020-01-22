@@ -11,8 +11,10 @@ import pandas as pd
 
 #constants
 TOTALP = 'total_p'
+TOTALL = 'total_l'
 MAXMISSING= '14 days'
-DATAFLAGS={1:'normal',2:'missing value'}
+FLAGCOLUMN = 'data_flag'
+DATAFLAGS={1:'normal',2:'missing value',3:'exceeds min/max', 4:'upsampled'}
 
 class DataClass:
     """A class with access to both raw and fixed dataframes."""
@@ -29,14 +31,20 @@ class DataClass:
             #df is a single dataframe converted from raw_df
             #once cleaned and split into relevent dataframes it will become fixed
             self.df = pd.DataFrame(raw_df.copy(), raw_df.index, raw_df.columns)
+            self.df = self.df.loc[~self.df.index.duplicated(keep='first')]
             self.df[TOTALP] = np.nan
+            self.df[TOTALL] = np.nan
+            #create data flag columns for all data columns
+            for c in self.df.columns:
+                self.df[c+'_flag'] = 1
+
             # all dataframes passed from readData will have a datetime column named DATE
-            for c,df in enumerate(self.fixed):
-                if 'DATE' in df.columns:
-                    df.index = pd.to_datetime(df['DATE'], unit='s')
-                    df = df.drop('DATE', axis=1)
+
+            if 'DATE' in self.df.columns:
+                self.df.index = pd.to_datetime(self.df['DATE'], unit='s')
+                self.df = self.df.drop('DATE', axis=1)
                 
-                self.fixed[c] = df
+            self.fixed = []
         else:
             self.raw = pd.DataFrame()
             self.rawCopy = pd.DataFrame()
@@ -63,7 +71,7 @@ class DataClass:
     def splitDataFrame(self):
        self.fixed = [self.df]
        #dataframe splits only occurr for total_p, individual load columns
-       self.fixed = cutUpDataFrame(self.fixed, [TOTALP] + self.loads)
+       self.fixed = cutUpDataFrame(self.fixed, [TOTALP] + [TOTALL])
        
     # DataClass -> null
     # summarizes raw and fixed data and print resulting dataframe descriptions
@@ -136,11 +144,24 @@ class DataClass:
 
     # Dataclass -> null
     # sums the power columns into a single column
-    def totalPower(self):  
+    def totalPower(self):
         self.df[TOTALP] = self.df[self.powerComponents].sum(1)
-        self.df[TOTALP] = self.df[TOTALP].replace(0,np.nan)
+        self.df[TOTALP] = self.df[TOTALP].replace(0, np.nan)
+        for df in self.fixed:
+            df[TOTALP] = df[self.powerComponents].sum(1)
+            df[TOTALP] = df[TOTALP].replace(0,np.nan)
+
         self.raw[TOTALP] = self.raw[self.powerComponents].sum(1)
         return
+
+    def totalLoad(self):
+        self.df[TOTALL] = self.df[self.loads].sum(1)
+        self.df[TOTALL] = self.df[TOTALL].replace(0, np.nan)
+        for df in self.fixed:
+            df[TOTALL] = df[self.loads].sum(1)
+            df[TOTALL] = df[TOTALL].replace(0, np.nan)
+
+        self.raw[TOTALL] = self.raw[self.loads].sum(1)
 
     # List of Components -> null
     # scales raw values to standardized units for model input
@@ -169,10 +190,11 @@ class DataClass:
 
     # fills values for all components for time blocks when data collection was offline
     # power components are summed and replaced together
-    # load columns are replaced individually
+    # load columns are summed and replaced togethor
     # ecolumns are replaced individually
     def fixOfflineData(self,columnsToReplace,groupingColumn):
         #try quick replace first
+
         column = columnsToReplace[0]
         df = self.df[columnsToReplace].copy()
         original_range = [df.first_valid_index(),df.last_valid_index()]
@@ -183,7 +205,14 @@ class DataClass:
             replacementS, notReplacedGroups = quickReplace(pd.DataFrame(df), subS, self.yearBreakdown.iloc[g]['offset'],notReplacedGroups)
             
             df = pd.concat([df, replacementS.add_prefix('R')],axis=1, join = 'outer')
-            
+
+            #add to the dictionary
+            badDictAdd(columnsToReplace, self.badDataDict, '2.Offline',
+                       df[(pd.notnull(df['R' + column])) &
+                               (df.index >= min(subS.index)) &
+                               (df.index <= max(subS.index))].index.tolist())
+
+            #set the data value
             df.loc[((pd.notnull(df['R' + column])) &
                    (df.index >= min(subS.index)) &
                    (df.index <= max(subS.index))),columnsToReplace] = df.loc[((pd.notnull(df['R' + column])) &
@@ -195,10 +224,9 @@ class DataClass:
         df_to_fix = pd.concat([df,groupingColumn],axis=1,join='outer')
         df_to_fix = df_to_fix[original_range[0]:original_range[1]]
         
-        #df_to_fix is the dataset that gets filled in (out of bands records are excluded)
+        #filling in the more difficult to fill values
         df_to_fix = self.truncateDate(df_to_fix)
         #if there is still data in the dataframe after we have truncated it 
-        # to the specified interval replace bad data
         if len(df_to_fix) > 1:
             
             #remove groups that were replaced
@@ -215,9 +243,16 @@ class DataClass:
             cuts.sort()
             print("%s groups of missing or inline data discovered for component named %s" %(len(groups), column) )  
         df_to_fix = doReplaceData(groups, df_to_fix.loc[pd.notnull(df_to_fix[column])], cuts,df.loc[pd.notnull(df[column])])
+
+        #set data flags
+        df_to_fix[column+'_flag'] =1
+        df_to_fix.loc[pd.isnull(df_to_fix[column]),column + '_flag'] =2
+
+        #record the data change in the dictionary
         if len(df_to_fix[column][pd.isnull(df_to_fix[column])].index.tolist()) > 0:
             badDictAdd(column, self.badDataDict, '2.Offline',
                    df_to_fix[column][pd.isnull(df_to_fix[column])].index.tolist())
+
         return df_to_fix.loc[pd.notnull(df_to_fix[column]),columnsToReplace]    
      
     
@@ -231,12 +266,12 @@ class DataClass:
     #keeps only rows of data that are between the specified runTimeSteps
     #raw data is not affected, only fixed data
     def truncateDate(self,df):
-        def makeList(dateString):
+        def makeList():
             newlist = self.runTimeSteps.split()
             return newlist
 
         if self.runTimeSteps is not None:
-            if (self.runTimeSteps != 'all') & (self.runTimeSteps != ['all']):
+            if (self.runTimeSteps != 'None None') & (self.runTimeSteps != 'all') & (self.runTimeSteps == 'None'):
                 if type(self.runTimeSteps) is not list:
                     self.runTimeSteps = makeList(self.runTimeSteps)
                 elif len(self.runTimeSteps) == 2:

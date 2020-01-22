@@ -24,78 +24,90 @@ def avg_datetime(series):
 
 def mergeInputs(inputDictionary,**kwargs):
     sender = kwargs.get("sender")
-    # iterate through all sets of input files
-    for idx in range(len(inputDictionary['fileLocation'])):
-        progress = round(((idx+1)/len(inputDictionary['fileLocation'])) * 10,0)
-        if sender:
-            sender.notifyProgress.emit(int(progress),'loading')
-        df0, listOfComponents0 = readDataFile(singleLocation(inputDictionary,idx))
-
-        # set index as DATE
-        df0.drop_duplicates('DATE', inplace=True)
-        df0.set_index('DATE', inplace=True)
-
-        if idx == 0: # initiate data frames if first iteration, otherwise append
-            df = df0
-            listOfComponents = listOfComponents0
-        else:
-            # the following code overlaps time series data, which does not necessarily line up, since from diff years
-            # this causes jumps in the time series
-
-
-            # concat, so that duplicate rows are combined and duplicate columns remain seperate
-            df = pd.concat([df, df0], axis=1, join='outer')
-            listOfComponents.extend(listOfComponents0)
+    # iterate through all sets of input files - list of dfs and components
+    fileResults = [readDataFile(singleLocation(inputDictionary,idx)) for idx in range(len(inputDictionary['inputFileDir.value']))]
+    # for idx in range(len(inputDictionary['inputFileDir.value'])):
+    #     progress = round(((idx+1)/len(inputDictionary['inputFileDir.value'])) * 10,0)
+    #     if sender:
+    #         sender.notifyProgress.emit(int(progress),'loading')
+    #     df0, listOfComponents0 = readDataFile(singleLocation(inputDictionary,idx))
+    #
+    #     # set index as DATE
+    #     df0.drop_duplicates('DATE', inplace=True)
+    #     df0.set_index('DATE', inplace=True)
+    #
+    #     if idx == 0: # initiate data frames if first iteration, otherwise append
+    #         df = df0
+    #         listOfComponents = listOfComponents0
+    #     else:
+    #         # the following code overlaps time series data, which does not necessarily line up, since from diff years
+    #         # this causes jumps in the time series
+    #
+    #
+    #         # concat, so that duplicate rows are combined and duplicate columns remain seperate
+    #         df = pd.concat([df, df0], axis=1, join='outer')
+    #         listOfComponents.extend(listOfComponents0)
+    listOfDfs = [t(0) for t in fileResults]
+    completeDf = pd.concat(listOfDfs, axis=1, join='outer')
+    listOfComponents = []
+    completelistOfComponents = list(set([listOfComponents.extend(t[1]) for t in fileResults][0]))
 
     # order by datetime
+    completeDf.drop_duplicates('DATE', inplace=True)
+    completeDf.set_index('DATE', inplace=True)
+
     # merge duplicate columns
     # get all column names
-    allCol = np.array(df.columns)
+    #allCol = np.array(df.columns)
+    allCol = np.array(completeDf.columns)
     allCol.dtype = 'object'  # if headers all single characters, it will cause replace col to fail later becuase of data type
     # get duplicate columns
     dupCol = []
+    #duplicate columns should not be possible
     for col in allCol:
         if (len(np.where(allCol == col)[0]) > 1) & (col not in dupCol):
             dupCol = dupCol + [col]
-
+    return completeDf, completelistOfComponents
     # dupCol = allCol[allCol.duplicated()] # this will have multiples of duplicate columns if more than 3
 
-    for dc in dupCol:  # for each column with the same name
-        # fill in first duplicate column with first non nan value
-        df[dc] = df[dc].bfill(axis=1)
-
-        # remove duplicate columns, keeping the first one
-        # find all columns named this
-        dcIdx = np.where(allCol == dc)[0]
-        # rename columns
-        allCol[dcIdx[1:]] = 'RemoveCol'
-        df.columns = allCol
-        df.drop('RemoveCol', axis=1, inplace=True)
-        allCol = np.array(df.columns)
-        allCol.dtype = 'object'
-
-
-    def uniqueList(startList,outList):
-        if len(startList) <= 0:
-            return outList
-        else:
-            if startList[0].column_name not in [n.column_name for n in outList]:
-                outList.append(startList[0])
-            return uniqueList(startList[1:],outList)
-        
-    l = uniqueList(listOfComponents,[])
+    # for dc in dupCol:  # for each column with the same name
+    #     # fill in first duplicate column with first non nan value
+    #     df[dc] = df[dc].bfill(axis=1)
+    #
+    #     # remove duplicate columns, keeping the first one
+    #     # find all columns named this
+    #     dcIdx = np.where(allCol == dc)[0]
+    #     # rename columns
+    #     allCol[dcIdx[1:]] = 'RemoveCol'
+    #     df.columns = allCol
+    #     df.drop('RemoveCol', axis=1, inplace=True)
+    #     allCol = np.array(df.columns)
+    #     allCol.dtype = 'object'
 
 
-    return df, l
+    # def uniqueList(startList,outList):
+    #     if len(startList) <= 0:
+    #         return outList
+    #     else:
+    #         if startList[0].column_name not in [n.column_name for n in outList]:
+    #             outList.append(startList[0])
+    #         return uniqueList(startList[1:],outList)
+    #
+    # l = uniqueList(listOfComponents,[])
+
+
+    #return df, l
 
 def singleLocation(dict, position):
     '''returns a dictionary that is a subset of the input dictionary with all the keys but only values at a specified position'''
     singleValueDict={}
 
     for key, val in dict.items():
-
-        try:
-            singleValueDict[key]=val[position]
-        except IndexError:
-            singleValueDict[key] =val[0]
+        if isinstance(val,list):
+            singleValueDict[key] = val
+        else:
+            try:
+                singleValueDict[key]=str(val).split(' ')[position]
+            except IndexError:
+                singleValueDict[key] =str(val).split(' ')[0]
     return singleValueDict

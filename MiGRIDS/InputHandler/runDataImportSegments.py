@@ -19,9 +19,7 @@ from MiGRIDS.InputHandler.getUnits import getUnits
 from MiGRIDS.InputHandler.fixDataInterval import fixDataInterval
 from MiGRIDS.InputHandler.dataframe2netcdf import dataframe2netcdf
 import pandas as pd
-from MiGRIDS.InputHandler.DataClass import DataClass
 import pickle
-import cProfile
 import bisect
 import copy
 

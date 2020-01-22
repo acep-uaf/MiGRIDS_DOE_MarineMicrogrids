@@ -22,26 +22,26 @@ def readCsv(inputDict):
 
     # process input variables
     # convert numpy arrays to lists
-    if type(inputDict['columnNames'])== np.ndarray:
-        inputDict['columnNames'] = inputDict['columnNames'].tolist()
-    if type(inputDict['useNames'])== np.ndarray:
-        inputDict['useNames'] = inputDict['useNames'].tolist()
+    if type(inputDict['componentChannels.headerName.value'])== np.ndarray:
+        inputDict['componentChannels.headerName.value'] = inputDict['componentChannels.headerName.value'].tolist()
+    if type(inputDict['componentChannels.componentName.value'])== np.ndarray:
+        inputDict['componentChannels.componentName.value'] = inputDict['componentChannels.componentName.value'].tolist()
  
 
     #------------------- load the file -----------------------------
-    df = pd.read_csv(os.path.join(inputDict['fileLocation'],
-                                  inputDict['fileName'])) # read as a data frame
+    df = pd.read_csv(os.path.join(inputDict['inputFileDir.value'],
+                                  inputDict['fileName.value'])) # read as a data frame
     # check and see if the df column names match the input specification.
     # TODO: throw a catch in here in case it does not find the headers
     gotHeader = False
     columnNamesFromCSV = stringToXML(df.columns)
-    if inputDict['columnNames'][0] not in columnNamesFromCSV:
+    if inputDict['componentChannels.headerName.value'][0] not in columnNamesFromCSV:
         # if the first row is not the header, look for it further down in the file
         for col in df.columns:
             a = df[col].astype(str)
             a = a.str.replace(r'\s+', '_')
             # get the matches for the column name
-            idxMatch = a.index[a == inputDict['columnNames'][0]].tolist()
+            idxMatch = a.index[a == inputDict['componentChannels.headerName.value'][0]].tolist()
             if len(idxMatch) != 0:
                 df.columns = df.loc[idxMatch[0]].str.replace(r'\s+', '_')
                 gotHeader = True
@@ -50,6 +50,9 @@ def readCsv(inputDict):
             raise ValueError('Input column names were not found in the CSV file.')
     inputDict['df'] = df
     df = processInputDataFrame(inputDict)
-    
+
     return df
 
+def readCsv_mp(inputDict,result):
+    df = readCsv(inputDict)
+    result.put(df)

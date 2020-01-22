@@ -21,7 +21,6 @@ class ThreadedProjectLoad(QtCore.QThread):
 
     def __init__(self, setupFile):
         QtCore.QThread.__init__(self)
-
         self.setupFile = setupFile
 
 
@@ -87,18 +86,18 @@ class ThreadedProjectLoad(QtCore.QThread):
 
             replaceDefaultDatabase(os.path.join(projectFolder, 'project_manager'))
             self.updateAttribute('Controller','projectDatabase',True)
-
+            #TODO verify validator called for controller attributes
 
         else:
             print('An existing project database was not found.')
             # load setup information
             setupDictionary = self.setupHandler.readInSetupFile(setupFile)
-            #TODO change to call sender emit
-            #self.controller.validate(ValidatorTypes.SetupXML, setupFile)
-
-            self.dbHandler.insertRecord('project', ['project_name', 'project_path', 'setupfile'],
+            if self.validator.validate(ValidatorTypes.SetupXML,setupDictionary):
+                self.updateAttribute('Controller','setupValid',True)
+                self.dbHandler.insertRecord('project', ['project_name', 'project_path', 'setupfile'],
                                    [project, projectFolder, setupFile])
-            self.dbHandler.updateSetupInfo(setupDictionary, setupFile)
+                self.dbHandler.updateSetupInfo(setupDictionary, setupFile)
+
             self.updateProgress(1, 'Loading Set Results')
             # load Sets - this loads attribute xmls, set setups, set descriptors, setmodel selectors and run result metadata
             sets = getAllSets(getFilePath('OutputData', setupFolder=os.path.dirname(setupFile)))
@@ -106,17 +105,20 @@ class ThreadedProjectLoad(QtCore.QThread):
             [self.runHandler.loadExistingProjectSet(os.path.dirname(s).split('\\')[-1]) for s in sets]
         self.updateProgress(3, 'Validating Data')
 
-        # projectFolder = dbHandler.getProjectPath()
-        #
-        # # get input data object
-        # controller.inputData = findDataObject()
-        # controller.validate(ValidatorTypes.DataObject, controller.inputData)
-        # controller.sender.update(3, 'Loading NetCDFs')
-        # # get model input netcdfs
-        # controller.netcdfs = listNetCDFs()
-        # controller.validate(ValidatorTypes.NetCDFList, controller.netcdfs)
-        # controller.sender.update(3, 'Project Loaded')
-        # del setupHandler
+       # get input data object
+        data= findDataObject()
+
+        if self.validator.validate(ValidatorTypes.DataObject, data):
+            self.updateAttribute('Controller', 'inputDataValid', True) #TODO this should be validated seperately
+            self.updateAttribute('Controller','dataObjectValid',True)
+            self.updateAttribute('Controller', 'inputData', data)  # send the object to the controller
+        self.updateProgress(3, 'Loading NetCDFs')
+        # get model input netcdfs
+        netcdfs = listNetCDFs()
+        if self.validator.validate(ValidatorTypes.NetCDFList, netcdfs):
+            self.updateAttribute('Controller','netcdfsValid',True)
+            self.updateAttribute('Controller', 'netcdfs', netcdfs)  # send the object to the controller
+        self.updateProgress(10,'Complete')
         del self.dbHandler
         del self.runHandler
         return

@@ -8,11 +8,12 @@ from MiGRIDS.UserInterface.qdateFromString import qdateFromString
 
 
 class ValidatorTypes(Enum):
-    DataObject=0
-    NetCDFList=1
-    SetupXML=2
-    SetSetupXML=3
-    AttributeXML=4
+    DataObject=0    #DataClass object
+    NetCDFList=1    #list of netcdf files for model
+    SetupXML=2      #setup xml
+    SetSetupXML=3   #set setup xml
+    AttributeXML=4  #attribute xml
+    InputData=5     #portion of setup xml pertinant to create DataClass object
 
 
 class Validator:
@@ -61,11 +62,21 @@ class Validator:
 
 
     def validateNetCDFList(self,nList):
+        '''netcdf requirements:
+        continuous index without na
+        1 value field,
+        at least 1 load nc, and 1 component nc'''
         #TODO implement
         if len(nList)>1:
             return True
         else:
             return False
+    def validateInputData(self):
+        '''Requirements:
+        each input file is linked to 1 or more component,
+        date format is specified,
+        '''
+        return True
     def validateSetupXML(self,xml):
         #TODO implement
         return True

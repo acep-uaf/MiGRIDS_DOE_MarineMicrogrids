@@ -6,7 +6,7 @@
 import pandas as pd
 
 from Analyzer.DataRetrievers.readNCFile import readNCFile
-from Controller.GBSExceptions.TimeStampVectorError import TimeStampVectorError
+from Controller.Exceptions.TimeStampVectorError import TimeStampVectorError
 
 
 def getDataChannels(projectPath, dataPath, channelList):

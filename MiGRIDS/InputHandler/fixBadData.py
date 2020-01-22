@@ -25,6 +25,7 @@ from MiGRIDS.InputHandler.badDictAdd import badDictAdd
 
 # constants
 DATETIME = 'DATE'  # the name of the column containing sampling datetime as a numeric
+TOTALL = 'total_l'
 DESCXML = 'Descriptor.xml'  # the suffix of the xml for each component that contains max/min values
 TOTALP = 'total_p'  # the name of the column that contains the sum of power output for all components
 
@@ -41,7 +42,7 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps, **kwargs):
        if sender:
            sender.notifyProgress.emit(progress, 'fixing bad values')
    # local functions - not used outside fixBadData
-   def checkMinMaxPower(component, dataFrameList, descriptorxml, baddata):
+   def checkMinMaxPower(component, df, descriptorxml, baddata):
        '''
 
        :param component: String name of the component tha is being checked
@@ -51,31 +52,42 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps, **kwargs):
        :return: Dictionary of baddata
        '''
        '''change out of bounds values to be within limits'''
-       for i, df in enumerate(dataFrameList):
+
            
-            # look up possible min/max
-           # if it is a sink, max power is the input, else it is the output
-           if getValue(descriptorxml, "type", False) == "sink":
-               maxPower = getValue(descriptorxml, "PInMaxPa")
-               minPower = getValue(descriptorxml, "POutMaxPa")
-           else:
-               maxPower = getValue(descriptorxml, "POutMaxPa")
-               minPower = getValue(descriptorxml, "PInMaxPa")
-           if (maxPower is not None) & (minPower is not None):
-               try:
-                   over = df[component] > maxPower
-    
-                   under = df[component] < minPower
-                   df[component] = df[component].mask((over | under))
-                   if(len(df[component][pd.isnull(df[component])].index.tolist()) > 0):
-                       badDictAdd(component, baddata, '1.Exceeds Min/Max',
-                               df[component][pd.isnull(df[component])].index.tolist())
-                       dataFrameList[i] = df
-               except KeyError:
-                   print("%s was not found in the dataframe" % component)
+        # look up possible min/max
+       # if it is a sink, max power is the input, else it is the output
+       if getValue(descriptorxml, "type", False) == "sink":
+           maxPower = getValue(descriptorxml, "PInMaxPa")
+           minPower = getValue(descriptorxml, "POutMaxPa")
+       else:
+           maxPower = getValue(descriptorxml, "POutMaxPa")
+           minPower = getValue(descriptorxml, "PInMaxPa")
+       if minMaxValid(minPower,maxPower):
+           try:
+               over = df[component] > maxPower
 
-       return dataFrameList, baddata
+               under = df[component] < minPower
+               df[component] = df[component].mask((over | under))
+               if(len(df[component][pd.isnull(df[component])].index.tolist()) > 0):
+                   badDictAdd(component, baddata, '3.Exceeds Min/Max',
+                           df.loc[pd.isnull(df[component])].index.tolist())
+                   df.loc[pd.isnull(df[component]),component+'_flag'] = 3
 
+           except KeyError:
+               print("%s was not found in the dataframe" % component)
+       else:
+           print("valid min/max values were not found for %s" %component)
+       return df, baddata
+
+   def minMaxValid(min,max):
+       try:
+         if min >= max:
+            return False
+         if (min is None)|(max is None):
+             return False
+       except:
+           return False
+       return True
    def getValue(xml, node, convertToFloat = True):
        '''
        Retrieves a specified value from a specified XML file
@@ -106,23 +118,22 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps, **kwargs):
    broadCastProgress(1)
    # replace out of bounds component values before we use these data to replace missing data
    for c in ListOfComponents:
-       componentName = componentNameFromColumn(c.column_name)
-       attribute = attributeFromColumn(c.column_name)
-       descriptorxmlpath = os.path.join(setupDir, '..', 'Components', ''.join([componentName, DESCXML]))
+
+       descriptorxmlpath = os.path.join(setupDir, '..', 'Components', ''.join([c.component_name, DESCXML]))
        #if it has a p attribute it is either a powercomponent or a load and has a min/max value
-       if attribute == 'P':
+       if c.attribute == 'P':
            try:
                descriptorxml = ET.parse(descriptorxmlpath)
-               checkMinMaxPower(c.column_name, data.fixed, descriptorxml, data.badDataDict)
+               data.df, data.badDataDict = checkMinMaxPower(c.column_name, data.df, descriptorxml, data.badDataDict)
                #Power components have a P attribute, but does not include load components
-               if componentName[0:4] != 'load':
+               if c.component_name[0:4] != 'load':
                    powerColumns.append(c.column_name)
                else:
                    loads.append(c.column_name)
            except FileNotFoundError:
                print('Descriptor xml for %s not found' % c.column_name)
                
-       elif attribute in [e.name for e in EnvironmentAttributeTypes.EnvironmentAttributeTypes]:
+       elif c.attribute in [e.name for e in EnvironmentAttributeTypes.EnvironmentAttributeTypes]:
            eColumns.append(c.column_name)       
 
    # store the power column list in the DataClass
@@ -132,46 +143,54 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps, **kwargs):
    
    # recalculate total_p, data gaps will sum to 0.
    data.totalPower()
+   data.totalLoad()
   
    #identify groups of missing data
    #totalp is for all power component columns
    #ecolumns and load columns are treated individually
    if len(data.powerComponents) > 0:
-       columns = data.eColumns + data.loads + [TOTALP]
+       columns = data.eColumns + [TOTALL] + [TOTALP] #look for missing values in total load and total power
    else:
-       columns = data.eColumns + data.loads
-  
+       columns = data.eColumns + [TOTALL]
+
+
    groupings = data.df[columns].apply(lambda c: isInline(c), axis=0)
-   broadCastProgress(4)
+
    data.setYearBreakdown()
 
    #replace offline data for total power sources
    if TOTALP in columns:
-        
       columnsToReplace= [TOTALP] + data.powerComponents
       #create a dataframe subset of total p column, grouping column and powercomponent columns
-      
-      #s = data.df[columnsToReplace]
+
       #replace the column in the dataframe with cleaned up data
       reps = data.fixOfflineData(columnsToReplace,groupings[TOTALP])
       data.df = data.df.drop(reps.columns, axis=1)
       data.df= pd.concat([data.df,reps],axis=1)
+
+   if TOTALL in columns:
+       columnsToReplace=[TOTALL] + data.loads
+       # replace the column in the dataframe with cleaned up data
+       reps = data.fixOfflineData(columnsToReplace, groupings[TOTALL])
+       data.df = data.df.drop(reps.columns, axis=1)
+       data.df = pd.concat([data.df, reps], axis=1)
    broadCastProgress(6)
-   #now e and load columns performed individually
+
+   #now e columns performed individually
    #nas produced from mismatched file timestamps get ignored during grouping - thus not replaced during fixbaddata
 
    cnt = len(data.df[data.eColumns + data.loads].columns)
    currentcnt = 1
-   for c in data.df[data.eColumns + data.loads].columns:
+   for c in data.df[data.eColumns].columns:
 
        reps= data.fixOfflineData([c], groupings[c])
        data.df = data.df.drop(reps.columns, axis=1)
        data.df= pd.concat([data.df,reps],axis=1)
        broadCastProgress(6 + round((currentcnt/cnt) * 4,0))
    broadCastProgress(10)
+
    #reads the component descriptor files and
    #returns True if none of the components have isFrequencyReference=1 and
-
    def dieselNeeded(myIterator, setupDir):
        def get_next(myiter):
            try:
@@ -205,7 +224,7 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps, **kwargs):
        data.totalPower()
       # scale data based on units and offset in the component xml file
    data.scaleData(ListOfComponents)      
-   data.splitDataFrame()
+   data.splitDataFrame() #this sets data.fixed to a list of dataframes if times are not consecutive
 
    data.totalPower()
    data.truncateAllDates()

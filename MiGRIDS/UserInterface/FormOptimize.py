@@ -6,6 +6,7 @@ from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIHandler import UIHandler
+from MiGRIDS.Optimizer.optimize import optimize
 
 class FormOptimize(QtWidgets.QWidget):
     def __init__(self, parent):
@@ -48,9 +49,9 @@ class FormOptimize(QtWidgets.QWidget):
         buttonLayout = QtWidgets.QHBoxLayout()
 
         runButton = makeButtonBlock(self, self.startOptimize, text='START', icon=None, hint='Start optimization process')
-        stopButton = makeButtonBlock(self, None, text='STOP', icon=None, hint='Stop optimization process')
+        #stopButton = makeButtonBlock(self, None, text='STOP', icon=None, hint='Stop optimization process')
         buttonLayout.addWidget(runButton)
-        buttonLayout.addWidget(stopButton)
+        #buttonLayout.addWidget(stopButton)
         return buttonLayout
 
     @QtCore.pyqtSlot()
@@ -62,8 +63,19 @@ class FormOptimize(QtWidgets.QWidget):
     def startOptimize(self):
         #make sure values are up to date
         self.updateStoredValues()
-        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,'Not implemented','If I knew how to optimize I would do it now.')
-        msg.show()
+        # msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,'Not implemented','If I knew how to optimize I would do it now.')
+        # msg.show()
+
+
+        # Create optimize object and initialize.
+        #TODO basecase kwarg use is not implemented yet
+        myOptimizationObject = optimize(self.dbhandler.getProject(),[], basecase = getFilePath('Set0',projectFolder=self.dbhandler.getProjectPath()))  # empty second argument is place holder for later addition of other args
+
+        # Execute optimization
+        myOptimizationObject.doOptimization()
+
+        # Retrieve log of results. This can be analyzed to determine which iteration yielded the best result, and what the power and energy values for the EES were.
+        #fitnessLog = myOptimizationLog.fl
         return
     #stop running the optimize routine
     def stopOptimize(self):

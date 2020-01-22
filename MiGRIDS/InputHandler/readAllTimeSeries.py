@@ -8,9 +8,9 @@ def readAllTimeSeries(inputDict):
     '''
     from MiGRIDS.InputHandler.readCsv import readCsv
     df = None
-    for i in range(len(inputDict['fileNames'])): 
-        print(inputDict['fileNames'][i])# for each data file
-        inputDict['fileName'] = inputDict['fileNames'][i]
+    for i in range(len(inputDict['fileNames.value'])):
+        print(inputDict['fileNames.value'][i])# for each data file
+        inputDict['fileName.value'] = inputDict['fileNames.value'][i]
         if i == 0:  # read data file into a new dataframe if first iteration
             
             df = readCsv(inputDict)

@@ -1,15 +1,12 @@
 # Projet: MiGRIDS
-# Created by: # Created on: 9/25/2019
+# Created by: T.Morgan # Created on: 9/25/2019
 import os
 import pickle
-
 import pandas as pd
-from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
 from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.InputHandler.buildProjectSetup import buildProjectSetup
 from MiGRIDS.InputHandler.fillProjectData import fillProjectData
-from MiGRIDS.InputHandler.makeSoup import makeComponentSoup
-from MiGRIDS.InputHandler.mergeInputs import mergeInputs
+from MiGRIDS.InputHandler.readData import readInputData_mp
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 
@@ -17,7 +14,7 @@ class SetupHandler(UIHandler):
     """
     Description: Provides methods for reading, writing, and passing main project setup information.
     Attributes: 
-        
+
         
     """
 
@@ -51,88 +48,44 @@ class SetupHandler(UIHandler):
             os.remove(os.path.join(componentDir, componentName + 'Descriptor.xml'))
         return
 
-    def createCleanedData(self, setupFile):
+    def createCleanedData(self):
 
         from MiGRIDS.InputHandler.getUnits import getUnits
         from MiGRIDS.InputHandler.fixBadData import fixBadData
         from MiGRIDS.InputHandler.fixDataInterval import fixDataInterval
 
-        inputDictionary = {}
-        Village = readXmlTag(setupFile, 'project', 'name')[0]
-        # input specification
-
-        # input a list of subdirectories under the Projects directory
-        fileLocation = readXmlTag(setupFile, 'inputFileDir', 'value')
-        inputDictionary['fileLocation'] = fileLocation
-        # file type
-        fileType = readXmlTag(setupFile, 'inputFileType', 'value')
-        outputInterval = readXmlTag(setupFile, 'timeStep', 'value') + \
-                         readXmlTag(setupFile, 'timeStep', 'unit')
-        inputInterval = readXmlTag(setupFile, 'inputTimeStep', 'value') + \
-                        readXmlTag(setupFile, 'inputTimeStep', 'unit')
-        inputDictionary['timeZone'] = readXmlTag(setupFile, 'timeZone', 'value')
-        inputDictionary['fileType'] = readXmlTag(setupFile, 'inputFileType', 'value')
-        inputDictionary['outputInterval'] = readXmlTag(setupFile, 'timeStep', 'value')
-        inputDictionary['outputIntervalUnit'] = readXmlTag(setupFile, 'timeStep', 'unit')
-        inputDictionary['inputInterval'] = readXmlTag(setupFile, 'inputTimeStep', 'value')
-        inputDictionary['inputIntervalUnit'] = readXmlTag(setupFile, 'inputTimeStep', 'unit')
-        inputDictionary['runTimeSteps'] = readXmlTag(setupFile, 'runTimeSteps', 'value')
-        # get date and time values
-        inputDictionary['dateColumnName'] = readXmlTag(setupFile, 'dateChannel', 'value')
-        inputDictionary['dateColumnFormat'] = readXmlTag(setupFile, 'dateChannel', 'format')
-        inputDictionary['timeColumnName'] = readXmlTag(setupFile, 'timeChannel', 'value')
-        inputDictionary['timeColumnFormat'] = readXmlTag(setupFile, 'timeChannel', 'format')
-        inputDictionary['utcOffsetValue'] = readXmlTag(setupFile, 'inputUTCOffset', 'value')
-        inputDictionary['utcOffsetUnit'] = readXmlTag(setupFile, 'inputUTCOffset', 'unit')
-        inputDictionary['dst'] = readXmlTag(setupFile, 'inputDST', 'value')
-        flexibleYear = readXmlTag(setupFile, 'flexibleYear', 'value')
-        inputDictionary['flexibleYear'] = [(x.lower() == 'true') | (x.lower() == 't') for x in flexibleYear]
-
-        # combine values with their units as a string
-        for idx in range(len(inputDictionary['outputInterval'])):  # there should only be one output interval specified
-            if len(inputDictionary['outputInterval']) > 1:
-                inputDictionary['outputInterval'][idx] += inputDictionary['outputIntervalUnit'][idx]
-            else:
-                inputDictionary['outputInterval'][idx] += inputDictionary['outputIntervalUnit'][0]
-
-        for idx in range(len(inputDictionary['inputInterval'])):  # for each group of input files
-            if len(inputDictionary['inputIntervalUnit']) > 1:
-                inputDictionary['inputInterval'][idx] += inputDictionary['inputIntervalUnit'][idx]
-            else:
-                inputDictionary['inputInterval'][idx] += inputDictionary['inputIntervalUnit'][0]
-
-        # get data units and header names
-        inputDictionary['columnNames'], inputDictionary['componentUnits'], \
-        inputDictionary['componentAttributes'], inputDictionary['componentNames'], inputDictionary[
-            'useNames'] = getUnits(Village, os.path.dirname(setupFile))
+        inputDictionary = self.dbhandler.getSetUpInfo()
 
         # read time series data, combine with wind data if files are seperate.
-        # Pass our sendet to mergeInputs so it can send signals
-        df, listOfComponents = mergeInputs(inputDictionary, sender=self.sender)
+        # Pass sender to mergeInputs so it can send signals back to progress bar
+        #sender can update upto 2
+        df, listOfComponents = readInputData_mp(inputDictionary, sender = self.sender)
+
 
         # check the timespan of the dataset. If its more than 1 year ask for / look for limiting dates
         minDate = min(df.index)
         maxDate = max(df.index)
-        limiters = inputDictionary['runTimeSteps']
+        limiters = inputDictionary['runTimeSteps.value']
 
-        if ((maxDate - minDate) > pd.Timedelta(days=365)) & (limiters == ['all']):
+        if ((maxDate - minDate) > pd.Timedelta(days=365)) & ((limiters == ['all']) | (limiters == 'None None')):
             newdates = self.DatesDialog(minDate, maxDate)
             m = newdates.exec_()
             if m == 1:
-                # inputDictionary['runTimeSteps'] = [newdates.startDate.text(),newdates.endDate.text()]
-                inputDictionary['runTimeSteps'] = [pd.to_datetime(newdates.startDate.text()),
-                                                   pd.to_datetime(newdates.endDate.text())]
-                # TODO write to the setup file so can be archived
-        self.sender.update(0, 'fixing bad values')
-        # now fix the bad data
-        df_fixed = fixBadData(df, os.path.dirname(setupFile), listOfComponents, inputDictionary['runTimeSteps'],
-                              sender=self.sender)
-        self.sender.update(0, 'fixing intervals')
-        # fix the intervals
-        print('fixing data timestamp intervals to %s' % inputDictionary['outputInterval'])
-        df_fixed_interval = fixDataInterval(df_fixed, inputDictionary['outputInterval'], sender=self.sender)
-        df_fixed_interval.preserve(os.path.dirname(setupFile))
 
+                inputDictionary['runTimeSteps.value'] = [pd.to_datetime(newdates.startDate.text()),
+                                                   pd.to_datetime(newdates.endDate.text())]
+
+        self.sender.update(2, 'fixing bad values') #second update
+        # now fix the bad data
+        df_fixed = fixBadData(df, getFilePath('Setup',projectFolder=self.dbhandler.getProjectPath()), listOfComponents, inputDictionary['runTimeSteps.value'],
+                              sender=self.sender) #can update up to 2 counts on progress bar
+        self.sender.update(2, 'fixing intervals')
+        # fix the intervals
+        print('fixing data timestamp intervals to %s' % inputDictionary['timeStep.value'])
+        #can update upto 2 counts on progress bar
+        df_fixed_interval = fixDataInterval(df_fixed, pd.to_timedelta(inputDictionary['timeStep.value'], unit = inputDictionary['timeStep.unit']), sender=self.sender)
+        df_fixed_interval.preserve(getFilePath('Setup',projectFolder=self.dbhandler.getProjectPath))
+        self.sender.update(10, 'done') #the process is complete
         return df_fixed_interval, listOfComponents
 
     def createNetCDF(self, lodf, componentDict, setupFolder):

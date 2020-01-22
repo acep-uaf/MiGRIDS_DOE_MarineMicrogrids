@@ -129,6 +129,7 @@ class XMLEditorHolder(QtWidgets.QWidget):
         xmls.update(self.scheduleXMLs)
         xmls.update(self.minSRCXMLs)
         return xmls
+
     def getSelectedModelsFromSetup(self,setup):
         '''
         Identifies the selected predictor xmls from the model setup file
@@ -152,7 +153,7 @@ class XMLEditorHolder(QtWidgets.QWidget):
 
     def designateSetupFile(self):
         '''looks for a project setup file and returns the dictionary from reading the file'''
-        #TODO make sure this shouldn't look for set setup file first
+
         setupFile = self.dbhandler.getFieldValue('project','setupfile','_id',1)
         if setupFile is None:
             setupFile = os.path.join(os.path.dirname(__file__), *['..', 'Model', 'Resources', 'Setup', 'projectSetup.xml'])

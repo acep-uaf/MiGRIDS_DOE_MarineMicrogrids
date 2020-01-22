@@ -16,126 +16,156 @@ import logging
 import sqlite3 as lite
 import numpy as np
 import os
+
+import pytz
 from netCDF4 import Dataset
 from MiGRIDS.InputHandler.processInputDataFrame import processInputDataFrame
 
-#String, String -> dataframe
-def readWindData(inputDict):
-    '''imports all MET data files in a folder and converts parameters to a dataframe.
-    :param inputDict: [Dictionary] a dictionary containing file location, datetime and channel information
-    :return: [Dictionary],[pandas.DataFrame] a dictionary of files that were read and the resulting dataframe of values is returned
+
+
+
+
+def readAsHeader(file, header_dict, componentName,inputDict):
+    '''extracts the header information from a MET file.
+    :param file [File] a MET file to be read.
+    :param header_dict [Dictionary] a dictionary of header information
+    :param componentName [String] the name of the channel of interest.
+    :return [Dictionary] of header information for the file.
     '''
+    inline = file.readline().split('\t')
+    inline = [re.sub(r"\s+", '_', x.strip()) for x in inline] # strip whitespaces at ends and replaces spaces with underscores
 
-    #DATETIME = 'Date_&_Time_Stamp'
-    DATETIME = inputDict['dateColumnName']
-    
-    def readAsHeader(file, header_dict, componentName):
-        '''extracts the header information from a MET file.
-        :param file [File] a MET file to be read.
-        :param header_dict [Dictionary] a dictionary of header information
-        :param componentName [String] the name of the channel of interest.
-        :return [Dictionary] of header information for the file.
-        '''
-        inline = file.readline().split('\t')
-        inline = [re.sub(r"\s+", '_', x.strip()) for x in inline] # strip whitespaces at ends and replaces spaces with underscores
-        
-        #assumes 'Date & Time Stamp' is the first column name where the dataframe starts. 
-        #we return the dictionary of header information
-        if inline[0] == DATETIME:
-        
-            names = inline
-            return header_dict, names
-        else:
-            #assumes that header information for channels are prefixed with 'Channel ...'
-            if inline[0][0:3] == 'Cha':
-               #start a new component
-               componentName = 'CH' + inline[1].rstrip()
-               header_dict[componentName] = {}
-            if (componentName is not None) & (len(inline) > 1):
-               header_dict[componentName][inline[0].rstrip()] = inline[1].rstrip()
-            return readAsHeader(file, header_dict, componentName)
+    #assumes 'Date & Time Stamp' is the first column name where the dataframe starts.
+    #we return the dictionary of header information
+    if inline[0] == inputDict['dateChannel.value']:
+
+        names = inline
+        return header_dict, names
+    else:
+        #assumes that header information for channels are prefixed with 'Channel ...'
+        if inline[0][0:3] == 'Cha':
+           #start a new component
+           componentName = 'CH' + inline[1].rstrip()
+           header_dict[componentName] = {}
+        if (componentName is not None) & (len(inline) > 1):
+           header_dict[componentName][inline[0].rstrip()] = inline[1].rstrip()
+        return readAsHeader(file, header_dict, componentName,inputDict)
 
 
-    def readAsData(file, names):
-        '''reast the data portion of a MET file into a dataframe
-        :param file [File] the MET file to be read
-        :param names [ListOf String] the channels to be read.
-        :return [DataFrame] of values for specified channels with datetime index'''
-        rowList = []
-        for line in file:
-        #these are the data lines with column names
-           value_dict = {}
-           cols = line.split('\t')
-           for i in range(len(names)):
-               value_dict[names[i]] = cols[i]
+def readAsData(file, names):
+    '''reast the data portion of a MET file into a dataframe
+    :param file [File] the MET file to be read
+    :param names [ListOf String] the channels to be read.
+    :return [DataFrame] of values for specified channels with datetime index'''
+    rowList = []
+    for line in file:
+    #these are the data lines with column names
+       value_dict = {}
+       cols = line.split('\t')
+       for i in range(len(names)):
+           value_dict[names[i]] = cols[i]
 
-           rowList.append(value_dict)
+       rowList.append(value_dict)
 
-        filedf = pd.DataFrame(rowList)
-        
-        return filedf
+    filedf = pd.DataFrame(rowList)
 
-    #if a new channel speficication is encountered within the input files it gets incremented with an appended number
-    #i.e. Channel 3 was windspeed in input file 1 but in input file 6 it becomes wind direction thus the channel name becomes CH3_1
-    def channelUp(channel, existing, increment = 1) :
-        newchannel = channel + '_' + str(increment)
-        if newchannel not in existing.keys():
-            return newchannel
-        else:
-            increment +=1
-            return channelUp(channel, existing, increment)
+    return filedf
 
-    #checks it the channel input information just read in matches the information stored in the working header dictionary
-    def checkMatch(channel, h, combinedHeader):
-        for attribute in combinedHeader[channel].keys():
+#if a new channel speficication is encountered within the input files it gets incremented with an appended number
+#i.e. Channel 3 was windspeed in input file 1 but in input file 6 it becomes wind direction thus the channel name becomes CH3_1
+def channelUp(channel, existing, increment = 1) :
+    newchannel = channel + '_' + str(increment)
+    if newchannel not in existing.keys():
+        return newchannel
+    else:
+        increment +=1
+        return channelUp(channel, existing, increment)
 
-            if combinedHeader[channel][attribute]!= h[channel][attribute]:
-                return False
-        return True
+#checks it the channel input information just read in matches the information stored in the working header dictionary
+def checkMatch(channel, h, combinedHeader):
+    for attribute in combinedHeader[channel].keys():
 
-    #adds a new channel to the combined header dictionary if it doesn't exist yet
-    def addChannel(channel, h, combinedHeader, oc):
-        
-        combinedHeader[channel]={'Description':h[oc]['Description'],
-                    'Height':h[oc]['Height'],
-                    'Offset':h[oc]['Offset'],
-                    'Scale_Factor':h[oc]['Scale_Factor'],
-                    'Units':h[oc]['Units']}
-        return combinedHeader
+        if combinedHeader[channel][attribute]!= h[channel][attribute]:
+            return False
+    return True
+
+#adds a new channel to the combined header dictionary if it doesn't exist yet
+def addChannel(channel, h, combinedHeader, oc):
+
+    combinedHeader[channel]={'Description':h[oc]['Description'],
+                'Height':h[oc]['Height'],
+                'Offset':h[oc]['Offset'],
+                'Scale_Factor':h[oc]['Scale_Factor'],
+                'Units':h[oc]['Units']}
+    return combinedHeader
+def getBase(c):
+    '''remove the suffix from a column name'''
+    ps = ['SD','Avg','Min','Max']
+    try:
+        r = [p for p in ps if p in c][0]
+    except:
+        return c
+    return c.replace(r,'')
+
+def scaleData(fileData, headerDict):
+    for c in fileData.columns:
+        try:
+            baseC = getBase(c)
+            fileData[c] = fileData[c].astype(float)
+            fileData[c] = (fileData[c] * float(headerDict[baseC]['Scale_Factor'])) + float(headerDict[baseC]['Offset'])
+        except:
+            pass
+    return fileData
 
 
+def readIndividualWindFile(inputDict):
+    DATETIME = inputDict['dateChannel.value']
+    with open(os.path.join(inputDict['inputFileDir.value'],inputDict['fileName.value']), 'r', errors='ignore') as file:
+        # read the header information of each file
+
+        headerDict = {}
+
+        headerDict, names = readAsHeader(file, headerDict, None, inputDict)
+
+        # read the data from each file
+        fileData = readAsData(file, names)
+
+        timeZone = pytz.timezone(inputDict['timeZone.value'])
+        fileData[DATETIME] = pd.to_datetime((fileData[DATETIME]))
+        fileData[DATETIME] = fileData[DATETIME].apply(lambda d: timeZone.localize(d, is_dst=inputDict['inputDST.value']))
+        fileData[DATETIME] =fileData[DATETIME].dt.tz_convert('UTC')
+        fileData = fileData.set_index(pd.to_datetime(fileData[DATETIME]))
+        fileData = fileData.apply(pd.to_numeric, errors='ignore')
+
+        fileData = fileData.sort_index()
+
+        #reduce to only columns of interest
+        fileData = fileData[inputDict['componentChannels.headerName.value']]
+        #apply file designated scale and offset from headerdict
+
+        fileData = scaleData(fileData,headerDict)
+        fileData.columns = [t[0] + t[1] for t in list(zip(*[inputDict['componentChannels.componentName.value'],inputDict['componentChannels.componentAttribute.value']]))]
+
+    return fileData
+
+def readAllWindData(inputDict):
     #a dictionary of files that are read
     fileDict = {}
     df = pd.DataFrame()
-    
-    for root, dirs, files in os.walk(inputDict['fileLocation']):
+    for root, dirs, files in os.walk(inputDict['inputFileDir.value']):
         for f in files:
             with open(os.path.join(root, f), 'r',errors='ignore') as file:
                 #read the header information of each file
                 if (file.name)[-3:] == 'txt':
                     print(os.path.basename(file.name))
-                    data = pd.DataFrame()
-                    headerDict = {}
-
-                    headerDict, names = readAsHeader(file, headerDict, None)
-                    fileDict[file.name] = headerDict
-                    for n in names:
-                        if n not in df.columns:
-                            df[n] = None
-                            data[n] = None
-                    #read the data from each file
-                    fileData = readAsData(file, names)
+                    fileData = readIndividualWindFile(inputDict)
                     df = pd.concat([df, fileData], axis=0, ignore_index=True)
             if file.name in fileDict.keys():
                 fileDict[file.name]['rows'] = len(fileData)
 
-
-
-    df = df.set_index(pd.to_datetime(df[DATETIME]))
+    df = df.set_index(pd.to_datetime(df[inputDict['dateChannel.value']]))
     df = df.apply(pd.to_numeric, errors='ignore')
     df = df.sort_index()
-    
-
 
     combinedHeader = {}
     fileLog = fileDict
@@ -154,88 +184,92 @@ def readWindData(inputDict):
                 else:
                     #add the channel
                     addChannel(channel, h, combinedHeader, channel)
-
-
-    def createNetCDF(df, increment):
-        # create a netcdf file
-        dtype = 'float'
-        # column = df.columns.values[i]
-        ncName = os.path.join(inputDict['fileLocation'], (str(increment) + 'WS.nc'))
-        rootgrp = Dataset(ncName, 'w', format='NETCDF4')  # create netCDF object
-        rootgrp.createDimension('time', None)  # create dimension for all called time
-        # create the time variable
-        rootgrp.createVariable('time', dtype, 'time')  # create a var using the varnames
-        rootgrp.variables['time'][:] = pd.to_timedelta(pd.Series(df.index)).values.dt.total_seconds().astype(int)
-
-        # create the value variable
-        rootgrp.createVariable('value', dtype, 'time')  # create a var using the varnames
-        rootgrp.variables['value'][:] = np.array(winddf['values'])  # fill with values
-        # assign attributes
-        rootgrp.variables['time'].units = 'seconds'  # set unit attribute
-        rootgrp.variables['value'].units = 'm/s'  # set unit attribute
-        rootgrp.variables['value'].Scale = 1  # set unit attribute
-        rootgrp.variables['value'].offset = 0  # set unit attribute
-        # close file
-        rootgrp.close()
-
-    #now we need to fill in the gaps between sampling points
-    #apply to every row, 10 minutes = 600 seconds
-    def fillWindRecords(df, channels):
-        database = os.path.join(inputDict['fileLocation'], 'wind.db')
-        connection = lite.connect(database)
-
-        for k in channels:
-            logging.info(k)
-     
-            newdf = df.copy()
-            newdf = newdf.sort_index()
-            newColumns = [x.replace(k,'').rstrip() for x in newdf.columns]
-            newdf.columns = newColumns
-            valuesdf = pd.DataFrame()
-            valuesdf['time'] = None
-            valuesdf['values'] = None
-
-            newdf['date'] = pd.to_datetime(newdf.index)
-            #turn the df records into windrecords
-            ListOfWindRecords = newdf.apply(lambda x: WindRecord(x['SD'], x['Avg'], x['Min'], x['Max'], x['date']), 1)
-            logging.info(len(ListOfWindRecords))
-            #k is a list of values for each 10 minute interval
-            recordCount = 0
-            for r in ListOfWindRecords:
-                #logging.info(recordCount)
-                start = r.getStart(pd.Timedelta(minutes=10), valuesdf)
-                recordCount +=1
-
-                r.estimateDistribution(601,'1s',start)
-                valuesdf = pd.concat([valuesdf,pd.DataFrame({'time':r.distribution[1],'values':r.distribution[0]})])
-                valuesdf['values'] = valuesdf['values']
-                #every 5000 records write the new values
-                if recordCount%5000 == 0:
-                    valuesdf.to_sql('windrecord' + k, connection, if_exists='append')
-                    connection.commit()
-                    valuesdf = pd.DataFrame()
-                    valuesdf['time'] = None
-                    valuesdf['values'] = None
-            valuesdf.to_sql('windrecord' + k, connection, if_exists='append')
-
-            winddf = pd.read_sql_query("select * from windrecord" + k, connection)
-
-            winddf = winddf.set_index(pd.to_datetime(winddf[DATETIME], unit='s'))
-            winddf = winddf[~winddf.index.duplicated(keep='first')]
-            try:
-                createNetCDF(winddf, k)
-                connection.close()
-                os.remove(database)
-
-            except:
-                print ('An error occured. Current results are stored in %s' %database)
-        return winddf
-
     inputDict['df'] = df
     # only choose the channels desired
     winddf = processInputDataFrame(inputDict)
-   
+
     return fileDict, winddf
+
+
+def createNetCDF(df,increment,inputDict):
+    # create a netcdf file
+    dtype = 'float'
+    # column = df.columns.values[i]
+    ncName = os.path.join(inputDict['inputFileDir.value'], (str(increment) + 'WS.nc'))
+    rootgrp = Dataset(ncName, 'w', format='NETCDF4')  # create netCDF object
+    rootgrp.createDimension('time', None)  # create dimension for all called time
+    # create the time variable
+    rootgrp.createVariable('time', dtype, 'time')  # create a var using the varnames
+    rootgrp.variables['time'][:] = pd.to_timedelta(pd.Series(df.index)).values.dt.total_seconds().astype(int)
+
+    # create the value variable
+    rootgrp.createVariable('value', dtype, 'time')  # create a var using the varnames
+    rootgrp.variables['value'][:] = np.array(df['values'])  # fill with values
+    # assign attributes
+    rootgrp.variables['time'].units = 'seconds'  # set unit attribute
+    rootgrp.variables['value'].units = 'm/s'  # set unit attribute
+    rootgrp.variables['value'].Scale = 1  # set unit attribute
+    rootgrp.variables['value'].offset = 0  # set unit attribute
+    # close file
+    rootgrp.close()
+
+#now we need to fill in the gaps between sampling points
+#apply to every row, 10 minutes = 600 seconds
+def fillWindRecords(df, channels,inputDict):
+    database = os.path.join(inputDict['inputFileDir.value'], 'wind.db')
+    connection = lite.connect(database)
+
+    for k in channels:
+        logging.info(k)
+
+        newdf = df.copy()
+        newdf = newdf.sort_index()
+        newColumns = [x.replace(k,'').rstrip() for x in newdf.columns]
+        newdf.columns = newColumns
+        valuesdf = pd.DataFrame()
+        valuesdf['time'] = None
+        valuesdf['values'] = None
+
+        newdf['date'] = pd.to_datetime(newdf.index)
+        #turn the df records into windrecords
+        ListOfWindRecords = newdf.apply(lambda x: WindRecord(x['SD'], x['Avg'], x['Min'], x['Max'], x['date']), 1)
+        logging.info(len(ListOfWindRecords))
+        #k is a list of values for each 10 minute interval
+        recordCount = 0
+        for r in ListOfWindRecords:
+            #logging.info(recordCount)
+            start = r.getStart(pd.Timedelta(minutes=10), valuesdf)
+            recordCount +=1
+
+            r.estimateDistribution(601,'1s',start)
+            valuesdf = pd.concat([valuesdf,pd.DataFrame({'time':r.distribution[1],'values':r.distribution[0]})])
+            valuesdf['values'] = valuesdf['values']
+            #every 5000 records write the new values
+            if recordCount%5000 == 0:
+                valuesdf.to_sql('windrecord' + k, connection, if_exists='append')
+                connection.commit()
+                valuesdf = pd.DataFrame()
+                valuesdf['time'] = None
+                valuesdf['values'] = None
+        valuesdf.to_sql('windrecord' + k, connection, if_exists='append')
+
+        winddf = pd.read_sql_query("select * from windrecord" + k, connection)
+
+        winddf = winddf.set_index(pd.to_datetime(winddf[inputDict['dateChannel.value']], unit='s'))
+        winddf = winddf[~winddf.index.duplicated(keep='first')]
+        try:
+            createNetCDF(winddf, k)
+            connection.close()
+            os.remove(database)
+
+        except:
+            print ('An error occured. Current results are stored in %s' %database)
+    return winddf
+
+
+def readWindData_mp(inputDict, result):
+    df = readIndividualWindFile(inputDict)
+    result.put(df)
 
 # a data class for estimating and storing windspeed data collected at intervals
 class WindRecord():
@@ -299,3 +333,4 @@ class WindRecord():
        t = pd.date_range(self.datetime - pd.to_timedelta(pd.Timedelta(interval).seconds * records, unit='s'), periods=records,freq='s')
        self.distribution = [x,t]
        return
+

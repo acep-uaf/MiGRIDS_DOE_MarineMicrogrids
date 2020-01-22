@@ -10,6 +10,9 @@ If more values are produced than desired, the extra values are dropped'''
 #interval is a string with time units. (i.e. '30s' for 30 seconds, '1T' for 1 minute)
 #If interval is less than the interval within the dataframe mean values are used to create a down-sampled dataframe
 #DataClass, String -> DataClass
+from MiGRIDS.InputHandler.badDictAdd import badDictAdd
+
+
 def fixDataInterval(data, interval, **kwargs):
     ''' data is a DataClass with a pandas dataframe with datetime index.
      interval is the desired interval of data samples. If this is 
@@ -22,8 +25,9 @@ def fixDataInterval(data, interval, **kwargs):
     sender = kwargs.get("sender")
 
     def broadCastProgress(progress):
+        limit = 2
         if sender:
-            sender.update(progress, 'fixing intervals')
+            sender.update(progress/limit, 'fixing intervals')
     #integer, numeric, numeric, numeric -> numeric array
     #uses the Langevin equation to estimate records based on provided mean (mu) and standard deviation and a start value
     def getValues(records, start, sigma, timestep):
@@ -174,21 +178,33 @@ def fixDataInterval(data, interval, **kwargs):
         interval is a timedelta interval'''
         # df contains the non-upsampled records. Means and standard deviation come from non-upsampled data.
         df = data.copy()
-        print(data.head())
+
         # create a list of individual loads, total of power components and environmental measurements to fix interval on
         fixColumns = []
-        fixColumns.extend(loads)
+
         fixColumns.extend(eColumns)
         # if there are power components fix intervals based on total power and scale to each component
         if df['total_p'].first_valid_index() != None:
             fixColumns.append('total_p')
+        if df['total_l'].first_valid_index() != None:
+            fixColumns.append('total_l')
         print('before upsampling dataframe is: %s' % len(data))
         print(data.head())
         # up or down sample to our desired interval
         # down sampling results in averaged values
         # this changes the size fo data.fixed[idx], so it no longer matches df rowcount.
         # we start with flooring - so a value 1 second past the desired interval will become the value
-        data = data.resample(pd.to_timedelta(interval)).mean()
+
+        #set the flag now
+        flag_columns =[c for c in data.columns if ('flag' in c)]
+        other_columns = [c for c in data.columns if 'flag' not in c]
+
+        data1 = data[other_columns].resample(pd.to_timedelta(interval)).mean()
+        data = data1.join(data[flag_columns], how='left')
+
+        for f in flag_columns:
+            data.loc[pd.isnull(data[f]),f] = 4
+
         broadCastProgress(1  * (1/3))
 
         for col in fixColumns:
@@ -248,10 +264,14 @@ def fixDataInterval(data, interval, **kwargs):
                 data.loc[pd.isnull(data[col]), col] = data['value']
 
                 # component values get calculated based on the proportion that they made up previously if we are working with total_p
-                if col == 'total_p':
-                    adj_m = data[powerComponents].div(data['total_p'], axis=0)
+                if 'total' in col:
+                    if col == 'total_p':
+                        components = data.powerComponents
+                    elif col == 'total_l':
+                        components = data.loads
+                    adj_m = data[components].div(data[col], axis=0)
                     adj_m = adj_m.ffill()
-                    data = adj_m.multiply(data['total_p'], axis=0)
+                    data = adj_m.multiply(data[col], axis=0)
                     del adj_m
 
                 # get rid of columns added
@@ -265,9 +285,9 @@ def fixDataInterval(data, interval, **kwargs):
 
         return data
 
-    print(data.fixed[0].head())
     try:
-        data.fixed = list(map(lambda x, y: fixDataFrameInterval(x, y), data.fixed,interval))
+        myD = [fixDataFrameInterval(x, interval) for x in  data.fixed]
+        data.fixed = myD
     except MemoryError as m:
         print(m)
         print('attempting to loop through dataframes')

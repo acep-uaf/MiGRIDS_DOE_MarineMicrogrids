@@ -297,7 +297,7 @@ def expandDataFrame(idf, s):
         return s
     else:
         s = s.append(listsToDataframe(idf.iloc[0],s))
-        add
+
         s = s.sort_index()
         
         return expandDataFrame(idf.iloc[1:],s)

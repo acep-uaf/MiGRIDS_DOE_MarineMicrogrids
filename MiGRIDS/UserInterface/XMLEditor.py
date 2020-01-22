@@ -74,6 +74,7 @@ class XMLEditor(QtWidgets.QWidget):
         x = self.pattern.search(self.default).group(2)
         return x
     def makeTitleBar(self):
+        self.adjustSize()
         T = TitleBar(self,self.xmlOptions,self.resourcetype,self.default)
         T.btn_hide.clicked.connect(self.hideForm)
         T.btn_show.clicked.connect(self.showForm)
@@ -95,7 +96,7 @@ class XMLEditor(QtWidgets.QWidget):
 
         mainLayout.addWidget(self.xmlform)
 
-        self.formStack.setCurrentWidget(self.formStack.findChild(XMLForm,self.default))
+        self.formStack.setCurrentWidget([self.formStack.widget(i) for i in range(self.formStack.count()) if self.formStack.widget(i).objectName() == self.default][0])
         self.xmlform.setVisible(False)
         return mainLayout
     def makeStack(self):
@@ -117,7 +118,7 @@ class XMLEditor(QtWidgets.QWidget):
     def makeForm(self,selectedXML):
         ''' Makes an editable xml form based on a designated file'''
         F = XMLForm(selectedXML)
-        F.setObjectName(selectedXML)
+        F.setObjectName(selectedXML[0].lower() + selectedXML[1:]) #make sure the first letter is lowercase so it matches
         F.setVisible(False)
         return F
     def writeXML(self, setName=None):
@@ -214,7 +215,7 @@ class TitleBar(QtWidgets.QWidget):
         self.title.setContentsMargins(0,0,0,0)
         self.title.setAlignment(QtCore.Qt.AlignTop)
         self.setMinimumHeight(btn_size)
-        #self.setMaximumHeight(2*btn_size)
+        self.setMaximumHeight(2*btn_size)
 
         self.btn_hide = QtWidgets.QPushButton("X")
         self.btn_hide.setFixedSize(btn_size, btn_size)
@@ -225,11 +226,11 @@ class TitleBar(QtWidgets.QWidget):
         self.btn_show = QtWidgets.QPushButton("+")
         self.btn_show.setFixedSize(btn_size, btn_size)
         self.btn_show.setStyleSheet(" QPushButton { text-align: center; background-color: green;}")
-        self.btn_show.setVisible(True) #TODO this is causing layout error
+        #self.btn_show.setVisible(True) #TODO this is causing layout error
 
         bar.addWidget(self.btn_hide)
         bar.addWidget(self.btn_show)
-        self.setMaximumHeight(btn_size)
+        #self.setMaximumHeight(btn_size)
         self.setLayout(bar)
         return
 

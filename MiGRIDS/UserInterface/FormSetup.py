@@ -217,7 +217,7 @@ class FormSetup(QtWidgets.QWidget):
 
     def grantPermissions(self):
         self.tabs.setEnabled(self.controller.setupValid)
-        self.createInputButton.setEnabled(self.controller.rawDataValid)
+        self.createInputButton.setEnabled(self.controller.inputDataValid)
         if self.controller.dataObjectValid:
             self.dataLoadedOutput.setText('Data Loaded')
         else:
@@ -282,8 +282,13 @@ class FormSetup(QtWidgets.QWidget):
 
         #if we were already working on a project its state gets saved and  new project is loaded
         if (self.controller.dbhandler.getProjectPath() != '') & (self.controller.dbhandler.getProjectPath() is not None):
-            switchProject(self)
+            pathTo = self.controller.dbhandler.getProjectPath()
 
+            self.controller.dbhandler.connection.close()
+
+            switchProject(self,pathTo)
+
+            self.controller.createDatabaseConnection()
 
         #launch file navigator to identify setup file
         setupFile = QtWidgets.QFileDialog.getOpenFileName(self,"Select your setup file", os.path.join(os.path.dirname(__file__),'..','..','MiGRIDSProjects'), "*xml" )
@@ -308,6 +313,7 @@ class FormSetup(QtWidgets.QWidget):
     def onProjectLoaded(self):
 
         try:
+            self.controller.sender.callStatusChanged()
             self.displayModelData() #update the form with loaded data
             self.updateFormProjectDataStatus()
 
@@ -430,7 +436,8 @@ class FormSetup(QtWidgets.QWidget):
 
             return
 
-        progressBar = CustomProgressBar('Data fixing')
+        self.progressBar = CustomProgressBar('Data fixing')
+        self.controller.sender.notifyProgress.connect(self.progressBar.onProgress)
         try:
             #when thread finishes self.controller.inputData and self.components are set
             self.controller.createInputData()
@@ -438,42 +445,12 @@ class FormSetup(QtWidgets.QWidget):
         except Exception as e:
             print(e)
         finally:
-            progressBar.hide()
-            del progressBar
+            self.progressBar.hide()
 
-        if not self.validator.validate(ValidatorTypes.DataObject,self.controller.inputData): #this will set dataobjectvalid to its current state
-            self.showAlert("Could not create a valid data object.")
+
+        # if not self.controller.validator.validate(ValidatorTypes.DataObject,self.controller.inputData): #this will set dataobjectvalid to its current state
+        #     self.showAlert("Could not create a valid data object.")
         return
-
-    # def loadProjectData(self):
-    #     progressBar = CustomProgressBar("Data loading")
-    #
-    #     self.uihandler.sender.notifyProgress.connect(progressBar.onProgress)
-    #     try:
-    #         # look for an existing component pickle or create one from information in setup xml
-    #         self.components = self.uihandler.loadComponents(os.path.join(self.setupFolder, self.project + 'Setup.xml'))
-    #         if self.components is None:
-    #             self.components = self.makeComponentList()
-    #         self.uihandler.sender.notifyProgress(2,'loading')
-    #         if self.controller.inputData:
-    #             self.updateFormProjectDataStatus()
-    #             self.uihandler.sender.notifyProgress(3,'loading')
-    #         else:
-    #             self.netCdfsLoaded()
-    #             self.uihandler.sender.notifyProgress(5,'loading')
-    #     except Exception as e:
-    #         print(e)
-    #     finally:
-    #         progressBar.hide()
-    #         return
-
-    # def netCdfsLoaded(self):
-    #     '''list netcdf files previously generated
-    #     :returns True if necdfs are found
-    #     '''
-    #
-    #     self.updateDependents()
-    #     return
 
     def updateFormProjectDataStatus(self):
         '''updates the setup form to reflect project data (DataClass object, Component info, netcdfs)status
@@ -492,8 +469,8 @@ class FormSetup(QtWidgets.QWidget):
                 # if yes create netcdf files, Otherwise this can be done after the data is reviewed.
                 if result == QtWidgets.QMessageBox.Ok:
                     self.makeNetcdfs()
-            else:
-                self.updateDependents()
+            # else:
+            #     self.updateDependents()
 
         except Exception as e:
             print(e)
