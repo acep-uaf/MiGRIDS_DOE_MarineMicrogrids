@@ -22,8 +22,11 @@ from MiGRIDS.Controller.DirectoryPreview import DirectoryPreview
 class FileBlock(QtWidgets.QGroupBox):
     def __init__(self, parent, tabPosition):
         super().__init__(parent)
+        self.BLOCKED = False
         #integer -> FileBlock
         self.init(tabPosition)
+
+
     # creates a single form for entering individual file type information
     def init(self, tabPosition):
         self.controller = Controller()
@@ -57,22 +60,22 @@ class FileBlock(QtWidgets.QGroupBox):
         # creates a horizontal layout containing gridlayouts for data input
 
     def folderChanged(self,selectedFolder = None):
-        # save the input to the setup data model and into the database
-        # self.saveInput()
-        # update the filedir path - this should be handled by mapper
+        if not self.BLOCKED:
+            # save the input to the setup data model and into the database
+            # self.saveInput()
+            # update the filedir path - this should be handled by mapper
 
-        # filter the component and environemnt input tables to the current input directory
-        print("Input folder %s is %s" %(self.tabPosition,selectedFolder))
-        self.saveInput()
+            # filter the component and environemnt input tables to the current input directory
+            print("Input folder %s is %s" %(self.tabPosition,selectedFolder))
+            self.saveInput()
+            self.filterTables()
 
-        self.filterTables()
-
-        try:
-            self.createPreview(selectedFolder,
-                               self.FileBlock.findChild(QtWidgets.QComboBox,
-                                              F.InputFileFields.inputfiletypevalue.name).currentText())
-        except AttributeError as a:
-            print(a)
+            try:
+                self.createPreview(selectedFolder,
+                                   self.FileBlock.findChild(QtWidgets.QComboBox,
+                                                  F.InputFileFields.inputfiletypevalue.name).currentText())
+            except AttributeError as a:
+                print(a)
 
     @QtCore.pyqtSlot()
     def lineclicked(self):
@@ -190,10 +193,6 @@ class FileBlock(QtWidgets.QGroupBox):
         parent = QtCore.QModelIndex()
         fileBlockModel.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
 
-        #fileBlockModel.setRelation(F.InputFileFields.inputfiletypevalue.value, QtSql.QSqlRelation("ref_file_type", "code", "code"))
-        #fileBlockModel.setRelation(F.InputFileFields.datechannelformat.value, QtSql.QSqlRelation("ref_date_format", "code","code"))
-        #fileBlockModel.setRelation(F.InputFileFields.timechannelformat.value, QtSql.QSqlRelation("ref_time_format", "code", "code"))
-
 
         fileBlockModel.select();
 
@@ -265,6 +264,7 @@ class FileBlock(QtWidgets.QGroupBox):
                     if wid.objectName() == 'inputfiletypevalue': #if the file type changes trigger the function to create a new preview
                         self.reconnect(wid.currentIndexChanged,self.folderChanged)
 
+
         # submit data changes automatically on field changes -this doesn't work
         self.mapper.setSubmitPolicy(QtWidgets.QDataWidgetMapper.AutoSubmit)
         self.mapper.toFirst()
@@ -322,6 +322,7 @@ class FileBlock(QtWidgets.QGroupBox):
                 self.updateComponentDelegate(self.preview, tableHandler)
             except AttributeError as a:
                 print(a)
+
         self.filterTables()
         gb.setLayout(tableGroup)
         gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -443,25 +444,6 @@ class FileBlock(QtWidgets.QGroupBox):
         self.FileBlock.sizePolicy().retainSizeWhenHidden()
         self.FileBlock.setObjectName('fileInput')
 
-    # if the fileblock looses focus update database information
-    #TODO check if this is needed since input is tide to a sql model
-    def focusOutEvent(self, event):
-
-        # if 'projectFolder' in self.model.__dict__.keys():
-        #     #input to model
-        #     self.saveInput()
-        #     #input to database
-        #     setupFields, setupValues = self.getSetupInfo()
-        #     '''
-        #     # update database table
-        #     if not self.controller.dbhandler.insertRecord('input_files', setupFields, setupValues):
-        #         self.controller.dbhandler.updateRecord('input_files', [F.InputFileFields._id.name], [str(setupValues[0])],
-        #                                setupFields[1:],
-        #                                setupValues[1:])
-        #                                '''
-        #     # on leave save the xml files
-        #     self.model.writeNewXML()
-        return
 
     #reads data from an file input top block and returns a list of fields and values
     def getSetupInfo(self):

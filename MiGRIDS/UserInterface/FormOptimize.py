@@ -1,6 +1,8 @@
 from PyQt5 import QtWidgets, QtCore
 from bs4 import BeautifulSoup
 import os
+
+from MiGRIDS.UserInterface.BaseForm import BaseForm
 from MiGRIDS.UserInterface.GridFromXML import GridFromXML
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
@@ -8,7 +10,7 @@ from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.Optimizer.optimize import optimize
 
-class FormOptimize(QtWidgets.QWidget):
+class FormOptimize(BaseForm):
     def __init__(self, parent):
         super().__init__(parent)
 

@@ -18,7 +18,7 @@ from Analyzer.DataRetrievers.readNCFile import readNCFile
 from Analyzer.PerformanceAnalyzers.getFuelUse import getFuelUse
 from Analyzer.PerformanceAnalyzers.getPrimaryREContribution import getPrimaryREContribution
 from Model.Operational.generateRuns import generateRuns
-from Model.Operational.runSimulation import runSimulation
+from Model.Operational.runSimulation import Simulation
 from Optimizer.FitnessFunctions.getFitness import getFitness
 from Optimizer.OptimizationBoundaryCalculators.getOptimizationBoundaries import getOptimizationBoundaries
 
@@ -235,8 +235,8 @@ class optimize:
                     generateRuns(setPath)
 
                     # Dispatch simulations
-                    runSimulation(setPath)
-
+                    Sim = Simulation(setPath,projectSetupXML)
+                    #TODO run simulation for all runs in a set
                     # Pass through firm load data
                     firmLoadsDF['firmLoadP.' + str(setIdx)] = self.abbrevDatasets.loc[sIdx]['firmLoadP'][:-1].values
                     firmLoadsDF['firmLoadTime.' + str(setIdx)] = self.abbrevDatasets.loc[sIdx]['time'][:-1].values

@@ -8,9 +8,8 @@ from PyQt5 import QtWidgets
 from MiGRIDS.Analyzer.DataRetrievers.getAllRuns import getAllRuns
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag, splitAttribute, isTagReferenced
 from MiGRIDS.Analyzer.PerformanceAnalyzers.getRunMetaData import fillRunMetaData
-from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIHandler import UIHandler
-from MiGRIDS.Model.Operational.runSimulation import runSimulation
+from MiGRIDS.Model.Operational.runSimulation import Simulation
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.makeAttributeXML import makeAttributeXML, writeAttributeXML
 
@@ -229,10 +228,24 @@ class RunHandler(UIHandler):
                 return
 
         # call to run models
-        runSimulation(projectSetDir=setDir)
-        #TODO pass 90% to progress box
-        fillRunMetaData(setDir, []) #get metadata for all the runs
+        searchpath = os.path.join(*[setDir, 'Run*'])
+        runCount = len(glob.glob(searchpath))
+        Sim = Simulation(setDir,self.dbhandler.getFieldValue("project","setupfile","_id",1))
+        Sim.PrepareSimulationInput()
+        while 1:
+            # read the SQL table of runs in this set and look for the next run that has not been started yet.
 
+            runNum = self.dbhandler.getNextRun(currentSet)
+            if runNum == None:  # this is the only exit
+                break
+            else:
+                self.sender.notifyProgress(1/runCount,"Running simulation " + str(runNum))
+                self.dbhandler.updateRunToStarted('Set' + str(currentSet), runNum)
+                Sim.runIndividualSimulation(runNum)
+                self.dbhandler.updateRunToFinished('Set' + str(self.setNum), runNum)
+        self.sender.notifyProgress(9,"Extracting run results")
+        fillRunMetaData(setDir, []) #get metadata for all the runs
+        self.sender.notifyProgress(10, "complete")
 
     def createRun(self, setComponentIds, run,setName):
         # make the run directory

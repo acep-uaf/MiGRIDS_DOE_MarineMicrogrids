@@ -6,23 +6,20 @@ The FormSetup widget has 3 purposes.
 wind turbine components can have either an associated power time series or a windspeed file that a power time series will be generated from
 In the case of a windspeed file a windspeed netcdf file will be generated and power time series will be generated once the model is run based
 on each wtg components descriptor file.'''
-import glob
 import os
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtWidgets, QtCore
+from glob2 import glob
 
-from MiGRIDS.Controller.Controller import Controller
-from MiGRIDS.Controller.Validator import ValidatorTypes
+from MiGRIDS.UserInterface.BaseForm import BaseForm
+from MiGRIDS.UserInterface.FileBlock import FileBlock
+from MiGRIDS.UserInterface.Pages import Pages
 from MiGRIDS.Controller.loadProjectOffUIThread import ThreadedProjectLoad
-
 from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
 from MiGRIDS.UserInterface.DetailsWidget import DetailsWidget
 from MiGRIDS.UserInterface.WizardPages import WizardPage, TextWithDropDown, ComponentSelect, TwoDatesDialog
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.ResultsSetup import  ResultsSetup
 from MiGRIDS.UserInterface.FormModelRuns import SetsAttributeEditorBlock
-from MiGRIDS.UserInterface.Pages import Pages
-from MiGRIDS.UserInterface.FileBlock import FileBlock
-from MiGRIDS.UserInterface.switchProject import switchProject
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.Resources.SetupWizardDictionary import *
 import pandas as pd
@@ -30,15 +27,17 @@ import pandas as pd
 BASESET ='Set0'
 
 
-class FormSetup(QtWidgets.QWidget):
+class FormSetup(BaseForm):
 
     def __init__(self, parent):
         super().__init__(parent)
         self.initUI()
 
+
+
     #initialize the form
     def initUI(self):
-        self.controller = Controller()
+
         self.controller.sender.statusChanged.connect(self.onControllerStateChange)
         self.setObjectName("setupDialog")
 
@@ -74,8 +73,16 @@ class FormSetup(QtWidgets.QWidget):
         newTabButton.setText(' + Input')
         newTabButton.setFixedWidth(100)
         newTabButton.clicked.connect(self.newTab)
+
         windowLayout.addWidget(newTabButton)
         windowLayout.addWidget(self.tabs, 3)
+
+    def clearInput(self):
+        loFileBlock = self.findChildren(FileBlock)
+        for f in loFileBlock:
+            f.BLOCKED = True
+        super().clearInput()
+
     def createTopButtonBlock(self):
         '''
         create the layout containing buttons to load or create a new project
@@ -207,7 +214,8 @@ class FormSetup(QtWidgets.QWidget):
         newProject = msg.exec()
         if newProject == QtWidgets.QMessageBox.Yes:
             self.resetValidateStatus()
-            switchProject(self)
+            pathTo = self.controller.dbhandler.getProjectPath()
+            self.controller.switchProject(self,pathTo)
             return True
         else:
             return False
@@ -284,9 +292,11 @@ class FormSetup(QtWidgets.QWidget):
         if (self.controller.dbhandler.getProjectPath() != '') & (self.controller.dbhandler.getProjectPath() is not None):
             pathTo = self.controller.dbhandler.getProjectPath()
 
-            self.controller.dbhandler.connection.close()
 
-            switchProject(self,pathTo)
+            self.controller.switchProject(self,pathTo)
+
+
+
 
             self.controller.createDatabaseConnection()
 
@@ -307,7 +317,6 @@ class FormSetup(QtWidgets.QWidget):
             print(e)
         finally:
             self.progressBar.hide()
-
 
 
     def onProjectLoaded(self):
@@ -345,12 +354,6 @@ class FormSetup(QtWidgets.QWidget):
         '''Gets a list of all components in the component table'''
         loc = self.controller.dbhandler.makeComponents()
         return loc
-
-    def showAlert(self,title,msg):
-        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,title ,msg
-                                    )
-        msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
-        msg.exec()
 
     def displayModelData(self):
         """creates a tab for each input directory specified the SetupModelInformation model inputFileDir attribute.
@@ -475,10 +478,8 @@ class FormSetup(QtWidgets.QWidget):
         except Exception as e:
             print(e)
 
-    def refreshDataPlot(self):
-        resultDisplay = self.parent().findChild(ResultsSetup)
-        resultDisplay.setData(self.controller.inputData)
-        resultDisplay.defaultPlot()
+    def setResultForm(self):
+        self.resultObject = ResultsSetup
 
     def updateDependents(self, data = None):
         '''

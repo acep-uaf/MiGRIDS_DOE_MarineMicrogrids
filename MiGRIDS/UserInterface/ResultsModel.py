@@ -19,7 +19,6 @@ class ResultsModel(ResultsPlot):
         # combo boxes need to be set with field options
         # x can be any tag that was changed
         # y is any metadata value
-        #optionsX = self.dbhandler.setComponentTag(1)  # TODO this needs to be the setID
 
         self.setData(self.getPlotData())
         if self.data is not None:

@@ -2,6 +2,7 @@
 from PyQt5 import QtWidgets, QtCore, QtSql
 
 from MiGRIDS.Controller.Controller import Controller
+from MiGRIDS.UserInterface.BaseForm import BaseForm
 
 from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
 from MiGRIDS.UserInterface.ResultsModel import ResultsModel
@@ -23,14 +24,14 @@ import os
 
 #main form containing setup and run information for a project
 
-class FormModelRun(QtWidgets.QWidget):
+class FormModelRun(BaseForm):
 
     def __init__(self, parent):
         super().__init__(parent)
         self.initUI()
 
     def initUI(self):
-        self.controller = Controller()
+
         self.setObjectName("modelDialog")
         #the first page is for set0
 
@@ -63,6 +64,16 @@ class FormModelRun(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):
         buttonFunction()
+
+    def clearTables(self):
+        '''overrides BaseForm clear Tables to call table clear insted of select for run table'''
+        tables = self.findChildren(QtWidgets.QTableView)
+        for t in tables:
+            m = t.model()
+            if type(m) is RunTableModel:
+                m.clear()
+            else:
+                 m.select()
 
 class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     '''
@@ -456,7 +467,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     def updateDependents(self):
         self.refreshDataPlot()
 
-    #TODO this should be make plot
     # the run table shows ??
     def createRunTable(self,setId):
         gb = QtWidgets.QGroupBox('Runs')
@@ -497,3 +507,4 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     def closeEvent(self, event):
 
          self.setupSet() #write all the xml files required to restart the project later
+

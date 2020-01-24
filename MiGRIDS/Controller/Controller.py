@@ -13,6 +13,7 @@ from MiGRIDS.Analyzer.DataRetrievers.getAllRuns import getAllSets
 from MiGRIDS.InputHandler.DataClass import DataClass
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.replaceDefaultDatabase import replaceDefaultDatabase
+from MiGRIDS.UserInterface.switchProject import saveProject, clearAppForms, clearProjectDatabase
 
 
 class Controller:
@@ -116,9 +117,16 @@ class Controller:
             componentDict[c.column_name] = c.toDictionary()
 
         # filesCreated is a list of netcdf files that were generated
-        self.netcdfs = self.setupHandler.createNetCDF(df, componentDict, self.controller.setupFolder)
+        self.netcdfs = self.setupHandler.createNetCDF(df, componentDict, self.setupFolder)
         self.validate(ValidatorTypes.NetCDFList,input=self.netcdfs)
-    def setMyAttribute(self,attr,value):
+    def switchProject(self,caller,saveTo):
+        saveProject(saveTo)
+        clearAppForms(caller)
+        self.dbhandler.closeDatabase()
+        clearProjectDatabase(caller)
+        self.createDatabaseConnection()
+
+    def setAttribute(self, attr, value):
         try:
             setattr(self, attr, value)
         except Exception as e:
@@ -139,7 +147,7 @@ class Controller:
     @QtCore.pyqtSlot()
     def updateAttribute(self,className,attr,value):
         if className == 'Controller':
-           self.setMyAttribute(attr,value)
+           self.setAttribute(attr, value)
 
 
     @QtCore.pyqtSlot()

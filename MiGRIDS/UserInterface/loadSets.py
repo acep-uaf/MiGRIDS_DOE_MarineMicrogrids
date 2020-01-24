@@ -44,7 +44,7 @@ def updateSetsSql(set, setupModel):
     sqlHandler.closeDatabase()
 
     return
-#TODO write function to update run table
+
 def updateRunsSql():
     return
 #load previously run sets.

@@ -1,19 +1,22 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 
+from MiGRIDS.UserInterface.BaseForm import BaseForm
 
-class FormContainer(QtWidgets.QWidget):
+
+class FormContainer(BaseForm):
     #if the screen is big enough show input and results
     #if its not very big show input and results on seperate tabs
     def __init__(self, parent, widgetList,name,**kwargs):
         super().__init__(parent)
         self.widgetList = widgetList
+        self.name = name
         self.screen = kwargs.get("screen")
         if self.screen == None:
             self.screen = self.window().geometry()
-        self.initUI(name)
+        self.initUI()
 
-    def initUI(self,name):
-        self.setObjectName(name)
+    def initUI(self):
+        self.setObjectName(self.name)
         #layout changes dependent on screen width
         self.correctLayout(self.screen)
 
