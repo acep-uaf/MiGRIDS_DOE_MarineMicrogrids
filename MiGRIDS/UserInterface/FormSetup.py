@@ -322,7 +322,9 @@ class FormSetup(BaseForm):
     def onProjectLoaded(self):
     #TODO this is time consuming - should happen on background thread - check progress bar status
         try:
-            self.controller.validator.validateSetupXML()
+            setupFolder = getFilePath("Setup", projectFolder=self.controller.dbhandler.getProjectPath())
+            setupXML = os.path.join(setupFolder, self.controller.project + 'Setup.xml')
+            self.controller.validator.validateSetupXML(setupXML)
             self.controller.sender.callStatusChanged()
             self.displayModelData() #update the form with loaded data
             self.updateFormProjectDataStatus()
