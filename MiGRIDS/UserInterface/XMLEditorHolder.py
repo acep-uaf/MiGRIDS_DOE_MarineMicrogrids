@@ -159,7 +159,7 @@ class XMLEditorHolder(QtWidgets.QWidget):
         if setupFile is None:
             setupFile = os.path.join(os.path.dirname(__file__), *['..', 'Model', 'Resources', 'Setup', 'projectSetup.xml'])
         # read setup (using resource default if necessary)
-        setup = self.controler.readInSetupFile(setupFile)
+        setup = self.controller.readInSetupFile(setupFile)
         return setup
 
 
