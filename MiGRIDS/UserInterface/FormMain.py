@@ -198,7 +198,7 @@ class MainForm(QtWidgets.QMainWindow):
         dbhandler = ProjectSQLiteHandler()
         if len(dbhandler.getAllRecords('project')) > 0 :
              dbhandler.closeDatabase()
-             saveProject(setupForm.projectFolder)
+             saveProject(dbhandler.getProjectPath())
 
         else:
             dbhandler.closeDatabase()

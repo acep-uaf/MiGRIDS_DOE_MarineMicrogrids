@@ -588,4 +588,4 @@ class FileBlock(QtWidgets.QGroupBox):
             handler = UIHandler()
             handler.makeSetup()
 
-        self.controller.dbhandler.closeDatabase()
+        #self.controller.dbhandler.closeDatabase()
