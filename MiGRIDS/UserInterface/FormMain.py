@@ -197,8 +197,9 @@ class MainForm(QtWidgets.QMainWindow):
         # copy the project database to the project folder and save xmls
         dbhandler = ProjectSQLiteHandler()
         if len(dbhandler.getAllRecords('project')) > 0 :
+             pathToSaveTo = dbhandler.getProjectPath()
              dbhandler.closeDatabase()
-             saveProject(dbhandler.getProjectPath())
+             saveProject(pathToSaveTo)
 
         else:
             dbhandler.closeDatabase()
