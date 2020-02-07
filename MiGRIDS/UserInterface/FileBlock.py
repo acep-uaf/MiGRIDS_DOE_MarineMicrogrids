@@ -58,6 +58,17 @@ class FileBlock(QtWidgets.QGroupBox):
         return windowLayout
 
         # creates a horizontal layout containing gridlayouts for data input
+    def typeChanged(self, selectedType):
+        if not self.BLOCKED:
+            self.saveInput()
+            self.filterTables()
+
+            try:
+                self.createPreview(self.fileBlock.findChild(ClickableLineEdit,F.InputFileFields.inputfiledirvalue).text(),
+                                   self.FileBlock.findChild(QtWidgets.QComboBox,
+                                                            F.InputFileFields.inputfiletypevalue.name).currentText())
+            except AttributeError as a:
+                print(a)
 
     def folderChanged(self,selectedFolder = None):
         if not self.BLOCKED:
@@ -71,9 +82,10 @@ class FileBlock(QtWidgets.QGroupBox):
             self.filterTables()
 
             try:
-                self.createPreview(selectedFolder,
-                                   self.FileBlock.findChild(QtWidgets.QComboBox,
-                                                  F.InputFileFields.inputfiletypevalue.name).currentText())
+                self.createPreview(
+                    self.fileBlock.findChild(ClickableLineEdit, F.InputFileFields.inputfiledirvalue).text(),
+                    self.FileBlock.findChild(QtWidgets.QComboBox,
+                                             F.InputFileFields.inputfiletypevalue.name).currentText())
             except AttributeError as a:
                 print(a)
 

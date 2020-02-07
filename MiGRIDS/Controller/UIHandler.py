@@ -8,19 +8,17 @@ from bs4 import BeautifulSoup
 
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import splitAttribute
 from MiGRIDS.InputHandler.getSetupInformation import setupToDictionary
-
 from MiGRIDS.Controller.GenericSender import GenericSender
 from MiGRIDS.InputHandler.makeSoup import makeComponentSoup
 from MiGRIDS.InputHandler.writeXmlTag import writeXmlTag
-from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.InputHandler.getSetupInformation import getSetupInformation
 
 
 class UIHandler():
-    def __init__(self):
+    def __init__(self,dbhandler):
         self.sender = GenericSender() #used to send signals to pyqt objects
-        self.dbhandler = ProjectSQLiteHandler()
+        self.dbhandler = dbhandler #gets passed an existing database connection
 
 
     def writeSoup(self,soup,file):

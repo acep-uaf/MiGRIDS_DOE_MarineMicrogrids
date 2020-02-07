@@ -2,6 +2,8 @@
 *.pyo
 *.DS_Store
 *__MACOSX*
-.idea
+.idea/
 MiGRIDSProjects/testProject/OutputData/
+MiGRIDSProjects
+TestScripts
 

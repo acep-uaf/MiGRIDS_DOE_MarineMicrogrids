@@ -71,11 +71,12 @@ class Validator:
             return True
         else:
             return False
-    def validateInputData(self):
+    def validateInputData(self,files = None):
         '''Requirements:
         each input file is linked to 1 or more component,
         date format is specified,
         '''
+        #TODO implement checks on input file specifications
         return True
     def validateSetupXML(self,xml):
         #TODO implement

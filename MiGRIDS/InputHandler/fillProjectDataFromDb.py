@@ -1,5 +1,6 @@
 #fill project xml files
 #String, ModelSetupInformation - > None
+from MiGRIDS.Controller.Controller import Controller
 
 
 def fillProjectDataFromDb():
@@ -14,17 +15,17 @@ def fillProjectDataFromDb():
     import os
     from MiGRIDS.InputHandler.createComponentDescriptor import createComponentDescriptor
     from MiGRIDS.InputHandler.writeXmlTag import writeXmlTag
-    from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
+
 
     here = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(here)
-    dbhandler = ProjectSQLiteHandler()
-    projectSetup = dbhandler.getProject() + 'Setup.xml'
+    controller = Controller()
+    projectSetup = controller.dbhandler.getProject() + 'Setup.xml'
     setupFolder = os.path.join(os.path.dirname(__file__),
-                                    *['..', '..', 'MiGRIDSProjects', dbhandler.getProject(), 'InputData', 'Setup'])
+                                    *['..', '..', 'MiGRIDSProjects', controller.dbhandler.getProject(), 'InputData', 'Setup'])
 
     #each field in the setup table gets an xml tag that matches the setup.xml file
-    generalSetupInfo = dbhandler.getSetUpInfo()
+    generalSetupInfo = controller.dbhandler.getSetUpInfo()
     if generalSetupInfo != None:
         for k in generalSetupInfo.keys():  # for each key in the model attributes
             tags = k.split('.')

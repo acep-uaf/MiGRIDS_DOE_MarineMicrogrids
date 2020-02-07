@@ -1,6 +1,7 @@
 from PyQt5  import QtWidgets, QtSql, QtCore
 from enum import Enum
 
+from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.Controller.RunHandler import RunHandler
 from MiGRIDS.UserInterface.Delegates import TextDelegate, ComboDelegate, RelationDelegate
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
@@ -30,8 +31,7 @@ class SetTableView(customTableView):
     def __init__(self, *args, **kwargs):
         super(SetTableView, self).__init__()
         self.tabPosition = kwargs.get('position')
-        self.dbhandler = ProjectSQLiteHandler()
-        self.uihandler = RunHandler()
+        self.controller = Controller()
 
         attributes = QtCore.QStringListModel([])
         self.setItemDelegateForColumn(1, TextDelegate(self))
@@ -44,7 +44,7 @@ class SetTableView(customTableView):
 
     def updateTagList(self,compname):
         if compname != '':
-            projectFolder = self.dbhandler.getProjectPath()
+            projectFolder = self.controller.dbhandler.getProjectPath()
             componentFolder = getFilePath('Components', projectFolder=projectFolder)
             myBox = [c for c in self.findChildren(ComboDelegate) if c.name == 'componentAttribute'][0]
             if compname.isnumeric():

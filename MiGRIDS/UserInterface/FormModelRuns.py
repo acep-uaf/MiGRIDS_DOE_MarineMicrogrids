@@ -459,10 +459,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
             self.updateDependents() #update the plot to show results
         except Exception as e:
             print("Could not complete model simulations")
-        finally:
-        #close the progress dialog box
-            pbox.hide()
-            del pbox
+
         return
     def updateDependents(self):
         self.refreshDataPlot()

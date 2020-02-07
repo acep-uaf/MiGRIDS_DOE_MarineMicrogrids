@@ -9,10 +9,9 @@ from MiGRIDS.Controller.RunHandler import RunHandler
 from MiGRIDS.Controller.SetupHandler import SetupHandler
 from MiGRIDS.Controller.Validator import Validator,ValidatorTypes
 
-from MiGRIDS.Analyzer.DataRetrievers.getAllRuns import getAllSets
 from MiGRIDS.InputHandler.DataClass import DataClass
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
-from MiGRIDS.UserInterface.replaceDefaultDatabase import replaceDefaultDatabase
+
 from MiGRIDS.UserInterface.switchProject import saveProject, clearAppForms, clearProjectDatabase
 
 
@@ -36,8 +35,8 @@ class Controller:
 
     def init(self):
         self.dbhandler = ProjectSQLiteHandler()
-        self.runHandler = RunHandler()
-        self.setupHandler = SetupHandler()
+        self.runHandler = RunHandler(self.dbhandler)
+        self.setupHandler = SetupHandler(self.dbhandler)
         self.validator = Validator()
         self.sender = GenericSender()
         self.initializeState()
@@ -45,6 +44,9 @@ class Controller:
 
     def createDatabaseConnection(self):
         self.dbhandler = ProjectSQLiteHandler()
+        self.runHandler = RunHandler(self.dbhandler)
+        self.setupHandler = SetupHandler(self.dbhandler)
+
     def initializeState(self):
         self.project = None
         self.inputData = None  # dataclass object that can be used to create netcdf files
@@ -76,7 +78,7 @@ class Controller:
                                                      'InputData', 'Setup'])
         self.componentFolder = getFilePath('Components', setupFolder=self.setupFolder)
         #create the setup xml and validate it
-        setupXML = self.setupHandler.makeSetup()
+        setupXML = self.setupHandler.makeSetup(self.project, self.setupFolder)
         self.validate(ValidatorTypes.SetupXML,input=setupXML)
 
     def makeNetcdfs(self):
@@ -133,15 +135,17 @@ class Controller:
             print(e)
     def importData(self):
         return
-
+    def loadedProject(self):
+        self.createDatabaseConnection()
     def createInputData(self):
+        self.dbhandler.closeDatabase()
         self.myThread = ThreadedDataCreate()
         self.myThread.notifyCreateProgress.connect(self.sender.update)
         self.myThread.signalAttributeUpdate.connect(self.updateAttribute)
         self.myThread.catchComponents.connect(self.gotComponents)
         self.myThread.catchData.connect(self.gotData)
         #TODO update the gui to reflect input data was created
-        #self.myThread.finished.connect(self.loadProject)
+        self.myThread.finished.connect(self.loadedProject)
         self.myThread.start()
 
     @QtCore.pyqtSlot()
@@ -172,13 +176,16 @@ class ThreadedDataCreate(QtCore.QThread):
         self.wait()
 
     def run(self):
-        setupHandler = SetupHandler()
+        dbhandler = ProjectSQLiteHandler()
+        setupHandler = SetupHandler(dbhandler)
         #connect the setupHandlers sender to the controllers sender to relay messages
         setupHandler.sender.notifyProgress.connect(self.notify)
         cleaned_data, components = setupHandler.createCleanedData()
-        self.notify(10,'done')
+        print('done cleaning')
+        self.notify(10,'done') #this should not have an effect because the progress bar reaches 10 during update from fixbaddata
         self.catchData.emit(cleaned_data)
         self.catchComponents.emit(components)
+        dbhandler.closeDatabase()
         return
 
     def done(self):

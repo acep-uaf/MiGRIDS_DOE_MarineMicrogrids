@@ -12,8 +12,9 @@ class WizardPage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.first = kwargs.get('first')
         self.last = kwargs.get('last')
-        self.initUI(inputdict)
         self.dbhandler = ProjectSQLiteHandler()
+        self.initUI(inputdict)
+
 
     # initialize the form
     def initUI(self, inputdict):
@@ -34,8 +35,8 @@ class WizardPage(QtWidgets.QWizardPage):
     def setInput(self):
         wid = QtWidgets.QLineEdit()
         try:
-            value = self.parent().__getattribute__(self.d['name'])
-
+            #value = self.parent().__getattribute__(self.d['name'])
+            value = self.dbhandler.getProject()
         except AttributeError as a:
             print(a)
             value = ''

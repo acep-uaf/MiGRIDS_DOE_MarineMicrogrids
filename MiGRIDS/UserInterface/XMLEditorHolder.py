@@ -3,6 +3,8 @@
 # Purpose :  PredictEditorHolder is a Form widget that holds modeleditor subwidgets
 import os
 from PyQt5 import QtWidgets
+
+from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.UserInterface.XMLEditor import XMLEditor
@@ -18,9 +20,8 @@ class XMLEditorHolder(QtWidgets.QWidget):
         self.set = tab + 1
         self.xmls = {} #the list of possible xml files for each resource type and xml type combination (read from resource folder)
         self.xmlDefaults = {} #the value combo boxes for file selectors are originally set to
-        self.dbhandler  = ProjectSQLiteHandler()
-        self.controler = UIHandler()
-        self.makeWidget()
+
+        self.controller = Controller()
 
     def updateWidget(self):
         '''Update the selected xml files and their values'''
@@ -154,7 +155,7 @@ class XMLEditorHolder(QtWidgets.QWidget):
     def designateSetupFile(self):
         '''looks for a project setup file and returns the dictionary from reading the file'''
 
-        setupFile = self.dbhandler.getFieldValue('project','setupfile','_id',1)
+        setupFile = self.controller.dbhandler.getFieldValue('project','setupfile','_id',1)
         if setupFile is None:
             setupFile = os.path.join(os.path.dirname(__file__), *['..', 'Model', 'Resources', 'Setup', 'projectSetup.xml'])
         # read setup (using resource default if necessary)

@@ -279,7 +279,8 @@ class FormSetup(BaseForm):
             return True
     def hasSetup(self,pathToCheck):
         setupFolder = getFilePath('Setup',projectFolder=pathToCheck)
-        if glob.glob(os.path.join(setupFolder,'*etup.xml')):
+
+        if glob(os.path.join(setupFolder,'*etup.xml')):
             return True
         return False
 
@@ -315,8 +316,7 @@ class FormSetup(BaseForm):
             self.myThread.start()
         except Exception as e:
             print(e)
-        finally:
-            self.progressBar.hide()
+
 
 
     def onProjectLoaded(self):
@@ -406,12 +406,12 @@ class FormSetup(BaseForm):
                                                          [project_id,1,self.WizardTree.field('timestepvalue'),self.WizardTree.field('timestepunit'),self.WizardTree.field('sdate'),self.WizardTree.field('edate')])
 
             if _id == -1: #record was not inserted, try updating
-                self.controller.dbhandler.updateRecord("setup","_id",1,['project_id','timestepvalue','timestepunit','date_start','date_end','runtimestepvalue'],
+                self.controller.dbhandler.updateRecord("setup",["_id"],[1],['project_id','timestepvalue','timestepunit','date_start','date_end','runtimestepvalue'],
                                        [project_id,  self.WizardTree.field('timestepvalue'),
                                         self.WizardTree.field('timestepunit'), self.WizardTree.field('sdate'),
                                         self.WizardTree.field('edate'), str.join(" ",[self.WizardTree.field('sdate'),
                                         self.WizardTree.field('edate')])])
-                _id = self.controller.dbhandler.getId('setup','_id',1)[0]
+
 
             lot = self.controller.dbhandler.getComponentTypes()
             for t in lot:
@@ -447,8 +447,7 @@ class FormSetup(BaseForm):
 
         except Exception as e:
             print(e)
-        finally:
-            self.progressBar.hide()
+
 
 
         # if not self.controller.validator.validate(ValidatorTypes.DataObject,self.controller.inputData): #this will set dataobjectvalid to its current state

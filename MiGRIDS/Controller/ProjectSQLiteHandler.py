@@ -1,4 +1,4 @@
-import pandas as pd
+
 import os
 import sqlite3 as lite
 
@@ -7,10 +7,36 @@ from MiGRIDS.InputHandler.Component import Component
 from MiGRIDS.Controller.makeXMLFriendly import xmlToString, stringToXML
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.qdateFromString import asDate
+from MiGRIDS.InputHandler.InputFields import *
 import pandas as pd
 
-class ProjectSQLiteHandler:
+# field and table constants
+# fields
+PROJECTNAME = "project_name"
+PROJECTID = "project_id"
+STARTDATE = "date_start"
+ENDDATE = "date_end"
+SETNAME = "set_name"
+SETID = "set_id"
+ID = "_id"
+TAG = "tag"
+TAGVALUE = "tag_value"
+COMPONENTID = "component_id"
+COMPONENTTYPE = "componenttype"
 
+# tables
+SETUPTABLE = 'setup'
+COMPONENTTABLE = "component"
+SETCOMPONENTTABLE = "set_components"
+INPUTFILETABLE = "input_files"
+SETTABLE = "set_"
+
+class ProjectSQLiteHandler:
+    
+    
+    #database field names are the same as xml files but changed to all lowercase and non-alphabetical characters removed
+    def dbName(self, xmlname):
+        return xmlname.lower().replace(".", "")
     def __init__(self, database='project_manager'):
 
         self.connection = lite.connect(database)
@@ -333,7 +359,7 @@ class ProjectSQLiteHandler:
 
         return start[0],end[0]
     def insertFirstSet(self,dict):
-       self.insertDictionaryRow('set_',dict)
+       self.insertDictionaryRow(SETTABLE,dict)
     def insertAllComponents(self,setName):
          self.cursor.execute("INSERT OR IGNORE INTO set_components (set_id, component_id, tag, tag_value) "
                              "SELECT set_._id, component._id,'None','None' FROM component, set_ "
@@ -362,35 +388,35 @@ class ProjectSQLiteHandler:
             if value == None:
                 return value
 
-            startPoint = asDate(self.getFieldValue('setup','date_start','_id','1'))
+            startPoint = asDate(self.getFieldValue(SETUPTABLE,STARTDATE,ID,'1'))
             if startPoint == None:
                 #if there is not start date information we can't identify the position so None is returned
                 return None
             dateDiff = pd.to_timedelta(asDate(startPoint) - asDate(value),unit='s')
-            interval = self.getFieldValue('setup','timestepvalue','_id',1)
+            interval = self.getFieldValue(SETUPTABLE,self.dbName(TIMESTEP),ID,1)
             record_position = dateDiff / interval
             return record_position
 
         #get tuple for basic set info
         values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end,runtimestepsvalue from set_ join project on set_.project_id = project._id WHERE LOWER(set_name) = '" + setName.lower() + "'").fetchone()
         if values is not None:
-            setDict['project name'] = values[0]
-            setDict['timeStep.value'] = str(values[1])
-            setDict['timeStep.unit']=values[2]
-            setDict['date_start'] = values[3]
-            setDict['date_end'] = values[4]
+            setDict[PROJECTNAME] = values[0]
+            setDict[TIMESTEP] = str(values[1])
+            setDict[TIMESTEPUNIT]=values[2]
+            setDict[STARTDATE] = values[3]
+            setDict[ENDDATE] = values[4]
             start = asDatasetIndex(str(values[3]))
             if start != None:
-                setDict['runTimeSteps.value'] = ",".join([asDatasetIndex(str(values[3])),asDatasetIndex(str(values[4]))])
+                setDict[RUNTIMESTEPS] = ",".join([asDatasetIndex(str(values[3])),asDatasetIndex(str(values[4]))])
             else:
-                setDict['runTimeSteps.value'] = str(values[5])
+                setDict[RUNTIMESTEPS] = str(values[5])
             #as long as there was basic set up info look for component setup info
             #componentNames is a list of distinct components, order does not matter
             compTuple =  self.cursor.execute("SELECT group_concat(componentnamevalue,',') FROM "
                                                                    "(SELECT DISTINCT componentnamevalue as componentnamevalue FROM component "
                                                                    "JOIN set_components on component._id = set_components.component_id JOIN set_ "
                                                                    "on set_components.set_id = set_._id WHERE lower(set_name) = ? )", [setName.lower()]).fetchall()[0]
-            setDict['componentNames.value'] = compTuple[0]
+            setDict[COMPONENTNAMES] = compTuple[0]
         else:
             return None
 
@@ -405,15 +431,15 @@ class ProjectSQLiteHandler:
         #get tuple for basic set info
         values = self.cursor.execute("select project_name, timestepvalue, timestepunit, date_start, date_end from setup join project on setup.project_id = project._id").fetchone()
         if values is not None:
-            setDict['project name'] = values[0]
-            setDict['timeStep.value'] = values[1]
-            setDict['timeStep.unit']=values[2]
-            setDict['date_start'] = values[3]
-            setDict['date_end'] = values[4]
-            setDict['runTimeSteps.value'] = str(values[3]) + " " + str(values[4])
+            setDict[PROJECTNAME] = values[0]
+            setDict[TIMESTEP] = values[1]
+            setDict[TIMESTEPUNIT]=values[2]
+            setDict[STARTDATE] = values[3]
+            setDict[ENDDATE] = values[4]
+            setDict[RUNTIMESTEPS] = str(values[3]) + " " + str(values[4])
             #as long as there was basic set up info look for component setup info
             #componentNames is a list of distinct components, order does not matter
-            setDict['componentNames.value'] =  self.getComponentNames()
+            setDict[COMPONENTNAMES] =  self.getComponentNames()
 
             #componentChannels has ordered lists for directories and the components they contain. A component can have data in more than one directory and file type, in which case it would
             #be listed more than once in componentChannels
@@ -429,21 +455,21 @@ class ProjectSQLiteHandler:
             " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
             #These are the input file specific info - should be none if data not entered
             if values is not None:
-                setDict['inputFileDir.value'] = values[0]
-                setDict['inputFileType.value'] = values[1]
-                setDict['componentChannels.componentName.value']= values[2]
-                setDict['componentChannels.headerName.value'] = values[3]
-                setDict['componentChannels.componentAttribute.value'] = values[4]
-                setDict['componentChannels.componentAttribute.unit'] = values[5]
-                setDict['dateChannel.value']=values[6]
-                setDict['dateChannel.format'] = values[8]
-                setDict['timeChannel.value'] = values[7]
-                setDict['timeChannel.format'] = values[9]
-                setDict['timeZone.value'] =  values[10]
-                setDict['inputDST.value'] = values[11]
-                setDict['inputUTCOffset.unit']  ='hr'
-                setDict['inputUTCOffset.value']=values[12]
-                setDict['flexibleYear.value']=values[13]
+                setDict[FILEDIR] = values[0]
+                setDict[FILETYPE] = values[1]
+                setDict['componentChannels.' + COMPONENTNAME]= values[2]
+                setDict['componentChannels.' + HEADERNAME] = values[3]
+                setDict['componentChannels.' + COMPONENTATTRIBUTE] = values[4]
+                setDict['componentChannels.' + COMPONENTATTRIBUTEUNIT] = values[5]
+                setDict[DATECHANNEL]=values[6]
+                setDict[DATECHANNELFORMAT] = values[8]
+                setDict[TIMECHANNEL] = values[7]
+                setDict[TIMECHANNELFORMAT] = values[9]
+                setDict[TIMEZONE] =  values[10]
+                setDict[DST] = values[11]
+                setDict[UTCUNIT]  ='hr'
+                setDict[UTCOFFSET]=values[12]
+                setDict[FLEXIBLEYEAR]=values[13]
 
         else:
             return None
@@ -460,10 +486,10 @@ class ProjectSQLiteHandler:
         for k in list(set.keys()):
             if set[k] == setup[k]:
                 del set[k]
-        if 'date_start' in set.keys():
-            del set['date_start']
-        if 'date_end' in set.keys():
-            del set['date_end']
+        if STARTDATE in set.keys():
+            del set[STARTDATE]
+        if ENDDATE in set.keys():
+            del set[ENDDATE]
         return set
     def updateSetSetup(self, setName, setupDict):
         '''Update the set_ table for a specific set and make sure all set components are in the set_component table'''
@@ -473,11 +499,11 @@ class ProjectSQLiteHandler:
             To convert to datetime we need to know where the set dataset starts in relation to the start
             in the setup file and the timestep interval
             :param value is a integer index position'''
-            startPoint = asDate(self.getFieldValue('setup', 'date_start', '_id', '1')) #the start date of all generated netcdf files
+            startPoint = asDate(self.getFieldValue(SETUPTABLE, STARTDATE, ID, '1')) #the start date of all generated netcdf files
             if startPoint is None:
                 return None
             try:
-                intervals = int(value)/int(self.getFieldValue('setup', 'timestepvalue', '_id', '1'))
+                intervals = int(value)/int(self.getFieldValue(SETUPTABLE, self.dbName(TIMESTEP), ID, '1'))
             except ValueError as e:
                 return startPoint
             currentDateTime = asDate(startPoint) + pd.to_timedelta(intervals, unit='s') #seconds between the start position and value
@@ -487,22 +513,22 @@ class ProjectSQLiteHandler:
         try:
             #set setup files only store record positions for runTimeSteps.
             #these need to be converted to datetimes for display and storing in datatable
-           startdate = asDatasetDateTime(setupDict['runTimeSteps.value'].split(" ")[0])
-           enddate = asDatasetDateTime(setupDict['runTimeSteps.value'].split(" ")[1])
+           startdate = asDatasetDateTime(setupDict[RUNTIMESTEPS].split(" ")[0])
+           enddate = asDatasetDateTime(setupDict[RUNTIMESTEPS].split(" ")[1])
         except IndexError as i:
             print("runtimesteps not start stop indices")
-            startdate = asDatasetDateTime(setupDict['runTimeSteps.value'])
-            enddate = asDatasetDateTime(setupDict['runTimeSteps.value'])
+            startdate = asDatasetDateTime(setupDict[RUNTIMESTEPS])
+            enddate = asDatasetDateTime(setupDict[RUNTIMESTEPS])
         #if the record already exists a -1 will be returned and updateRecord is run
-        setId = self.insertRecord('set_',
-                                  ['timestepunit', 'timestepvalue', 'runtimestepsvalue', 'date_start', 'date_end',
-                                   'project_id','set_name'],
-                                  [setupDict['timeStep.unit'], setupDict['timeStep.value'],
-                                   setupDict['runTimeSteps.value'], startdate, enddate, 1,setName])
+        setId = self.insertRecord(SETTABLE,
+                                  [self.dbName(TIMESTEPUNIT), self.dbName(TIMESTEP), self.dbName(RUNTIMESTEPS), STARTDATE, ENDDATE,
+                                   'project_id',SETNAME],
+                                  [setupDict[TIMESTEPUNIT], setupDict[TIMESTEP],
+                                   setupDict[RUNTIMESTEPS], startdate, enddate, 1,setName])
         if setId == -1:
-            self.updateRecord('set_',['set_name'],[setName],
-                                  ['timestepunit', 'timestepvalue', 'runtimestepsvalue', 'date_start', 'date_end'],
-                                  [setupDict['timeStep.unit'], setupDict['timeStep.value'],setupDict['runTimeSteps.value'], startdate, enddate])
+            self.updateRecord(SETTABLE,[SETNAME],[setName],
+                                  [self.dbName(TIMESTEPUNIT), self.dbName(TIMESTEP), self.dbName(RUNTIMESTEPS), STARTDATE, ENDDATE],
+                                  [setupDict[TIMESTEPUNIT], setupDict[TIMESTEP],setupDict[RUNTIMESTEPS], startdate, enddate])
 
         return
     def updateSetComponents(self,setName,loc):
@@ -516,8 +542,8 @@ class ProjectSQLiteHandler:
         setid = self.getSetId(setName)
         #the [0][0] notation is required because getId returns a list of tuples. We want the first item in the list
         # and first item in the tuple (which is only 1 item long)
-        compid = [self.getId('component',['componentnamevalue'],[c]) for c in loc]
-        fields = ['component_id','set_id','tag','tag_value']
+        compid = [self.getId(COMPONENTTABLE,[self.dbName(COMPONENTNAME)],[c]) for c in loc]
+        fields = [COMPONENTID,SETID,TAG,TAGVALUE]
         values =[(str(x),setid,'None','None') for x in compid]
         if len(values) <=0: #if values are empty then set has no components
             self.cursor.execute("DELETE FROM set_components WHERE set_id = ?", [setid])
@@ -525,7 +551,7 @@ class ProjectSQLiteHandler:
             deleters =  "(" + ",".join([str(x) for x in filter(None, compid)]) + ")"
 
             self.cursor.execute("DELETE FROM set_components WHERE set_id = ? AND component_id not in " + deleters , [setid]) #AND component_id not in ('1','2')"
-        self.insertRecord('set_components',fields,values)
+        self.insertRecord(SETCOMPONENTTABLE,fields,values)
         self.connection.commit()
         return
     def insertSetComponentTags(self,setName,lot):
@@ -538,11 +564,11 @@ class ProjectSQLiteHandler:
         return
     def insertTagRecord(self,record,setId):
         if isinstance(record[3],list):
-            [self.insertRecord('set_components', ['set_id', 'component_id', 'tag', 'tag_value'],
+            [self.insertRecord(SETCOMPONENTTABLE, [SETID, COMPONENTID, TAG, TAGVALUE],
                               [setId, record[0], record[1] + "." + record[2], v]) for v in record[3]]
 
         else:
-            self.insertRecord('set_components', ['set_id', 'component_id', 'tag', 'tag_value'],[setId, record[0], record[1] + "." + record[2], record[3]])
+            self.insertRecord(SETCOMPONENTTABLE, [SETID, COMPONENTID, TAG, TAGVALUE],[setId, record[0], record[1] + "." + record[2], record[3]])
     def insertRecord(self, table, fields, values):
         '''
         Insert a record in a specified table
@@ -584,17 +610,20 @@ class ProjectSQLiteHandler:
     def getId(self,table,keyField,keyValue):
         '''returns only the first id found by a call to fetchIds'''
         return self.fetchIds(table,keyField,keyValue)[0]
+
     def getRuns(self,set_id):
         componentsInSet = self.getSetComponents(set_id)
         sqlStatement = self.createStatements(componentsInSet,set_id)
         set_component_combos = self.cursor.execute(sqlStatement).fetchall()
         return set_component_combos
+
     def getSetComponents(self, set_id):
         '''produces a list of component id's for a given set'''
         componentsInSet = self.cursor.execute("SELECT _id from component WHERE _id in "
                                           "(SELECT component_id FROM set_components WHERE set_id = ?) GROUP BY _id",
                                           [set_id]).fetchall()
         return componentsInSet
+
     def getSetComponentNames(self, setName ='Set0'):
         '''
         returns a list of names for components in the set_components table. Defaults to set0
@@ -610,7 +639,7 @@ class ProjectSQLiteHandler:
         return []
     def getSetComponentTags(self,set_id):
         lot = self.cursor.execute("SELECT _id from set_components where set_id = ? and tag_value != 'None' ",[set_id]).fetchall()
-        return [self.getRecordDictionary('set_components',i[0]) for i in lot]
+        return [self.getRecordDictionary(SETCOMPONENTTABLE,i[0]) for i in lot]
     def createStatements(self,componentList,setId):
 
         selectStatements = [self.createComponentStatement(c[0],setId) for c in componentList]
@@ -668,6 +697,7 @@ class ProjectSQLiteHandler:
 
             return False
         return
+
     def getRefInput(self, tables):
         '''
         returns a string that combines code and descriptor columns from a reference table into a single '-' sepearted string
@@ -684,6 +714,7 @@ class ProjectSQLiteHandler:
             for v in range(len(values)):
                 valueStrings.append(values.loc[v, 'code'] + ' - ' + values.loc[v, 'description'])
         return valueStrings
+
     def getTypeCount(self,componentType):
         import re
         ''' finds the count of a specific component type within a project
@@ -702,6 +733,7 @@ class ProjectSQLiteHandler:
                 count = int(count[0])
                 return count +1
         return 0
+
     def dataCheck(self,table):
        '''
        Retrieve all the records from a table
@@ -721,7 +753,7 @@ class ProjectSQLiteHandler:
                '''
         #all column are lower case and can't have ., so make dictionary keys conform
         #all values need to be strings
-        dict = {key.lower().replace(".", ""): stringToXML(str(value).split(' ')) for key, value in rowDict.items() }
+        dict = {self.dbName(key): stringToXML(str(value).split(' ')) for key, value in rowDict.items() }
         updateFields = ', '.join([k + " = '" + str(dict[k]) + "'" for k in dict.keys()])
 
         keyFields = ' AND '.join([str(a) + " = '" + str(b) + "'" for a, b in zip(keyField, keyValue)])
@@ -770,17 +802,19 @@ class ProjectSQLiteHandler:
         if ml > len(ids):
             print ('Information was missing for some input files')
         return ids
+
     def updateComponent(self, dict):
         ''' updates a component record with values in the dictionary
         :param dict: a dictionary containing at least the attribute 'component_name' and one other attribute that matches a field name in the component table'''
-        for k in [key for key in dict.keys() if key != 'componentnamevalue']:
+        for k in [key for key in dict.keys() if key != self.dbName(COMPONENTNAME)]:
             try:
-                self.cursor.execute("UPDATE component_files SET " + k + " = ? WHERE component_id = (SELECT _id from component WHERE componentnamevalue = ?)", [dict[k],dict['componentnamevalue']])
+                self.cursor.execute("UPDATE component_files SET " + k + " = ? WHERE component_id = (SELECT _id from component WHERE componentnamevalue = ?)", [dict[k],dict[self.dbName(COMPONENTNAME)]])
             except Exception as e:
                 print(e)
                 print('%s column was not found in the data table' %k)
                 continue
         self.connection.commit()
+
     def writeComponent(self,componentDict):
         '''
         determines if a component record needs to be created or updated and implements the correct function
@@ -795,6 +829,7 @@ class ProjectSQLiteHandler:
             self.updateComponent(componentDict)
             return True
         return False
+
     def getCodes(self,table):
         '''
         retrieves the code values from a table
@@ -807,6 +842,7 @@ class ProjectSQLiteHandler:
         codes = (codes['code']).tolist()
 
         return codes
+
     def getComponentNames(self,):
         '''
         returns a list of names for components in the set_components table. Defaults to set0
@@ -819,6 +855,7 @@ class ProjectSQLiteHandler:
             names = [''.join(i) for i in names if i is not None]
             return pd.Series(names).tolist()
         return []
+
     def getSetComponentNames(self, setName ='Set0'):
         '''
         returns a list of names for components in the set_components table. Defaults to set0
@@ -832,6 +869,7 @@ class ProjectSQLiteHandler:
             names = [''.join(i) for i in names if i is not None]
             return pd.Series(names).tolist()
         return []
+
     def updateSetupInfo(self, setupDict,setupFilePath):
         '''
         Updates the database setup tables with information from the setup.xml file
@@ -852,21 +890,21 @@ class ProjectSQLiteHandler:
             return ":" not in value
         #update fields that are in the setup table
         try:
-            if isdateOnly(setupDict['runTimeSteps.value']):
-                startdate = setupDict['runTimeSteps.value'].split(" ")[0]
-                enddate = setupDict['runTimeSteps.value'].split(" ")[1]
+            if isdateOnly(setupDict[RUNTIMESTEPS]):
+                startdate = setupDict[RUNTIMESTEPS].split(" ")[0]
+                enddate = setupDict[RUNTIMESTEPS].split(" ")[1]
             else:
-                startdate = setupDict['runTimeSteps.value'].split(" ")[0] + " " +setupDict['runTimeSteps.value'].split(" ")[1]
-                enddate = setupDict['runTimeSteps.value'].split(" ")[2] + " " + \
-                            setupDict['runTimeSteps.value'].split(" ")[3]
+                startdate = setupDict[RUNTIMESTEPS].split(" ")[0] + " " +setupDict[RUNTIMESTEPS].split(" ")[1]
+                enddate = setupDict[RUNTIMESTEPS].split(" ")[2] + " " + \
+                            setupDict[RUNTIMESTEPS].split(" ")[3]
 
         except IndexError as i:
             print("runtimesteps not start stop indices")
             startdate = None
             enddate = None
 
-        setId = self.insertRecord('setup',['timestepunit','timestepvalue','runtimestepsvalue','date_start','date_end','project_id'],
-                          [setupDict['timeStep.unit'],setupDict['timeStep.value'],setupDict['runTimeSteps.value'],startdate,enddate,pid])
+        setId = self.insertRecord(SETUPTABLE,[self.dbName(TIMESTEPUNIT),self.dbName(TIMESTEP),self.dbName(RUNTIMESTEPS),STARTDATE,ENDDATE,PROJECTID],
+                          [setupDict[TIMESTEPUNIT],setupDict[TIMESTEP],setupDict[RUNTIMESTEPS],startdate,enddate,pid])
 
         #update input handler infomation
         #this information is in the from of space delimited ordered lists that require parsing and are used by the input handler
@@ -894,12 +932,15 @@ class ProjectSQLiteHandler:
                                       " SELECT d.description, '' from ref_date_format as d").fetchall()
         myList = ["^" + (t[0] + " " + t[1]).strip() + "$" for t in myTuple]
         return myList
+
     def getCode(self, table, description):
         code = self.cursor.execute("select code from " + table + " WHERE description = ?",[description]).fetchone()
         if code != None:
             return code[0]
         else:
             return None
+
+
     def getAsRefTable(self,table,*args):
         '''
         get a list of id and code and description values from a reference table
@@ -911,9 +952,10 @@ class ProjectSQLiteHandler:
         for arg in args:
             fields.append(arg)
         if len(fields) == 0:
-            fields = ['_id', 'code','description']
+            fields = [ID, 'code','description']
         stringFields = str.join(",",fields)
         return self.cursor.execute("SELECT " + stringFields + " FROM " + table).fetchall()
+
     def getComponentByType(self,mytype):
         '''
 
@@ -924,6 +966,7 @@ class ProjectSQLiteHandler:
         return codes
     def getAllRecords(self,table):
         return self.cursor.execute("select * from " + table).fetchall()
+
     def parseInputHandlerAttributes(self, setupDict):
         '''
         Parses the portion of a setup dictionary (dictionary produced from setup.xml) into various project_manager tables
@@ -934,45 +977,46 @@ class ProjectSQLiteHandler:
 
         def hasComponentData(componentDict):
             for k in componentDict.keys():
-                if k in ['headernamevalue', 'componentattributeunit',
-                               'componentattributevalue']:
+                if k in [self.dbName(HEADERNAME), self.dbName(COMPONENTATTRIBUTEUNIT),
+                               self.dbName(COMPONENTATTRIBUTE)]:
                     if len(componentDict[k]) > 0:
                         return True
             return False
 
-        fileAttributes = ['inputFileDir.value', 'inputFileType.value', 'dateChannel.format',
-                          'dateChannel.value', 'timeChannel.format', 'timeChannel.value', 'timeZone.value',
-                          'flexibleYear.value', 'inputtimestepvalue', 'inpututcoffsetvalue']
-        componentFiles = ['headerName.value', 'componentAttribute.unit',
-                               'componentAttribute.value']  # plus file id and component id
-        componentAttributes = ['componentName.value']
-        files = {key.lower().replace(".", ""): xmlToString(value.split(' ')) for key, value in setupDict.items() if
+        fileAttributes = [FILEDIR, FILETYPE, DATECHANNELFORMAT,
+                          DATECHANNEL, TIMECHANNELFORMAT, TIMECHANNEL, TIMEZONE,
+                          FLEXIBLEYEAR, INPUTTIMESTEP, UTCOFFSET]
+        componentFiles = [HEADERNAME, COMPONENTATTRIBUTEUNIT,
+                               COMPONENTATTRIBUTE]  # plus file id and component id
+        componentAttributes = [COMPONENTNAME]
+        files = {self.dbName(key): xmlToString(value.split(' ')) for key, value in setupDict.items() if
                  key in fileAttributes}
         #sometimes setup files only contain the relative path to input files from the project directory
 
-        files['inputfiledirvalue'] = [self.makePath(k) for k in files['inputfiledirvalue']] #we need to convert the list filepath to a system filepath as a string
-        components = {key.lower().replace(".", ""): xmlToString(value.split(' ')) for key, value in setupDict.items() if
+        files[self.dbName(FILEDIR)] = [self.makePath(k) for k in files[self.dbName(FILEDIR)]] #we need to convert the list filepath to a system filepath as a string
+        components = {self.dbName(key): xmlToString(value.split(' ')) for key, value in setupDict.items() if
                       key in componentAttributes}
-        filecomponents = {key.lower().replace(".", ""): value.split(' ') for key, value in setupDict.items() if
+        filecomponents = {self.dbName(key): value.split(' ') for key, value in setupDict.items() if
                       key in componentFiles}
 
-        components['componenttype'] = [self.inferComponentType(k) for k in components['componentnamevalue']]
+        components[COMPONENTTYPE] = [self.inferComponentType(k) for k in components[self.dbName(COMPONENTNAME)]]
 
         # insert the pieces
-        if (files['inputfiledirvalue']!=[""]) & (files['inputfiledirvalue'] != ['None']):
+        if (files[self.dbName(FILEDIR)]!=[""]) & (files[self.dbName(FILEDIR)] != ['None']):
             idlist = self.insertDictionaryRow('input_files', files)
             filecomponents['inputfile_id'] = idlist
             idlist = self.extractComponentNamesOnly(components, setupDict)
 
             if hasComponentData(filecomponents):
-                filecomponents['component_id'] = idlist
-                filecomponents['componenttype'] = components['componenttype']
+                filecomponents[COMPONENTID] = idlist
+                filecomponents[COMPONENTTYPE] = components[COMPONENTTYPE]
                 self.addComponentsToFileInputTable(filecomponents)
         else:
             #if there are no input files specified components from the componentsnamesvalue attribute will be used to populate component table
             idlist = self.extractComponentNamesOnly(components, setupDict)
 
             return fileAttributes + componentAttributes + componentFiles
+
     def addComponentsToFileInputTable(self, filecomponents):
         '''
         Inserts a dictionary of values into the file_components table
@@ -992,18 +1036,18 @@ class ProjectSQLiteHandler:
         '''
         # it is possible that he components have been created but not associaed with files yet.
         # in this case the components should be pulled from the componentnames.value attribute
-        if (components['componentnamevalue'] == ['None']) | (components['componentnamevalue'] == [""]):
+        if (components[self.dbName(COMPONENTNAME)] == ['None']) | (components[self.dbName(COMPONENTNAME)] == [""]):
             components = self.swapComponentNamesOnly(setupDict)
 
-        idlist = self.insertDictionaryRow('component',
+        idlist = self.insertDictionaryRow(COMPONENTTABLE,
                                           components)  # duplicate components should fail here, but list will still be original length
         return idlist
     def swapComponentNamesOnly(self, setupDict):
-        components = {key.lower().replace(".", ""): xmlToString(value.split(' ')) for key, value in
-                      setupDict.items() if key == 'componentNames.value'}
-        components['componentnamevalue'] = components['componentnamesvalue']
-        del components['componentnamesvalue']
-        components['componenttype'] = [self.inferComponentType(k) for k in components['componentnamevalue']]
+        components = {self.dbName(key): xmlToString(value.split(' ')) for key, value in
+                      setupDict.items() if key == COMPONENTNAMES}
+        components[self.dbName(COMPONENTNAME)] = components[self.dbName(COMPONENTNAMES)]
+        del components[self.dbName(COMPONENTNAMES)]
+        components[COMPONENTTYPE] = [self.inferComponentType(k) for k in components[self.dbName(COMPONENTNAME)]]
         return components
     def makePath(self,stringlistpath):
         '''
@@ -1012,11 +1056,19 @@ class ProjectSQLiteHandler:
         :return:
         '''
         aslist = stringlistpath.split(',')
+        if len(aslist) <= 1:
+            aslist = stringlistpath.split("/")
+            if "" in aslist:
+                aslist.remove("")
+            if len(aslist) <= 0:
+                return None
         if aslist[0] == self.getProject(): #if the path specification starts with the project folder, make it a complete path by adding the path to the project folder
             return os.path.join(self.getProjectPath(),*aslist[1:])
         else:
             return os.path.join(*aslist)
     def inferComponentType(self,componentname):
+        '''returns the string value of the component type extracted from the comonent name
+        i.e wtg, ees'''
         import re
         try:
            match = re.match(r"([a-z]+)([0-9]+)", componentname, re.I)
@@ -1078,7 +1130,7 @@ class ProjectSQLiteHandler:
         return None
     def updateRunStatus(self,setName,runNum,field):
         '''sets the designated field of the run table t 1'''
-        self.updateRecord('run',['set_id','run_num'],[self.getSetId(setName),runNum],[field],[1])
+        self.updateRecord('run',[SETID,'run_num'],[self.getSetId(setName),runNum],[field],[1])
     def updateRunToFinished(self, setName, runNum):
         '''sets the finished field of the '''
         self.updateRunStatus(setName,runNum,'finished')
@@ -1100,14 +1152,14 @@ class ProjectSQLiteHandler:
         '''updates the base case value for an individual run record to 1, setting all others to 0
         If the new baseCase run record id matches the old baseCase run record id False is returned,
         Otherwise queries are performed and True is returned'''
-        originalBase = self.getId('run',['set_id','base_case'],[setID,1])
+        originalBase = self.getId('run',[SETID,'base_case'],[setID,1])
         if originalBase != runId and isBase:
-            self.updateRecord('run', ['set_id'], [setID], ['base_case'],
+            self.updateRecord('run', [SETID], [setID], ['base_case'],
                               [0])  # all base cases set to 0 for the specified set
-            self.updateRecord('run', ['_id'], [runId], ['base_case'], [1])  # new base case selected
+            self.updateRecord('run', [ID], [runId], ['base_case'], [1])  # new base case selected
             return True
         elif originalBase == runId and not isBase:
-            self.updateRecord('run', ['_id'], [runId], ['base_case'], [0])  # base case removed
+            self.updateRecord('run', [ID], [runId], ['base_case'], [0])  # base case removed
             return True
         else:
             return False
@@ -1120,9 +1172,9 @@ class ProjectSQLiteHandler:
             setName = 'Set' + setx
         else:
             setName = setx
-        return self.getId('set_',['set_name'],[setName])
+        return self.getId(SETTABLE,[SETNAME],[setName])
     def updateRunResult(self,setNum,runNum,rowDict):
-        self.updateFromDictionaryRow('run',rowDict,['set_id','run_num'],[self.getSetId(setNum),runNum])
+        self.updateFromDictionaryRow('run',rowDict,[SETID,'run_num'],[self.getSetId(setNum),runNum])
     def checkMinimalData(self,projectSetDir):
         # at a minimum the database should have a setup record, a set record associated with the specified projectSetDir
         # and a run record for each run folder in the set dir
@@ -1159,7 +1211,7 @@ class ProjectSQLiteHandler:
         else:
             return pd.DataFrame()
     def insertCompletedRun(self,setId,runNum):
-        id = self.insertRecord('run',['set_id','run_num','started','finished'],[setId,runNum,1,1])
+        id = self.insertRecord('run',[SETID,'run_num','started','finished'],[setId,runNum,1,1])
         return id
     def insertRunComponent(self,run_id,set_component_id):
         id = self.insertRecord('run_attributes', ['run_id', 'set_component_id'], [run_id,set_component_id])
@@ -1172,8 +1224,8 @@ class ProjectSQLiteHandler:
         :return: dictionary of series and x y values
         '''
         def getRunFolder(runid):
-            run_num = self.getFieldValue('run','run_num','_id',runid)
-            setFolder = getFilePath(self.getFieldValue('set_','set_name','_id',self.getFieldValue('run','set_id','_id',runid)),projectFolder = self.getProjectPath())
+            run_num = self.getFieldValue('run','run_num',ID,runid)
+            setFolder = getFilePath(self.getFieldValue(SETTABLE,SETNAME,ID,self.getFieldValue('run',SETID,ID,runid)),projectFolder = self.getProjectPath())
             runFolder = getFilePath('Run'+run_num, set=setFolder)
 
             return runFolder

@@ -41,8 +41,8 @@ class RunHandler(UIHandler):
     Attributes:
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self,dbhandler):
+        super().__init__(dbhandler)
         return
 
     def makeAttributeXML(self,currentSet):

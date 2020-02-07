@@ -35,12 +35,8 @@ TOTALP = 'total_p'  # the name of the column that contains the sum of power outp
 # SampleInterval is a list of sample intervals for each input file
 # returns a DataClass object with raw and cleaned data and powercomponent information
 def fixBadData(df, setupDir, ListOfComponents,runTimeSteps, **kwargs):
-   '''returns cleaned dataframe'''
-   sender = kwargs.get("sender")
+   '''returns cleaned data Object'''
 
-   def broadCastProgress(progress):
-       if sender:
-           sender.notifyProgress.emit(progress, 'fixing bad values')
    # local functions - not used outside fixBadData
    def checkMinMaxPower(component, df, descriptorxml, baddata):
        '''
@@ -115,7 +111,7 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps, **kwargs):
    powerColumns = []
    eColumns = []
    loads=[]
-   broadCastProgress(1)
+
    # replace out of bounds component values before we use these data to replace missing data
    for c in ListOfComponents:
 
@@ -174,7 +170,7 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps, **kwargs):
        reps = data.fixOfflineData(columnsToReplace, groupings[TOTALL])
        data.df = data.df.drop(reps.columns, axis=1)
        data.df = pd.concat([data.df, reps], axis=1)
-   broadCastProgress(6)
+
 
    #now e columns performed individually
    #nas produced from mismatched file timestamps get ignored during grouping - thus not replaced during fixbaddata
@@ -186,8 +182,7 @@ def fixBadData(df, setupDir, ListOfComponents,runTimeSteps, **kwargs):
        reps= data.fixOfflineData([c], groupings[c])
        data.df = data.df.drop(reps.columns, axis=1)
        data.df= pd.concat([data.df,reps],axis=1)
-       broadCastProgress(6 + round((currentcnt/cnt) * 4,0))
-   broadCastProgress(10)
+
 
    #reads the component descriptor files and
    #returns True if none of the components have isFrequencyReference=1 and

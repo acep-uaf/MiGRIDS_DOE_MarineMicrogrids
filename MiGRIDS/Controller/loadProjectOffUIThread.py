@@ -29,8 +29,8 @@ class ThreadedProjectLoad(QtCore.QThread):
 
     def run(self):
         self.dbHandler = ProjectSQLiteHandler()  # use a seperate dbhandler instance
-        self.runHandler = RunHandler()
-        self.setupHandler = SetupHandler()
+        self.runHandler = RunHandler(self.dbHandler)
+        self.setupHandler = SetupHandler(self.dbHandler)
         self.validator = Validator()
         self.loadProjectOffUIThread(self.setupFile)
 
@@ -47,7 +47,6 @@ class ThreadedProjectLoad(QtCore.QThread):
 
     def loadProjectOffUIThread(self,setupFile):
         # load project gets run on a seperate thread so it uses a newly initialized handlers
-
 
         # local assistants
         def listNetCDFs():
@@ -107,7 +106,8 @@ class ThreadedProjectLoad(QtCore.QThread):
 
        # get input data object
         data= findDataObject()
-
+        if self.validator.validate(ValidatorTypes.InputData):
+            self.updateAttribute('Controller', 'inputDataValid', True)
         if self.validator.validate(ValidatorTypes.DataObject, data):
             self.updateAttribute('Controller', 'inputDataValid', True) #TODO this should be validated seperately
             self.updateAttribute('Controller','dataObjectValid',True)

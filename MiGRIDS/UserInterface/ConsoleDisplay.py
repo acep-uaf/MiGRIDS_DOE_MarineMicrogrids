@@ -43,7 +43,7 @@ class ConsoleDisplay(QtWidgets.QDialog):
         self.setLayout(layout)
 
         #connect to output class actions
-        #DisplayWriter.stdout().messageWritten.connect(self._console.insertPlainText)
+        DisplayWriter.stdout().messageWritten.connect(self._console.insertPlainText)
         #TODO uncomment when not testing otherwise fatal errors won't be seen
         #DisplayWriter.stderr().messageWritten.connect(self._console.insertPlainText)
 
@@ -73,7 +73,6 @@ class ConsoleDisplay(QtWidgets.QDialog):
         #file gets named console_output_MMDDYY
         d = datetime.datetime.now()
         d = d.strftime('%m%d%y')
-        #format d
         file = 'console_output_' + d + '.txt'
         file = os.path.join(folderDialog,file)
         with open(file, 'w+') as f:
