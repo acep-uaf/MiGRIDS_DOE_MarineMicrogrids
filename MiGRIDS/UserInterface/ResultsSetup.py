@@ -14,7 +14,7 @@ class ResultsSetup(ResultsPlot):
     def makePlotArea(self):
         if self.data is not None:
 
-            options = list(self.data['fixed'].columns.values)
+            options = [c for c in self.data['fixed'].columns.values if "flag" not in c]
             options.append('index')
             self.set_XCombo(options)
             self.set_YCombo(options)

@@ -48,11 +48,11 @@ class SetTableView(customTableView):
             componentFolder = getFilePath('Components', projectFolder=projectFolder)
             myBox = [c for c in self.findChildren(ComboDelegate) if c.name == 'componentAttribute'][0]
             if compname.isnumeric():
-                compname = self.dbhandler.getFieldValue('component','componentnamevalue','_id',compname)
+                compname = self.controller.dbhandler.getFieldValue('component','componentnamevalue','_id',compname)
 
               # the current selected component, and the folder with component xmls are passed used to generate tag list
              #the combo box that contains possible tags to edit
-            myBox.values = QtCore.QStringListModel(self.uihandler.getComponentAttributesAsList(compname, componentFolder))
+            myBox.values = QtCore.QStringListModel(self.controller.setupHandler.getComponentAttributesAsList(compname, componentFolder))
 
 class SetTableModel(QtSql.QSqlRelationalTableModel):
     def __init__(self, parent,position):
