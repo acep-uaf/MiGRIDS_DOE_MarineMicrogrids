@@ -5,6 +5,7 @@ from PyQt5 import QtWidgets, QtCore
 import os
 import re
 
+from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.UserInterface.GridFromXML import GridFromXML
 from bs4 import BeautifulSoup
@@ -22,7 +23,7 @@ class XMLEditor(QtWidgets.QWidget):
         super(XMLEditor,self).__init__(parent)
         self.xmlOptions = xmllist
         self.default = xmldefault
-        self.dbhandler = ProjectSQLiteHandler()
+        self.controller = Controller()
         self.resourcetype = self.getResourceFromFileName()
         self.xmltype = self.getXMLTypeFromFileName()
         self.setObjectName(self.resourcetype.lower() + self.xmltype.lower())
@@ -123,9 +124,9 @@ class XMLEditor(QtWidgets.QWidget):
         return F
     def writeXML(self, setName=None):
         #file to write is based on selected file and project
-        path = self.dbhandler.getProjectPath()
+        path = self.controller.dbhandler.getProjectPath()
         if path is not None:
-            projectName = self.dbhandler.getProject()
+            projectName = self.controller.dbhandler.getProject()
             selected = self.titleBar.selector.currentText()
 
             fileName = projectName + setName + selected + self.SUFFIX
@@ -139,9 +140,9 @@ class XMLEditor(QtWidgets.QWidget):
             self.updateSetupFile(selected[0].lower() + selected[1:],self.objectName())
 
     def updateSetupFile(self,selectedFile, tag):
-        setupFile = self.dbhandler.getFieldValue('project','setupfile','_id','1')
-        handler = UIHandler()
-        handler.writeTag(setupFile,tag + ".value",selectedFile)
+        setupFile = self.controller.dbhandler.getFieldValue('project','setupfile','_id','1')
+
+        self.controller.runHandler.writeTag(setupFile,tag + ".value",selectedFile)
 
 class XMLForm(QtWidgets.QWidget):
     SUFFIX = 'Inputs.xml'
@@ -149,9 +150,9 @@ class XMLForm(QtWidgets.QWidget):
 
     def __init__(self,selectedFile):
         super(XMLForm, self).__init__()
+        self.controller = Controller()
         contents_child = self.readXml(selectedFile)
 
-        # TODO soup should come from controller
         soup = BeautifulSoup(contents_child, 'xml')
 
         myLayout = GridFromXML(self, soup)
@@ -172,9 +173,8 @@ class XMLForm(QtWidgets.QWidget):
         :param selectedFile:
         :return:
         '''
-        dbhandler = ProjectSQLiteHandler()
-        projectPath = dbhandler.getProjectPath()
-        projectName = dbhandler.getProject()
+        projectPath = self.controller.dbhandler.getProjectPath()
+        projectName = self.controller.dbhandler.getProject()
         xmlFile = ""
 
         try:
@@ -193,10 +193,10 @@ class XMLForm(QtWidgets.QWidget):
 
     def writeXML(self, file):
         # calls the controller to write an xml file of the optimization config file into the project folder
-        handler = UIHandler()
+
         myGrid = self.findChildren(GridFromXML)[0]
 
-        handler.writeSoup(myGrid.extractValues()[0], file)
+        self.controller.runHandler.writeSoup(myGrid.extractValues()[0], file)
 
 
 class TitleBar(QtWidgets.QWidget):

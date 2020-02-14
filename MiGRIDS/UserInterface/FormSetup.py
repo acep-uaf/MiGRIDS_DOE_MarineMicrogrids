@@ -549,7 +549,7 @@ class FormSetup(BaseForm):
         if data != None:
             resultsForm = self.window().findChild(ResultsSetup)
             resultsForm.setData(self.controller.inputData)
-
+            resultsForm.makePlotArea()
             resultsForm.defaultPlot()#getting called first time here
 
         return values

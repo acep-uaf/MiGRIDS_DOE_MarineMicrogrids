@@ -20,8 +20,8 @@ class XMLEditorHolder(QtWidgets.QWidget):
         self.set = tab + 1
         self.xmls = {} #the list of possible xml files for each resource type and xml type combination (read from resource folder)
         self.xmlDefaults = {} #the value combo boxes for file selectors are originally set to
-
         self.controller = Controller()
+        self.makeWidget()
 
     def updateWidget(self):
         '''Update the selected xml files and their values'''
@@ -159,7 +159,7 @@ class XMLEditorHolder(QtWidgets.QWidget):
         if setupFile is None:
             setupFile = os.path.join(os.path.dirname(__file__), *['..', 'Model', 'Resources', 'Setup', 'projectSetup.xml'])
         # read setup (using resource default if necessary)
-        setup = self.controller.readInSetupFile(setupFile)
+        setup = self.controller.setupHandler.readInSetupFile(setupFile)
         return setup
 
 
