@@ -266,7 +266,7 @@ class PageBlock(QtWidgets.QTabWidget):
 
         self.findChild(FormModelRun).show()
 
-        self.findChild(FormOptimize).show()
+        #self.findChild(FormOptimize).show()
 
         return
 
