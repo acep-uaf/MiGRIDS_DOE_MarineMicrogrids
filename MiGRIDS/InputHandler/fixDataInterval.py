@@ -12,11 +12,14 @@ If more values are produced than desired, the extra values are dropped'''
 #DataClass, String -> DataClass
 from datetime import datetime
 
+from MiGRIDS.InputHandler.Exceptions.ContainsNull import ContainsNullException
 from MiGRIDS.InputHandler.badDictAdd import badDictAdd
 import pandas as pd
 import numpy as np
 import multiprocessing as mp
 MAXUPSAMPLEINTERVAL = 21600 #this is 6 hours
+TOTALLOAD = 'total_l'
+TOTALPOWER = 'total_p'
 def fixDataInterval(data, interval, **kwargs):
     '''
      data is a DataClass with a pandas dataframe with datetime index.
@@ -29,9 +32,6 @@ def fixDataInterval(data, interval, **kwargs):
     :param interval: pandas Timedelta
     :return: A DataClass object with data filled at consistent time intervals
     '''
-
-
-
     updateSubject = kwargs.get("subject"); #connect to a subject
     def broadCastStatus(progress, task):
         if updateSubject:
@@ -42,79 +42,86 @@ def fixDataInterval(data, interval, **kwargs):
     #dataframe -> integer array, integer array
     #returns arrays of time as seconds and values estimated using the Langevin equation
     #for all gaps of data within a dataframe
-
-    eColumns = data.eColumns
-
-    def fixDataFrameInterval(dataframe, interval):
-        '''
-
-        :param dataframe: a dataframe with datetime index
-        :param interval: pandas deltatime
-        :return: dataframe
-        '''
-
-        # df contains the non-upsampled records. Means and standard deviation come from non-upsampled data.
-        df = dataframe.copy()
-
-        # create a list of individual loads, total of power components and environmental measurements to fix interval on
-        fixColumns = []
-
-        fixColumns.extend(eColumns)
-        # if there are power components fix intervals based on total power and scale to each component
-        if df['total_p'].first_valid_index() != None:
-            fixColumns.append('total_p')
-        if df['total_l'].first_valid_index() != None:
-            fixColumns.append('total_l')
-        print('before upsampling dataframe is: %s' % len(dataframe))
-        print(dataframe.head())
-        # up or down sample to our desired interval
-        # down sampling results in averaged values
-        # this changes the size fo data.fixed[idx], so it no longer matches df rowcount.
-        # we start with flooring - so a value 1 second past the desired interval will become the value
-
-        #set the flag now
-        flag_columns =[c for c in dataframe.columns if ('flag' in c)]
-        other_columns = [c for c in dataframe.columns if 'flag' not in c]
-
-        data1 = dataframe[other_columns].resample(pd.to_timedelta(interval)).mean()
-        dataframe = data1.join(dataframe[flag_columns], how='left')
-
-        for f in flag_columns:
-            dataframe.loc[pd.isnull(dataframe[f]), f] = 4
-
-        result = mp.Manager().Queue()
-        # pool of processes
-        pool = mp.Pool(mp.cpu_count())
-        for col in fixColumns:
-            print("fixing: ", col)
-            #dataframe = fixSeriesInterval(col, dataframe, df, interval)
-            pool.apply_async(fixSeriesInterval, args=(col,dataframe,df,data,interval, result))
-
-        pool.close()
-        pool.join()
-        completeDataFrame = pd.DataFrame()
-        while not result.empty():
-            completeDataFrame = dataframe[flag_columns]
-            completeDataFrame = pd.concat([completeDataFrame,result.get()])
-        del df
-
-        return completeDataFrame
-
-
-
+    fixColumns = [] #TODO get list of columns
     try:
-        myD = [fixDataFrameInterval(x, interval) for x in data.fixed]
-        data.fixed = myD
-    except MemoryError as m:
+        data.fixed = [fixDataFrameInterval(x, interval,fixColumns, data.loads, data.power) for x in data.fixed]
 
-        for i in range(0,len(data.fixed)):
-            data.fixed[i] = fixDataFrameInterval(data.fixed[i], interval[i])
+    except:
+        print("could not resample dataframe")
     print(data.fixed[0].head())
 
     data.removeAnomolies(stdNum=5)
 
     return data
 
+def fixDataFrameInterval(dataframe, interval, fixColumns, loadColumns, powerColumns):
+    '''
+
+    :param dataframe: a dataframe with datetime index
+    :param interval: pandas deltatime
+    :return: dataframe
+    '''
+
+    # df contains the non-upsampled records. Means and standard deviation come from non-upsampled data.
+    df = dataframe.copy()
+    print('before upsampling dataframe is: %s' % len(dataframe))
+    print(dataframe.head())
+    # up or down sample to our desired interval
+    # down sampling results in averaged values
+    # this changes the size fo data.fixed[idx], so it no longer matches df rowcount.
+    # we start with flooring - so a value 1 second past the desired interval will become the value
+
+    #set the flag now
+    flag_columns =[c for c in dataframe.columns if ('flag' in c)]
+    other_columns = [c for c in dataframe.columns if 'flag' not in c]
+
+    data1 = dataframe[other_columns].resample(interval).mean()
+    upSampledDataframe = data1.join(dataframe[flag_columns], how='left')
+    upSampledDataframe.index = upSampledDataframe.index.floor(interval)
+
+    for f in flag_columns:
+        upSampledDataframe.loc[pd.isnull(upSampledDataframe[f]), f] = 4
+
+    result = mp.Manager().Queue()
+    # pool of processes
+    pool = mp.Pool(mp.cpu_count())
+    for col in fixColumns:
+        print("fixing: ", col)
+
+        pool.apply_async(fixSeriesInterval_mp, args=(df[col],upSampledDataframe[col],interval, result))
+
+    pool.close()
+    pool.join()
+
+    completeDataFrame = dataframe[flag_columns + [c for c in other_columns if c not in fixColumns]]
+    while not result.empty():
+        completeDataFrame = pd.concat([completeDataFrame,result.get()],1) #each df will contain a column of data
+    del df
+    completeDataFrame = spreadFixedSeries(TOTALLOAD,loadColumns,completeDataFrame )
+    completeDataFrame = spreadFixedSeries( TOTALPOWER, powerColumns,completeDataFrame)
+    completeDataFrame = truncateDataFrame(completeDataFrame)
+    return completeDataFrame
+
+def truncateDataFrame(df):
+    '''retains the longest continuous sections of data within a dataframe'''
+
+    idx0 = df.first_valid_index()
+    idx1 = df.first_valid_index()
+    span = [idx0,idx1]
+    while (idx1 < df.last_valid_index()):
+       idx0 = df[pd.notnull(df[idx0:])].first_valid_index()
+       try:
+          idx1 = df[df.isnull().any(axis=1)].index[0] #first null index
+          if ((idx1 - idx0) > (span[1] - span[0])):
+              span = [idx0, idx1]
+              idx0 = idx1
+       except KeyError as e:
+           #this will kill the while loop
+           idx1 = df.last_valid_index() #key error means there are no null values, so return  last valid index for entire dataframe
+           span = [idx0,idx1]
+       finally:
+        df = df[span[0]:span[1]]
+        return df
 def handleMemory():
     """Not implemented yet.
     Prints current memory usage stats.
@@ -130,146 +137,144 @@ def handleMemory():
     print('process = %s total = %s available = %s used = %s free = %s percent = %s'
           % (proc, total, available, used, free, percent))
 
-def fixSeriesInterval(col, dataframe, df, data, interval, result):
-    '''
+    raise MemoryError
 
-    :param col:
+def fixSeriesInterval_mp(startingSeries,reSampledSeries,interval,result):
+    resultdf = fixSeriesInterval(startingSeries,reSampledSeries,interval)
+    result.put(resultdf)
+
+def spreadFixedSeries(col, spreadColumns,df):
+    if (col in df.columns):
+        df = calculateSubColumns(col,spreadColumns,df)
+    return df
+
+def fixSeriesInterval(startingSeries, reSampledSeries,interval):
+    '''
+    up or downsample a series to reflect the desired interval
+    assumes interval to upsample to is small (< 6 hours)
+    :param startingSeries: a named pandas series
     :param dataframe:
     :param df: DataFrame
     :param data: DataClass
     :param interval: Timedelta
     :param result: mp result
-    :return: None
+    :return: Series
     '''
-
-    df0 = df[[col]].copy()
     # remove rows that are nan for this column, except for the first and last, in order to keep the same first and last
     # time stamps
-    df0 = pd.concat([df0.iloc[[0]], df0.iloc[1:-2].dropna(), df0.iloc[[-1]]])
+    startingSeries = pd.concat([startingSeries.iloc[[0]], startingSeries.iloc[1:-1].dropna(), startingSeries.iloc[[-1]]])
     # get first and last non nan indecies
-    idx0 = df0[col].first_valid_index()
+    idx0 = startingSeries.first_valid_index()
     if idx0 != None:
-        df0[col][0] = df0[col][idx0]
-    idx1 = df0[col].last_valid_index()
+        startingSeries[0] = startingSeries[idx0]
+    idx1 = startingSeries.last_valid_index()
     if idx1 != None:
-        df0[col][-1] = df0[col][idx1]
-    # time interval between consecutive records
-    df0['timediff'] = pd.Series(pd.to_datetime(df0.index, unit='s'), index=df0.index).diff(1).shift(-1)
-    df0['timediff'] = df0['timediff'].fillna(0)
-    # get the median number of steps in a 24 hr period.
-    steps1Day = int(pd.to_timedelta(1, unit='d') / np.median(df0['timediff']))
-    # make sure it is at least 10
-    if steps1Day < 10:
-        steps1Day = 10
-    # get the total power mean and std
-    # mean total power in 24 hour period
-    df0[col + '_mu'] = df0[col].rolling(steps1Day, 2).mean()
-    # standard deviation
-    df0[col + '_sigma'] = df0[col].rolling(steps1Day, 2).std()
-    # first records get filled with first valid values of mean and standard deviation
-    df0[col + '_mu'] = df0[col + '_mu'].bfill()
-    df0[col + '_sigma'] = df0[col + '_sigma'].bfill()
+        startingSeries[-1] = startingSeries[idx1]
+
+
     # if the resampled dataframe is bigger fill in new values
     # Timediff needs to be calculated to next na, not next record
-    if len(df0) < len(dataframe):
-
-        # t is the time, k is the estimated value
-        t, k = estimateDistribution(df0, interval, col)  # t is number of seconds since 1970
-        simulatedDf = pd.DataFrame({'time': t, 'value': k})
-        simulatedDf = simulatedDf.set_index(
-            pd.to_datetime(simulatedDf['time'] * 1e9))  # need to scale to nano seconds to make datanumber
-        simulatedDf = simulatedDf[~simulatedDf.index.duplicated(keep='last')]
-
-        # make sure timestamps for both df's are rounded to the same interval in order to join sucessfully
-        dataframe.index = dataframe.index.floor(interval)
-        # make sure timezones match - can't join naive and nonnaive times
-        tz = dataframe.index.tzinfo
-        simulatedDf.index = simulatedDf.index.floor(interval)
-        # need to remove duplicate indices genereatd from flooring
-        simulatedDf = simulatedDf[~simulatedDf.index.duplicated(keep='first')]
-        # .apply(lambda d: timeZone.localize(d, is_dst=useDST))
-        simulatedDf.index = simulatedDf.index.tz_localize('UTC')
-        # join the simulated values to the upsampled dataframe by timestamp
-        dataframe = dataframe.join(simulatedDf, how='left')
-        # fill na's for column with simulated values
-        dataframe.loc[pd.isnull(dataframe[col]), col] = dataframe['value']
-
-        # component values get calculated based on the proportion that they made up previously if we are working with total_p
-        components = []
-        if 'total' in col:
-            if col == 'total_p':
-                components = data.powerComponents
-            elif col == 'total_l':
-                components = data.loads
-            adj_m = dataframe[components].div(dataframe[col], axis=0)
-            adj_m = adj_m.ffill()
-            dataframe[components] = adj_m.multiply(dataframe[col], axis=0)
-            del adj_m
-        dataframe = dataframe[components + [col]]
-        # get rid of columns added
-        #dataframe = dataframe.drop('value', 1)
-        #dataframe = dataframe.drop('time', 1)
-        print(dataframe.head())
-
-        del df0
-        del simulatedDf
+    if len(startingSeries) < len(reSampledSeries):
+        # standard deviation
+        sigma = startingSeries.rolling(5, 2).std()
+        # first records get filled with first valid values of mean and standard deviation
+        sigma = sigma.bfill()
+        sigma = scaleSigma(sigma)
+        simulatedValues = upsample(startingSeries,sigma)
     #put modified columns in result
-    result.put(dataframe)
+    reSampledSeries = matchToOriginal(reSampledSeries,simulatedValues,interval)
+    return reSampledSeries
+
+def scaleSigma(sigma):
+    records = abs(pd.to_timedelta(pd.Series(sigma.index).diff(-1)).dt.total_seconds()) #records is the number of seconds between consecutive values - one record per second
+    records = records.rolling(5, 2).mean() #mean number of seconds between intervals used to calculate sigma
+    records = records.bfill()
+    records[records < 60] = 1
+    records[records >= 60] = records/60
+    # sigma is the the standard deviation for the existing time interval between records
+    #sigma gets arbitrarily scaled to the minute level if records have greater than 1 minute time gaps.
+    sigma = np.divide(sigma,records)
+    return sigma
+def matchToOriginal(originalSeries,simulatedSeries, interval):
+    '''
+
+    :param originalSeries:
+    :param simulatedSeries:
+    :param interval:
+    :return:
+    '''
+
+    # make sure timezones match - can't join naive and nonnaive times
+    tz = originalSeries.index.tzinfo
+    simulatedSeries.index = simulatedSeries.index.floor(interval)
+    # need to remove duplicate indices genereatd from flooring
+    simulatedSeries = simulatedSeries[~simulatedSeries.index.duplicated(keep='first')]
+    # .apply(lambda d: timeZone.localize(d, is_dst=useDST))
+    #simulatedSeries.index = simulatedSeries.index.tz_localize('UTC')
+    simulatedSeries.index = simulatedSeries.index.tz_localize(tz)
+    # join the simulated values to the upsampled dataframe by timestamp
+    newDF = pd.DataFrame({originalSeries.name:originalSeries,'value':simulatedSeries},index = originalSeries.index)
+    #originalDataFrame = originalDataFrame.join(simulatedSeries, how='left')
+    # fill na's for column with simulated values
+    newDF.loc[pd.isnull(newDF[originalSeries.name]), originalSeries.name] = newDF['value']
+    return newDF[originalSeries.name]
+
+def upsample(series, sigma):
+    # t is the time, k is the estimated value
+    t, k = estimateDistribution(series[pd.notnull(series)], sigma)  # t is number of seconds since 1970
+    simulatedSeries = pd.DataFrame({'value': k,'time':pd.to_datetime(t, unit='s')})
+    simulatedSeries = simulatedSeries.set_index(simulatedSeries['time'])
+    simulatedSeries = simulatedSeries.loc[pd.notnull(simulatedSeries['value']),'value']
+    simulatedSeries = simulatedSeries[~simulatedSeries.index.duplicated(keep='first')]
+
+    return simulatedSeries
+
+def estimateDistribution(series, sigma):
 
 
-def estimateDistribution(df,interval,col):
-    import numpy as np
-    #feeders for the langevin estimate
-    mu = df[col+'_mu']
-    start = df[col]
-    sigma = df[col+'_sigma']
-    records = df['timediff'] / pd.to_timedelta(interval) #records is the number (integer) of values missing between values. We add 1 so intervals are nto missed
-    timestep = pd.Timedelta(interval).seconds
-    #handle memory error exceptions by working with smaller subsets
+
     try:
         #return an array of arrays of values
-        timeArray, values = getValues(records, start, sigma,timestep)
+        timeArray, values = getValues(series, sigma)
         return timeArray, values
     except MemoryError:
+        # handle memory error exceptions by working with smaller subsets
+        print("Memory Error: re-attempting to process.")
         handleMemory()
+        timeArray, values = processInChunks(series, sigma)
+        return timeArray, values
+
+
+def processInChunks(series,sigma):
+    print("chunk processing not implemented yet")
     return
-        #steps is an array of timesteps in seconds with length = max(records)
-def getValues(records, start, sigma, timestep):
+def getValues(start, sigma):
     '''
-    Uses the Langevin equation to estimate records based on provided mean (mu) and standard deviation and a start value
-    :param records: [Array of Integers] the number of timesteps to estimate values for
+    Uses the Langevin equation to estimate records based on provided start value and standard deviation.
+    All estimates are for a 1 sec time interval and subsequently truncated to match desired timestep
+    The total time to be filled between to valid values cannot exceed 6 hours.
+    Time gaps that are longer than the typical (95% of time gaps to fill) time gap in the dataset are filled after common time gaps
     :param start: [Array of numeric] the start value to initiate the estimator for a given record
     :param sigma: [Array of numeric] the standard deviation to use in the estimator
-    :param timestep: [Array of integer] the timestep to use in the estimator
-    :return: [Array of timestamps], [Array of numeric] the timestamp and estimated values for each record
     '''
-    # sigma is the the standard deviation for 1000 samples at timestep interval
+
     import numpy as np
+    if (len(start[pd.isnull(start)]))>0:
+        raise ContainsNullException("Series cannot contain NA")
 
-
-    #number of steps
+    #time step of 1 second
     defaultTimestep = 1
-    #records will be the number of values that will be retained for a given timestep
-    #n is the number of values that will be estimated
-    #if the timestep is 30 seconds, and the timeinterval between 2 records is 2 minutes
-    #3 values (records) will be filled in, but 91 (n) values will be generated
-    n = (records * timestep) + 1 #all estimates are at the 1 seoond timestep
-    # time constant. This value was empirically determined to result in a mean value between
-    tau = records*.2
-    tau[tau<1] = 1
+    records = abs(pd.to_timedelta(pd.Series(start.index).diff(-1)).dt.total_seconds()) #records is the number of seconds between consecutive values - one record per second
 
-    #renormalized variables
 
-    # sigma scaled takes into account the difference in STD for different number of samples of data. Given a STD for
-    # 1000 data samples (sigma) the mean STD that will be observed is sigmaScaled, base empirically off of 1 second
-    sigma_bis = 0.4 * sigma * np.sqrt(2.0/(900*defaultTimestep))
-    sqrtdt = np.sqrt(defaultTimestep)
-    # find the 95th percentile of number of steps
-    n95 = int(np.percentile(n,95))
+
+    #n is the number of values that will be estimated -will always be records + 1 unless default Timestep changes
+    n = (records * defaultTimestep) + 1 #all estimates are at the 1 seoond timestep
+    n = n.fillna(0)
+    # find the 95th percentile of number of steps - exclude gaps that are too big to fill
+    n95 = int(np.percentile(n[n < MAXUPSAMPLEINTERVAL], 95))
     # find where over the 95th percentile
     idxOver95 = np.where(n > n95)[0]
-    #x is the array that will contain the new values
-    x = np.zeros(shape=(len(start), int(n95)))
 
     # steps is an array of timesteps in seconds with length = max(records)
     steps = np.arange(0, int(n95)*defaultTimestep, defaultTimestep)
@@ -278,35 +283,19 @@ def getValues(records, start, sigma, timestep):
     # intervals is the steps array repeated for every row of time
     intervals = np.repeat(steps, len(t), axis=0)
     # reshape the interval matrix so each row has every timestep
-    intervals_reshaped = intervals.reshape(len(steps), len(t))
+    intervals_reshaped = intervals.reshape(len(steps), len(t)) #colums are a series of timesteps - 1 column for each start value
 
     tr = t.repeat(len(steps))
     rs = tr.values.reshape(len(t), len(steps))
-    time_matrix = rs + intervals_reshaped.transpose()
+    time_matrix = rs + intervals_reshaped.transpose() #each row represents a timeseries for each start value
 
-    # put all the times in a single array
-    #the starter value
-    x[:, 0] = start
+
     # use the next step in the time series as the average value for the synthesized data. The values will asympotically reach this value, resulting in a smooth transition.
     mu = start.shift(-1)
     mu.iloc[-1] = mu.iloc[-2]
-    print("starting old method: ", datetime.now())
-    oldx = x.copy()
-    # mu gets distracted from all 1801 values in each x row. then each value is divided by tau adjusted by sigma
-    for i in range(n95 - 1):  #
-        oldx[:, i + 1] = oldx[:, i] + defaultTimestep * (-(oldx[:, i] - mu) / tau) + np.multiply(
-            sigma_bis.values * sqrtdt, np.random.randn(len(mu)))
-    print("completing old method: ", datetime.now())
 
-    print("starting new method: ", datetime.now())
-    sigma_bis = sigma_bis.values.reshape(len(start), 1)
-    mu = mu.values.reshape(len(start), 1)  # make mu a vertical vector
-    # tau = tau.reshape(len(start),1)
-    tau = tau.values.reshape(len(start), 1)
-    x = estimateValues(defaultTimestep, mu, sigma_bis, sqrtdt, start, tau, x)
-    print("completing new method: ", datetime.now())
-    #remove the last columnt before adding np.delete(z, -1, 1)
-     #TODO mask instead of loop so only values needed are available
+    x = estimateLangValues(defaultTimestep, mu, sigma, start, n95)
+
     # remove extra values to avoid improper mixing of values when sorting
     for row in range(time_matrix.shape[0]):
         time_matrix[row,int(n[row]):] = None
@@ -317,51 +306,29 @@ def getValues(records, start, sigma, timestep):
     # this can only work as long as fixBadData removes any None values
     values = values[values != None]
     timeArray = timeArray[timeArray != None]
+    #any time gaps greater than MAXUPSAMPLEINTERVAL will not be filled
+    nRemaining = max([r for r in n[idxOver95] if r < MAXUPSAMPLEINTERVAL],default=0)
+    if nRemaining >= 1:
+        # individually calc the rest if they are less than the max allowable upsample interval
+        start = start[idxOver95]
+        mu= mu[idxOver95]
+        sigma = sigma[idxOver95]
+        time = time_matrix[idxOver95]
+        time = time[:,-1] #just the last column, which is the last timestamp filled
+        time = time.reshape(len(time),1)
+        time_matrix0 = np.arange(0, nRemaining * defaultTimestep,defaultTimestep) # a single row of timesteps
+        time_matrix0 = time_matrix0.reshape(1,time_matrix0.shape[0])
+        rs = np.array([1, 1])
+        rs = rs.reshape(2,1)
+        time_matrix0 = time_matrix0 * rs #its now a matrix of times to add to start times
+        time_matrix0 = time_matrix0 + time #time2 are our starting times (the last time filled in the previous step)
 
-    nRemaining = max(n[idxOver95[idxOver95<MAXUPSAMPLEINTERVAL]])
-    # individually calc the rest if they are less than the max allowable upsample interval
-    start2 = start[idxOver95]
-    mu2 = mu[idxOver95]
-    sigma_bis2 = sigma_bis[idxOver95]
-    time2 = time_matrix[idxOver95]
-    time2 = time2[:,-1] #just the last column, which is the last timestamp filled
-    time2 = time2.reshape(len(time2),1)
-    time_matrix0 = np.arange(0, nRemaining * defaultTimestep,defaultTimestep) # a single row of timesteps
-    time_matrix0 = time_matrix0.reshape(1,time_matrix0.shape[0])
-    rs = np.array([1, 1])
-    rs = rs.reshape(2,1)
-    time_matrix0 = time_matrix0 * rs #its now a matrix of times to add to start times
-    time_matrix0 = time_matrix0 + time2 #time2 are our starting times (the last time filled in the previous step)
-    x2 = np.zeros(shape=(len(start2), int(nRemaining)))
-    x2[:, 0] = start2
-    tau2 = tau[idxOver95]
-
-
-    x0 = estimateValues(defaultTimestep, mu2, sigma_bis2, sqrtdt, start2,tau2, x2)
-    values = np.append(values, x0)
-    timeArray = np.append(timeArray,time_matrix0)
-
-    # for idx in idxOver95[idxOver95<MAXUPSAMPLEINTERVAL]:
-    #     # find remaining values to be calculated
-    #     currentN = n[idx]
-    #     nRemaining = int(max([n[idx] - n95, 0]))
-    #     if nRemaining >=1:
-    #         # calc remaining values
-    #         x0 = np.zeros(shape = (nRemaining,))
-    #         # first value is last value of array
-    #         x0[0] = x[idx, -1]
-    #
-    #         # corresponding time matrix
-    #         time_matrix0 = time_matrix[idx,-1] + np.arange(0,nRemaining*defaultTimestep,defaultTimestep)
-    #         #TODO change to new method - check inputs
-    #         x0 = estimateValues(defaultTimestep[nRemaining],mu[nRemaining],sigma_bis[nRemaining],sqrtdt,start[nRemaining])
-    #         # for idx0 in range(1,nRemaining):
-    #         #     x0[idx0] = x0[idx0-1] + defaultTimestep * (-(x0[idx0-1] - mu[idx]) / tau[idx]) + np.multiply(sigma_bis.values[idx] * sqrtdt, np.random.randn())
-    #
-    #         # append to already calculated values
-    #         values = np.append(values, x0)
-    #         timeArray = np.append(timeArray,time_matrix0)
-
+        x0 = estimateLangValues(defaultTimestep, mu, sigma, start, nRemaining)
+        values = np.append(values, x0)
+        timeArray = np.append(timeArray,time_matrix0)
+        del time_matrix0
+        del nRemaining
+        del x0
     tv = np.array(list(zip(timeArray,values)))
     tv = tv[tv[:,0].argsort()] # sort by timeArray
 
@@ -371,39 +338,56 @@ def getValues(records, start, sigma, timestep):
     del tv
     del values
     del timeArray
-    del time_matrix0
-    del nRemaining
-    del x0
+
     del idxOver95
     del intervals
     del intervals_reshaped
-    del tau
     del sigma
-    del sigma_bis
     del steps
     del mu
     del rs
     del tr
 
     return t,v
+def estimateLangValues(timestep, mu, sigma, start, T):
+    '''
 
+    :param timestep: integer timestep value
+    :param mu: vector of target values
+    :param sigma:vector of std values
 
-def estimateValues(defaultTimestep, mu, sigma_bis, sqrtdt, start, tau, x):
+    :param start: vector of start values
+    :param T: total number of timesteps
 
-    r = np.random.randn(len(sigma_bis) * len(x[0, :]))
-    r = r.reshape(len(sigma_bis), len(x[0, :]))
-    mv = np.multiply(sigma_bis * sqrtdt, r)  # random error term
-    # mv = mv.reshape(len(start), 1) #make this a matrix?
+    :return: a matrix of T/t values per start value - shape is (len(start), T/t)
+    '''
+    mu = mu.values.reshape(len(start),)
+    sigma = sigma.values.reshape(len(start),)
+    start = start.values.reshape(len(start),)
 
-    b = defaultTimestep * (-1 * np.subtract(x, mu) / tau)
-    c = b + mv
-    c = np.delete(c, 0, 1)  # delete the first column, because those are our starting values that don't change
-    # add a first column to new matrix
-    # add x + new matrix - the zero columnn means values are added by shifting 1
-    a = np.zeros(len(start)).reshape(len(start), 1)
-    # all columns in x are zero except the first one, so by adding we are replacing the values
-    # add the zero column to our matrix
-    z = np.column_stack((a, c))
-    # z = np.delete(z,-1,1)
-    x = x + z
+    tau = T * 0.2  # tau affects how much noise and variation between timesteps and how quickly the mu value is reached
+    n = int(T / timestep)
+
+    sigma_bis = sigma * np.sqrt(2. / tau)
+    sqrtdt = np.sqrt(timestep)
+    x = np.zeros(n * len(start))
+    x = x.reshape(len(start),n)
+    x[:, 0] = start
+    for i in range(n - 1):  #
+        x[:, i + 1] = x[:, i] + timestep * (-(x[:, i] - mu) / tau) + (np.multiply(
+            sigma_bis * sqrtdt, np.random.randn(len(start))))
     return x
+def calculateSubColumns(col,components,df):
+    '''
+
+    :param col: filled column to subdivide
+    :param components: list of components to parse values to.
+    :param df: is a dataframe of the components to adjusted based on filled total
+    :return:
+    '''
+
+    adj_m = df[components].div(df[col], axis=0)
+    adj_m = adj_m.ffill()
+    df[components] = adj_m.multiply(df[col], axis=0)
+    del adj_m
+    return df

@@ -9,6 +9,5 @@ class ContainsNullException(Exception):
         message -- explanation of error
     """
 
-    def __init__(self, expression, message):
-        self.expression = expression
+    def __init__(self, message):
         self.message = message

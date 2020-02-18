@@ -1,6 +1,6 @@
 from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.Controller.Exceptions.NoValidFilesError import NoValidFilesError
-from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
+
 import MiGRIDS.UserInterface.ModelComponentTable as T
 import MiGRIDS.UserInterface.ModelFileInfoTable as F
 import pytz
@@ -8,7 +8,7 @@ import pytz
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.gridLayoutSetup import setupGrid
-from MiGRIDS.Controller.UIHandler import UIHandler
+
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.TableHandler import TableHandler
 
@@ -64,7 +64,7 @@ class FileBlock(QtWidgets.QGroupBox):
             self.filterTables()
 
             try:
-                self.createPreview(self.fileBlock.findChild(ClickableLineEdit,F.InputFileFields.inputfiledirvalue).text(),
+                self.createPreview(self.FileBlock.findChild(ClickableLineEdit,F.InputFileFields.inputfiledirvalue.name).text(),
                                    self.FileBlock.findChild(QtWidgets.QComboBox,
                                                             F.InputFileFields.inputfiletypevalue.name).currentText())
             except AttributeError as a:
@@ -83,7 +83,7 @@ class FileBlock(QtWidgets.QGroupBox):
 
             try:
                 self.createPreview(
-                    self.fileBlock.findChild(ClickableLineEdit, F.InputFileFields.inputfiledirvalue).text(),
+                    self.FileBlock.findChild(ClickableLineEdit, F.InputFileFields.inputfiledirvalue.name).text(),
                     self.FileBlock.findChild(QtWidgets.QComboBox,
                                              F.InputFileFields.inputfiletypevalue.name).currentText())
             except AttributeError as a:
@@ -94,9 +94,9 @@ class FileBlock(QtWidgets.QGroupBox):
         '''opens a folder dialog and returns the string value of the pathway selected'''
         #if the directory has already been set then open the dialog to there otherwise default to current working directory
         curdir = self.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).text()
-        handler = ProjectSQLiteHandler()
+        
         if curdir == '':
-            curdir = handler.getProjectPath()
+            curdir = self.controller.dbhandler.getProjectPath()
         selectedFolder = QtWidgets.QFileDialog.getExistingDirectory(None, 'Select a directory.',curdir)
 
         if (selectedFolder != ''):
@@ -170,9 +170,9 @@ class FileBlock(QtWidgets.QGroupBox):
                 pass
         #the component table needs to be updated to reflect the file input and preview - update table filter
         try:
-            self.updateComponentDelegates(preview)
+            self.updateComponentDelegates(preview) #error if component table not created yet
         except AttributeError as a:
-            print(a)
+            pass
 
         self.saveInput()
 
@@ -298,7 +298,7 @@ class FileBlock(QtWidgets.QGroupBox):
             if oldhandler is not None:
                 signal.disconnect(oldhandler)
         except TypeError:
-            print('tried to disconnect an unconnected slot')
+            pass
         if newhandler is not None:
             signal.connect(newhandler)
 
@@ -333,7 +333,8 @@ class FileBlock(QtWidgets.QGroupBox):
             try:
                 self.updateComponentDelegate(self.preview, tableHandler)
             except AttributeError as a:
-                print(a)
+                pass
+
 
         self.filterTables()
         gb.setLayout(tableGroup)
@@ -366,8 +367,7 @@ class FileBlock(QtWidgets.QGroupBox):
             record.setValue('original_field_name', fieldName)
 
             #make a default descriptor xml file
-            handler = UIHandler()
-            handler.copyDescriptor(descriptorFile[0], self.model.componentFolder)
+            self.controller.setupHandler.copyDescriptor(descriptorFile[0], self.model.componentFolder)
 
             # add a row into the database
             model.insertRowIntoTable(record)
@@ -379,11 +379,11 @@ class FileBlock(QtWidgets.QGroupBox):
     # String -> None
     def functionForNewRecord(self, table):
         # add an empty record to the table
-        handler = TableHandler(self)
+        tableHandler = TableHandler(self)
         filedir = self.FileBlock.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
         self.saveInput()
         id = self.controller.dbhandler.getId('input_files',['inputfiledirvalue'],[filedir])
-        handler.functionForNewRecord(table,fields=[1],values=[id])
+        tableHandler.functionForNewRecord(table,fields=[1],values=[id])
 
     # delete the selected record from the specified datatable
     # String -> None
@@ -407,20 +407,21 @@ class FileBlock(QtWidgets.QGroupBox):
             result = msg.exec()
 
             if result == QtWidgets.QMessageBox.Ok:
-                handler = UIHandler()
+                
                 removedRows = []
                 for r in selected:
                     if r.row() not in removedRows:
                         if table == 'components':
                             # remove the xml files too
                             componentFolder = getFilePath('Components',projectFolder=self.controller.dbhandler.getProjectPath())
-                            handler.removeDescriptor(model.data(model.index(r.row(), 3)),
+                            self.controller.setupHandler.removeDescriptor(model.data(model.index(r.row(), 3)),
                                                      componentFolder)
                         removedRows.append(r.row())
                         model.removeRows(r.row(),1)
 
                 # Delete the record from the database and refresh the tableview
                 model.submitAll()
+                print(model.lastError().text())
                 model.select()
 
     # string -> QGroupbox
@@ -505,7 +506,8 @@ class FileBlock(QtWidgets.QGroupBox):
                 self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
                 self.updateComponentDelegates(self.preview)
             except AttributeError as a:
-                print('attempted to set component table items before component table was created')
+                pass
+                #print('attempted to set component table items before component table was created')
 
     # calls the specified function connected to a button onClick event
     @QtCore.pyqtSlot()
@@ -557,7 +559,7 @@ class FileBlock(QtWidgets.QGroupBox):
         self.filter = filedir
         for t in tables:
             m = t.model()
-            m.setFilter("inputfile_id" + " = " + str(id) + "")
+            #m.setFilter("inputfile_id" + " = " + str(id) + "")
 
     def saveTables(self):
         '''get data from component and environment tables and update the setupInformation model
@@ -566,6 +568,7 @@ class FileBlock(QtWidgets.QGroupBox):
         component names, units, scale, offset, attribute, fieldname get saved'''
 
         self.ComponentTable.model.submitAll()
+        print(self.ComponentTable.model.lastError().text())
 
         #loC = [makeNewComponent(df['component_name'],x['original_field_name'],
         #                             x['units'],x['attribute'],x['component_type']) for i,x in df.iterrows()]
@@ -585,7 +588,6 @@ class FileBlock(QtWidgets.QGroupBox):
                                        setupValues[1:])
             self.saveTables()
             # on leave save the xml files
-            handler = UIHandler()
-            handler.makeSetup()
+            self.controller.setupHandler.makeSetup()
 
         #self.controller.dbhandler.closeDatabase()

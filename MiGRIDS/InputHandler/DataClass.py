@@ -137,6 +137,7 @@ class DataClass:
         pickle_out = open(filename, 'wb')
         #pickle.dump(self.fixed, pickle_out)
         pickle.dump(self, pickle_out) #pickle the entire class
+
         pickle_out.close
         return
 

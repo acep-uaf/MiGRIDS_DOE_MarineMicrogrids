@@ -2,11 +2,9 @@ from PyQt5  import QtWidgets, QtSql, QtCore
 from enum import Enum
 
 from MiGRIDS.Controller.Controller import Controller
-from MiGRIDS.Controller.RunHandler import RunHandler
-from MiGRIDS.UserInterface.Delegates import TextDelegate, ComboDelegate, RelationDelegate
-from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
-from MiGRIDS.UserInterface.ModelRunTable import customTableView
 
+from MiGRIDS.UserInterface.Delegates import TextDelegate, ComboDelegate, RelationDelegate
+from MiGRIDS.UserInterface.ModelRunTable import customTableView
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 
@@ -35,12 +33,15 @@ class SetTableView(customTableView):
 
         attributes = QtCore.QStringListModel([])
         self.setItemDelegateForColumn(1, TextDelegate(self))
+        # needs to be called componentname for delegate signal
         cdel = RelationDelegate(self, 'componentname',filter="_id in (SELECT component_id from set_components WHERE set_id = " + str(self.tabPosition + 1) + ")") #"_id in ('1')", "_id in (SELECT component_id from set_components)"
-        cdel.componentNameChanged.connect(self.updateTagList)
 
+        cdel.componentNameChanged.connect(self.updateTagList)
+        #cdel.componentNameChanged.connect(QtWidgets.QApplication.aboutQt)
         self.setItemDelegateForColumn(SetComponentFields.component_id.value, cdel)
+
         #attributes (column 3)get updated when component Name gets selected (column 2)
-        self.setItemDelegateForColumn(3, ComboDelegate(self, attributes,'componentAttribute'))
+        self.setItemDelegateForColumn(SetComponentFields.tag.value, ComboDelegate(self, attributes,'componentAttribute'))
 
     def updateTagList(self,compname):
         if compname != '':
@@ -63,13 +64,15 @@ class SetTableModel(QtSql.QSqlRelationalTableModel):
         self.setTable('set_components')
 
         #the set table gets filtered to only show records for that set
-        self.setFilter('set_id = ' + str(position + 1) + ' and tag != None ORDER BY _id')
+        self.setFilter("set_id = " + str(position + 1) + " and tag != 'None' ORDER BY _id")
         self.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
 
         self.setRelation(SetComponentFields.component_id.value,
                         QtSql.QSqlRelation('component','_id', 'componentnamevalue'))
-
-        self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
+        '''Edit Strategy needs to be on row change because multi-field unique id. 
+        Submission before unique constraint fields filled in result in relations showing id field not display field'''
+        self.setEditStrategy(QtSql.QSqlTableModel.OnRowChange)
+        #self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         self.select()
 
 

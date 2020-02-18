@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtWidgets, QtSql
 
 #class for combo boxes that are not derived from database relationships
-from MiGRIDS.UserInterface.getFilePaths import getFilePath
+
 from MiGRIDS.UserInterface.displayComponentXML import displayComponentXML
 
 
@@ -27,23 +27,23 @@ class ComboDelegate(QtWidgets.QItemDelegate):
         #set the combo to the selected index
         if isinstance(index.model().data(index),str):
             editor.setCurrentText(index.model().data(index))
-        else:
-            editor.setCurrentIndex(index.model().data(index))
+        elif isinstance(index.model().data(index),int):
+             editor.setCurrentIndex(index.model().data(index))
         editor.blockSignals(False)
 
     #write model data
     def setModelData(self,editor, model, index):
 
          if isinstance(self.values,RefTableModel):
-             model.setData(index, editor.currentIndex())
+             model.setData(index, editor.currentIndex(),QtCore.Qt.EditRole)
          #model is the table storing the combo
-         model.setData(index, editor.itemText(editor.currentIndex()))
+         model.setData(index, editor.itemText(editor.currentIndex()),QtCore.Qt.EditRole)
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
-        self.commitData.emit(self.sender())
+        #self.commitData.emit(self.sender())
         #if its the sets table then the attribute list needs to be updated
-
+        return
 
 #LineEdit textbox connected to the table
 class TextDelegate(QtWidgets.QItemDelegate):
@@ -119,7 +119,7 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
         #i = index
-        self.commitData.emit(self.sender())
+        #self.commitData.emit(self.sender())
         if self.name == 'componentname':
             currentSelected = self.sender().currentText()
 

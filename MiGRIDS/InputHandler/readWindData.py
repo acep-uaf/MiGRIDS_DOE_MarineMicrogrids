@@ -190,7 +190,6 @@ def readAllWindData(inputDict):
 
     return fileDict, winddf
 
-
 def createNetCDF(df,increment,inputDict):
     # create a netcdf file
     dtype = 'float'
