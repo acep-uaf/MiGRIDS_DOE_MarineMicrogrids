@@ -13,37 +13,6 @@
 <!-- Declaration of inheritance. Parent of this generic EES descriptor should be the interface itself.  -->
    <!-- NOTICE: NON-MODIFIED PARENT TAGS ARE NOT SHOWN, THEY SHOULD BE INHERITED FROM THE PARENT -->
 
-    <isDCBus value="TRUE">
- <!-- `isDCBus' describes if the particular storage system is packaged with a DC bus. Generally, this will be TRUE, -->
-        <!-- but some kinetic energy storage systems may also have a fixed or variable AC bus. --></isDCBus>
-
-    <buildingBlockVNom value="500" unit="V"><!-- 'buildingBlockVNom' describes the nominal voltage of a smallest practical building block of the unit. This is -->
-    <!-- used instead of cell voltage as single cells will rarely make sense. Default value is 500 V. If this is AC or -->
-        <!-- DC has to be ascertained from 'isDCBus' --></buildingBlockVNom>
-    <buildingBlockVMax value="500" unit="V"><!-- 'buildingBlockVMax' describes the maximum voltage that the unit can be operated at. Default is 500. Units are V. -->
-    </buildingBlockVMax>
-
-    <buildingBlockVMinOp value="500" unit="V"><!-- `buildingBlockVMinOp' is the minimum voltage at which the unit is considered operational, i.e. able to deliver -->
-        <!-- any power at all. Default is 500. Units are V. --></buildingBlockVMinOp>
-    <buildingBlockVMin value="500" unit="V">    <!-- `buildingBlockVMin' is the lowest voltage to which the unit can be discharged without destruction. This is -->
-    <!-- relevant in the specification of potentially necessary precharge circuits in the inverter package. -->
-    </buildingBlockVMin>
-    <buildingBlockIMax value="0" unit="A">    <!-- 'buildingBlockIMax' describes the maximum current available from the unit at nominal voltage. Default is 0. Units are A. -->
-    </buildingBlockIMax>
-    <isSerializable value="TRUE"> <!-- 'isSerializeable' describes if the building blocks can be configured in series. Default is TRUE-->
-    </isSerializable>
-    <seriesUnitsMax value="5" ><!-- `seriesUnitsMax' describes how many units could be put in series at the most. Default is 5. -->
-    </seriesUnitsMax>
-
-    <seriesUnitsAct value="1"><!-- `seriesUnitsAct' is the actual number of units in series for this particular configuration. Default is 1, i.e., -->
-        <!-- no series configuration. --></seriesUnitsAct>
-
-    <isParallelizable value="TRUE"><!-- `isParallelizable' desribes is building block may be configured in parallel. --></isParallelizable>
-     <parallelUnitsMax value="5"><!-- 'parallelUnitsMax' describes the maximum number of units that may be parallelized. Default is 5. -->
-     </parallelUnitsMax>
-     <parallelUnitsAct value="1"> <!-- `parallelUnitsAct' describes the actual number of units in parallel. Defaults is 1. -->
-     </parallelUnitsAct>
-
     <!-- Dispatch Control parameters -->
 
     <eesSrcTime value="120" unit="s"><!-- 'eesSrcTime' is the minimum amount of time that the ess must be able to discharge for at the current level of

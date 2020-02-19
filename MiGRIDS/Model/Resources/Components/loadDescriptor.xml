@@ -29,10 +29,6 @@
         <p value="0" unit="kW"/><q value="0" unit="kvar"/>
     </discreteLoadLevels>
 
-    <switchTime value="1000" unit="ms"><!-- `switchTime` describes the typical time from receiving a control signal at the load to a change in load level -->
-        <!-- in milliseconds. Default is 1000 ms.--></switchTime>
-    <switchTimeDev value="500" unit="ms" > <!-- `switchTimeDev` describes the typical deviation from 'switchTime' in ms. Default is 500 ms. -->
-    </switchTimeDev>
     <minSRC value="0.15" unit="pu" > <!-- `minSRC` is the fraction of the load that is the minimum coverage of Spinning Reserve required when this load
     is supplied in the grid. Default is 0.15 units are PU. --></minSRC>
 </component>
