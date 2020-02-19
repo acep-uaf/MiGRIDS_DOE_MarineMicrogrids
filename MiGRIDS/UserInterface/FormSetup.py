@@ -554,14 +554,15 @@ class FormSetup(BaseForm):
 
         return values
     # close event is triggered when the form is closed
+    #TODO never called
     def closeEvent(self, event):
         #save xmls
         if 'projectFolder' in self.__dict__.keys():
             #self.sendSetupInputToModel()
             # on close save the xml files
 
-            self.uihandler.makeSetup() #The setup form always contains information for set0
-            self.dbhandler.closeDatabase
+            self.controller.setupHandler.makeSetup() #The setup form always contains information for set0
+            self.controller.dbhandler.closeDatabase()
         #close the fileblocks
         for i in range(self.tabs.count()):
             page = self.tabs.widget(i)

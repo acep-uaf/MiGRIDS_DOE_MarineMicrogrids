@@ -72,7 +72,13 @@ class FormModelRun(BaseForm):
                 m.clear()
             else:
                  m.select()
-
+    def closeForm(self):
+        tables = self.findChildren(QtWidgets.QTableView)
+        for t in tables:
+            m = t.model()
+            if not isinstance(m,RunTableModel): #runtable model doesn't have a submitall method
+                m.submitAll()
+                print(m.lastError().text())
 class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     '''
     The setAttributeEditorBlock contains inputs to determin what runs will occurr within a set and displays run results
@@ -442,10 +448,11 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     def revalidate(self):
         return True
     def functionForNewRecord(self,table):
-        self.set_componentsModel.submitAll()
-        print(self.set_componentsModel.lastError().text())
+        self.controller.dbhandler.closeDatabase()
+
         handler = TableHandler(self)
         handler.functionForNewRecord(table, fields=[1], values=[self.set + 1])
+        self.controller.createDatabaseConnection()
     def runModels(self):
         #make sure data is up to date in the database
         self.submitData()
@@ -503,7 +510,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
 
 
     # close event is triggered when the form is closed
-    def closeEvent(self, event):
-
+    def closeForm(self):
+         self.submitData()
          self.setupSet() #write all the xml files required to restart the project later
 

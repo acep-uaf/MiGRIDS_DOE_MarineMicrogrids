@@ -72,7 +72,6 @@ class SetTableModel(QtSql.QSqlRelationalTableModel):
         '''Edit Strategy needs to be on row change because multi-field unique id. 
         Submission before unique constraint fields filled in result in relations showing id field not display field'''
         self.setEditStrategy(QtSql.QSqlTableModel.OnRowChange)
-        #self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         self.select()
 
 
