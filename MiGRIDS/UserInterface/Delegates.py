@@ -29,19 +29,21 @@ class ComboDelegate(QtWidgets.QItemDelegate):
             editor.setCurrentText(index.model().data(index))
         elif isinstance(index.model().data(index),int):
              editor.setCurrentIndex(index.model().data(index))
+        else:
+            editor.setCurrentIndex(index.model().data(index))
         editor.blockSignals(False)
 
     #write model data
     def setModelData(self,editor, model, index):
 
          if isinstance(self.values,RefTableModel):
-             model.setData(index, editor.currentIndex(),QtCore.Qt.EditRole)
+             model.setData(index, editor.currentIndex())
          #model is the table storing the combo
-         model.setData(index, editor.itemText(editor.currentIndex()),QtCore.Qt.EditRole)
+         model.setData(index, editor.itemText(editor.currentIndex()))
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
-        #self.commitData.emit(self.sender())
+        self.commitData.emit(self.sender())
         #if its the sets table then the attribute list needs to be updated
         return
 
@@ -119,7 +121,7 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
         #i = index
-        #self.commitData.emit(self.sender())
+        self.commitData.emit(self.sender())
         if self.name == 'componentname':
             currentSelected = self.sender().currentText()
 

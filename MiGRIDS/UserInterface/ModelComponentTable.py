@@ -25,9 +25,9 @@ class ComponentFields(Enum):
     customize = 9
 
 #QTableView for displaying component information
-class ComponentTableView(customTableView):
+class ComponentTableView(QtWidgets.QTableView):
     def __init__(self, *args, **kwargs):
-        super(ComponentTableView, self).__init__()
+        #super(ComponentTableView, self).__init__()
         # column 1 gets autfilled with filedir
         self.tabPosition = kwargs.get('position')
         QtWidgets.QTableView.__init__(self, *args)
@@ -77,5 +77,3 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
             return QtCore.QVariant(self.header[section])
         return QtCore.QVariant()
 
-    def setData(self, index: QtCore.QModelIndex, value: typing.Any, role: int):
-        return super(ComponentTableModel, self).setData(index,value,role)

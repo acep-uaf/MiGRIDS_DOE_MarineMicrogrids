@@ -417,8 +417,9 @@ class FileBlock(QtWidgets.QGroupBox):
                             self.controller.setupHandler.removeDescriptor(model.data(model.index(r.row(), 3)),
                                                      componentFolder)
                         removedRows.append(r.row())
+                        self.controller.dbhandler.closeDatabase()
                         model.removeRows(r.row(),1)
-
+                        self.controller.createDatabaseConnection()
                 # Delete the record from the database and refresh the tableview
                 model.submitAll()
                 print(model.lastError().text())
@@ -559,7 +560,7 @@ class FileBlock(QtWidgets.QGroupBox):
         self.filter = filedir
         for t in tables:
             m = t.model()
-            #m.setFilter("inputfile_id" + " = " + str(id) + "")
+            m.setFilter("inputfile_id" + " = " + str(id) + "")
 
     def saveTables(self):
         '''get data from component and environment tables and update the setupInformation model

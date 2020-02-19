@@ -16,14 +16,14 @@ class TableHandler():
         # get the model
         tableView = self.parent.findChild((QtWidgets.QTableView), table)
         model = tableView.model()
-
+        model.submitAll()
         debugvar = model.rowCount()
         # insert an empty row as the last record
         model.insertRows(model.rowCount(), 1)
-        model.setData(model.index(model.rowCount() -1,0), None,QtCore.Qt.EditRole) #id field nees to remain empty until data is inserted
+        #model.setData(model.index(model.rowCount() -1,0), None) #id field nees to remain empty until data is inserted
         #this makes the first column editable (set, filedir, ect.)
         #tableView.openPersistentEditor(model.index(model.rowCount()-1, 1))
-        model.setData(model.index(model.rowCount() - 1, 1), 1, QtCore.Qt.EditRole)
+        #model.setData(model.index(model.rowCount() - 1, 1), 1)
 
         #insert values that were passed in through optional arguments
         #fields are integer column positions
@@ -31,9 +31,9 @@ class TableHandler():
         if fields:
             values = kwargs.get('values')
             for i,n in enumerate(fields):
-                model.setData(model.index(model.rowCount()-1, n), values[i],QtCore.Qt.EditRole)
+                tableView.model().setData(model.index(model.rowCount()-1, n), values[i])
 
-        return
+
     # update the component drop down in the set table to include the selected or default components
     def updateComponentDelegate(self, loi,tv,cmbName):
         '''
