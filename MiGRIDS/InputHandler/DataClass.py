@@ -70,7 +70,7 @@ class DataClass:
     #splits a dataframe where data is missing that exceeds maxMissing
     def splitDataFrame(self):
        self.fixed = [self.df]
-       #dataframe splits only occurr for total_p, individual load columns
+       #dataframe splits only occurr for total_p, total load columns
        self.fixed = cutUpDataFrame(self.fixed, [TOTALP] + [TOTALL])
        
     # DataClass -> null

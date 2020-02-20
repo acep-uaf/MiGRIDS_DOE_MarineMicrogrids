@@ -1,51 +1,154 @@
 import unittest
 import pandas as pd
-import os
-from MiGRIDS.InputHandler.fixBadData import fixBadData
-from MiGRIDS.InputHandler.mergeInputs import mergeInputs
-from MiGRIDS.InputHandler.fixDataInterval import fixDataInterval
+
+from MiGRIDS.InputHandler.DataClass import DataClass
+from MiGRIDS.InputHandler.fixDataInterval import *
+
 
 class fixDataInterval_test(unittest.TestCase):
 
     def setUp(self):
-        self.setupFolder = os.path.join(os.path.realpath(__file__),*['..','MiGRIDSProjects','MyProject','InputData','Setup'])
-        self.inputDict = {'fileLocation': ['C:/Users/tmorga22/Documents/MiGRIDS/MiGRIDSProjects/MyProject/InputData/TimeSeriesData/RawData/HighRes', 'C:/Users/tmorga22/Documents/MiGRIDS/MiGRIDSProjects/MyProject/InputData/TimeSeriesData/RawData/LowRes', 'C:/Users/tmorga22/Documents/MiGRIDS/MiGRIDSProjects/MyProject/InputData/TimeSeriesData/RawData/RawWind'], 'timeZone': ['America/Anchorage', 'America/Anchorage', 'America/Anchorage'], 'fileType': ['CSV', 'CSV', 'MET'], 'outputInterval': ['30S'], 'outputIntervalUnit': ['S'], 'inputInterval': ['1min'], 'inputIntervalUnit': ['min'], 'runTimeSteps': ['2007-01-01', '2009-01-01'], 'dateColumnName': ['DATE', 'DATE', 'Date_&_Time_Stamp'], 'dateColumnFormat': ['YYYY-MM-DD', 'YYYY-MM-DD', 'YYYY-MM-DD'], 'timeColumnName': ['Date_&_Time_Stamp'], 'timeColumnFormat': ['HH:MM:SS', 'HH:MM:SS', 'HH:MM:SS'], 'utcOffsetValue': ['None', 'None', 'None'], 'utcOffsetUnit': ['hr'], 'dst': ['0', '0', '0'], 'flexibleYear': [False, False, False], 'columnNames': ['Villagekw', 'loadkw', 'CH3Avg'], 'componentUnits': ['kW', 'kW', 'm/s'], 'componentAttributes': ['P', 'P', 'WS'], 'componentNames': ['load0', 'load0', 'wtg0'], 'useNames': ['load0P', 'load0P', 'wtg0WS']}
-        df, listOfComponents = mergeInputs(self.inputDict)
-        minDate = min(df.index)
-        maxDate = max(df.index)
-        limiters = self.inputDict['runTimeSteps']
+        tsIndex = pd.date_range('2019-01-01 00:00:00',periods=4, freq = 'H')
+        self.c1 = [100,300,800,700]
+        self.c2 = [100,200,300,400]
+        self.e1 = [1000,550,1300,890]
+        self.df = pd.DataFrame({'c1':self.c1,'c2':self.c2,'e1':self.e1},index=tsIndex)
+        self.testSeries = pd.Series(self.c1,index=tsIndex)
 
-        if ((maxDate - minDate) > pd.Timedelta(days=365)) & (limiters == ['all']):
-            newdates = self.DatesDialog(minDate, maxDate)
-            m = newdates.exec_()
-            if m == 1:
-                # inputDictionary['runTimeSteps'] = [newdates.startDate.text(),newdates.endDate.text()]
-                self.inputDict['runTimeSteps'] = [pd.to_datetime(newdates.startDate.text()),
-                                                   pd.to_datetime(newdates.endDate.text())]
+    def test_getValues(self):
+        start = self.testSeries
+        sigma = self.testSeries.shift(-1)
+        sigma = sigma.ffill()
+        t,k = getValues(start,sigma)
+        self.assertEqual(len(k),(len(start)* 60 *60 + len(start)))
+        self.assertTrue(np.isnan(k[-10])) #final values are na
+    def test_estimateDistribution(self):
+        start = self.testSeries
+        sigma = self.testSeries.shift(-1)
+        sigma = sigma.ffill()
+        t, k = estimateDistribution(start, sigma)
+        self.assertEqual(len(k), (len(start) * 60 * 60 + len(start)))
+        self.assertTrue(np.isnan(k[-10]))  # final values are na
+        self.assertEqual(len(k),len(t))
+    def test_upsample_test(self):
+        start = self.testSeries
+        sigma = self.testSeries.shift(-1)
+        sigma = sigma.ffill()
+        simulatedSeries = upsample(start,sigma)
+        self.assertTrue(isinstance(simulatedSeries,pd.Series))
+        self.assertEqual(len(simulatedSeries),(len(start) -1) * 60 * 60 + 1) #na's for final interval get dropped
+    def test_fixSeriesInterval(self):
+        start = self.testSeries
+        interval = pd.to_timedelta('1 s') #1 second is standard timestep
+        reSampled = start.resample(interval).mean()
 
-        # now fix the bad data
-        self.df_fixed = fixBadData(df, self.setupFolder, listOfComponents, self.inputDict['runTimeSteps'])
-    def tearDown(self):
-        # if we don't get rid of attributes the memory will fail
-        del self.setupFolder
-        del self.inputDict
-        del self.df_fixed
+        simulatedSeries = fixSeriesInterval(start,reSampled,interval)
+        self.assertTrue(len(simulatedSeries),(len(start) * 60 * 60 + len(start)))
+        self.assertTrue(len(pd.isnull(simulatedSeries)),0)
 
-    def test_mixedUpDownSample(self):
-        # input is in various timesteps, output should be 30 seconds
-        self.inputDict['outputInterval'] = '30s'
-        df_fixed_interval = fixDataInterval(self.df_fixed, self.inputDict['outputInterval'])
-        df1 = df_fixed_interval.fixed[0]
-        timediff = pd.Series(pd.to_datetime(df1.index, unit='s'), index=df1.index)
-        self.assertEqual(max(timediff), min(timediff))
+        interval = pd.to_timedelta('1 m') #test with larger timestep
+        reSampled = start.resample(interval).mean()
+        simulatedSeries = fixSeriesInterval(start, reSampled, interval)
+        self.assertTrue(len(simulatedSeries), (len(start) * 60 * 1 + len(start)))
+        self.assertTrue(len(pd.isnull(simulatedSeries)), 0)
+
+        interval = pd.to_timedelta('2 h')  # downsample
+        reSampled = start.resample(interval).mean()
+        simulatedSeries = fixSeriesInterval(start, reSampled, interval)
+        self.assertTrue(len(simulatedSeries), len(start)/2) #initial intervals are 1 hour so we are downsampling by 2
+        self.assertTrue(len(pd.isnull(simulatedSeries)), 0)
+    def test_spreadFixedSeries(self):
+        df = self.df
+        df['c3'] = df['c1'] + df['c2']
+        df.loc['2019-01-01 01:00:00', 'c1'] = np.nan
+        df.loc['2019-01-01 02:00:00', 'c2'] = np.nan
+        newdf = spreadFixedSeries('c3',['c1','c2'],df)
+        self.assertEqual(newdf.loc['2019-01-01 01:00:00','c1'],250)
+        self.assertEqual(newdf.loc['2019-01-01 02:00:00', 'c2'], 440)
+    def test_truncateDataFrame_test(self):
+        df = self.df
+        newdf = truncateDataFrame(df) #test with no nas
+        self.assertTrue(newdf.first_valid_index() == pd.to_datetime('2019-01-01 00:00:00'))
+        self.assertTrue(newdf.last_valid_index() == pd.to_datetime('2019-01-01 03:00:00'))
+
+        df.loc['2019-01-01 01:00:00', 'c1'] = np.nan
+        newdf = truncateDataFrame(df) #with na
+        self.assertTrue(newdf.first_valid_index() == pd.to_datetime('2019-01-01 02:00:00'))
+        self.assertTrue(newdf.last_valid_index() == pd.to_datetime('2019-01-01 03:00:00'))
 
 
-    '''def test_UpSample(self):
+        df.loc['2019-01-01 02:00:00', 'c2'] = np.nan
+        newdf = truncateDataFrame(df)  # multiple na's resulting in multiple dataframes of same size
+        self.assertTrue(newdf.first_valid_index() == pd.to_datetime('2019-01-01 03:00:00'))  #last df is returned
+        self.assertTrue(newdf.last_valid_index() == pd.to_datetime('2019-01-01 03:00:00'))
+    def test_fixDataFrameInterval(self):
+        interval = pd.to_timedelta('1 s')
+        df = self.df
+        df['total_load'] = df['c1'] + df['c2']
+        newdf = fixDataFrameInterval(df,interval,['e1','total_load'],['c1','c2'],[])
+        self.assertTrue(len(newdf[pd.isnull(newdf).any(axis=1)])==0)
+        self.assertEqual(len(newdf),(len(self.df) -1) * 60 * 60 + 1)
 
-        self.assertEqual(True, True)
+        interval = pd.to_timedelta('1 m')
+        newdf = fixDataFrameInterval(df, interval, ['e1', 'total_load'], ['c1', 'c2'], [])
+        self.assertTrue(len(newdf[pd.isnull(newdf).any(axis=1)]) == 0)
+        self.assertEqual(len(newdf), (len(self.df) - 1) * 60  + 1)
 
-    def test_DownSample(self):
-        self.assertEqual(True, True)'''
+        interval = pd.to_timedelta('2 h')
+        newdf = fixDataFrameInterval(df, interval, ['e1', 'total_load'], ['c1', 'c2'], [])
+        self.assertTrue(len(newdf[pd.isnull(newdf).any(axis=1)]) == 0)
+        self.assertTrue(len(newdf) == (len(self.df) / 2))
+
+    def test_fixDataInterval(self):
+        #with 1 dataframe
+        raw_df = self.df
+        df = self.df
+        df['total_load'] = df['c1'] + df['c2']
+        dc = DataClass(raw_df)
+        dc.fixed = [df]
+        dc.loads = ['c1','c2']
+        dc.power = []
+        # upsample to 1 sec
+        interval = pd.to_timedelta('1 s')
+        newdc = fixDataInterval(dc,interval)
+
+        self.assertTrue(len(newdc.fixed) == 1)
+        self.assertTrue(len(newdc.fixed[0]) == (len(self.df) -1) * 60 * 60 + 1)
+
+        #with 2 dataframe
+        df2 = df.copy()
+        df2.loc['2019-01-01 02:00:00', 'total_load'] = np.nan
+        dc = DataClass(raw_df)
+        dc.fixed = [df,df2]
+        dc.loads = ['c1', 'c2']
+        dc.power = []
+        interval = pd.to_timedelta('1 s')
+        newdc = fixDataInterval(dc, interval)
+
+        self.assertTrue(len(newdc.fixed) == 2) #
+        self.assertTrue(len(newdc.fixed[0]) == (len(self.df) - 1) * 60 * 60 + 1)
+        self.assertTrue(len(newdc.fixed[1]) == (len(self.df) - 1) * 60 * 60 + 1)
+        #upsample to 1 min
+        interval = pd.to_timedelta('1 m')
+        dc = DataClass(raw_df)
+        dc.fixed = [df, df2]
+        dc.loads = ['c1', 'c2']
+        dc.power = []
+        newdc = fixDataInterval(dc, interval)
+        self.assertTrue(len(newdc.fixed) == 2)  #
+        self.assertTrue(len(newdc.fixed[0]) == (len(self.df) - 1) * 60  + 1)
+        self.assertTrue(len(newdc.fixed[1]) == (len(self.df) - 1) * 60 + 1)
+        #downsample to 2 hour
+        interval = pd.to_timedelta('2 h')
+        dc = DataClass(raw_df)
+        dc.fixed = [df, df2]
+        dc.loads = ['c1', 'c2']
+        dc.power = []
+        newdc = fixDataInterval(dc, interval)
+        self.assertTrue(len(newdc.fixed) == 2)  #
+        self.assertTrue(len(newdc.fixed[0]) == (len(self.df) /2))
+        self.assertTrue(len(newdc.fixed[1]) == (len(self.df) /2))
+
 
 if __name__ == '__main__':
     unittest.main()

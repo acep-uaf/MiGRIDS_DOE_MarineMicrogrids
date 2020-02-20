@@ -88,8 +88,8 @@ def isInline(s):
 
 #splits a dataframe into 2 dataframes and returns a list of resulting dataframes
 #Dataframe,index, Timedelta-> list of Dataframe
-def removeChunk(df, i1, d):
-    newlist = [df[:i1][:-1],df[i1 + d:][1:]]
+def removeChunk(df, i1, i2):
+    newlist = [df[:i1][:-1],df[i2:][1:]] #does not include i2
     return newlist
 
 #Identify indices to split a dataframe at based on absence of data for a specified interval
@@ -124,12 +124,15 @@ def cutUpDataFrame(lod, loc):
 
 #split a dataframe at cut and return the 2 dataframes as a list
 def makeCut(lod, cut,newlist):
+    '''cut is index'''
     if len(lod) <= 0:
         return None
     else:
-        if (cut.index[0] in lod[0].index):
-            newlist = removeChunk(lod[0], cut.index[0], cut[0]) + lod[1:] + newlist
-            
+        #if (cut.index[0] in lod[0].index)
+        #    newlist = removeChunk(lod[0], cut.index[0], cut[0]) + lod[1:] + newlist
+        if (cut[0] in lod[0].index):
+            newlist = removeChunk(lod[0], cut[0], cut[:1][0]) + lod[1:] + newlist
+
             return newlist
         else:
             return makeCut(lod[1:],cut,newlist + lod[:1])
@@ -210,7 +213,7 @@ def dropIndices(df, listOfRanges):
     if len(listOfRanges) <= 0:
         return df
     else:
-       l = removeChunk(df, listOfRanges['first'].iloc[0], listOfRanges['last'].iloc[0] - listOfRanges['first'].iloc[0])
+       l = removeChunk(df, listOfRanges['first'].iloc[0], listOfRanges['last'].iloc[0])
        if len(l)>1:
            df = l[0].append(l[1])
        return dropIndices(df,listOfRanges.iloc[1:])

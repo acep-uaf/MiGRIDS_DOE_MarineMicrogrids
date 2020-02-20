@@ -17,9 +17,12 @@ from MiGRIDS.InputHandler.badDictAdd import badDictAdd
 import pandas as pd
 import numpy as np
 import multiprocessing as mp
+
+from MiGRIDS.InputHandler.isInline import makeCuts
+
 MAXUPSAMPLEINTERVAL = 21600 #this is 6 hours
-TOTALLOAD = 'total_l'
-TOTALPOWER = 'total_p'
+TOTALLOAD = 'total_load'
+TOTALPOWER = 'total_power'
 def fixDataInterval(data, interval, **kwargs):
     '''
      data is a DataClass with a pandas dataframe with datetime index.
@@ -42,7 +45,9 @@ def fixDataInterval(data, interval, **kwargs):
     #dataframe -> integer array, integer array
     #returns arrays of time as seconds and values estimated using the Langevin equation
     #for all gaps of data within a dataframe
-    fixColumns = [] #TODO get list of columns
+    #fix column are total_load, total_power, any other columns that are not flags or a load or power
+    loc = data.fixed[0].columns
+    fixColumns = [l for l in loc if 'flag' not in l and l not in data.loads and l not in data.power]
     try:
         data.fixed = [fixDataFrameInterval(x, interval,fixColumns, data.loads, data.power) for x in data.fixed]
 
@@ -53,7 +58,6 @@ def fixDataInterval(data, interval, **kwargs):
     data.removeAnomolies(stdNum=5)
 
     return data
-
 def fixDataFrameInterval(dataframe, interval, fixColumns, loadColumns, powerColumns):
     '''
 
@@ -99,29 +103,24 @@ def fixDataFrameInterval(dataframe, interval, fixColumns, loadColumns, powerColu
     del df
     completeDataFrame = spreadFixedSeries(TOTALLOAD,loadColumns,completeDataFrame )
     completeDataFrame = spreadFixedSeries( TOTALPOWER, powerColumns,completeDataFrame)
+    completeDataFrame = completeDataFrame.loc[data1.index]
     completeDataFrame = truncateDataFrame(completeDataFrame)
     return completeDataFrame
-
 def truncateDataFrame(df):
     '''retains the longest continuous sections of data within a dataframe'''
-
-    idx0 = df.first_valid_index()
-    idx1 = df.first_valid_index()
-    span = [idx0,idx1]
-    while (idx1 < df.last_valid_index()):
-       idx0 = df[pd.notnull(df[idx0:])].first_valid_index()
-       try:
-          idx1 = df[df.isnull().any(axis=1)].index[0] #first null index
-          if ((idx1 - idx0) > (span[1] - span[0])):
-              span = [idx0, idx1]
-              idx0 = idx1
-       except KeyError as e:
-           #this will kill the while loop
-           idx1 = df.last_valid_index() #key error means there are no null values, so return  last valid index for entire dataframe
-           span = [idx0,idx1]
-       finally:
-        df = df[span[0]:span[1]]
-        return df
+    NAs = df[pd.isnull(df).any(axis=1)].index #list of bad indices
+    lod = makeCuts([df],NAs)
+    newdf = returnLargest(lod)
+    return newdf
+def returnLargest(lod):
+    '''returns the dataframe with the most rows from a list of dataframes'''
+    df = lod[0]
+    while len(lod) > 0:
+        if len(lod[0]) > len(df):
+            df = lod.pop(0)
+        else:
+            lod.pop(0)
+    return df
 def handleMemory():
     """Not implemented yet.
     Prints current memory usage stats.
@@ -138,16 +137,13 @@ def handleMemory():
           % (proc, total, available, used, free, percent))
 
     raise MemoryError
-
 def fixSeriesInterval_mp(startingSeries,reSampledSeries,interval,result):
     resultdf = fixSeriesInterval(startingSeries,reSampledSeries,interval)
     result.put(resultdf)
-
 def spreadFixedSeries(col, spreadColumns,df):
     if (col in df.columns):
         df = calculateSubColumns(col,spreadColumns,df)
     return df
-
 def fixSeriesInterval(startingSeries, reSampledSeries,interval):
     '''
     up or downsample a series to reflect the desired interval
@@ -170,8 +166,7 @@ def fixSeriesInterval(startingSeries, reSampledSeries,interval):
     idx1 = startingSeries.last_valid_index()
     if idx1 != None:
         startingSeries[-1] = startingSeries[idx1]
-
-
+    simulatedValues = reSampledSeries
     # if the resampled dataframe is bigger fill in new values
     # Timediff needs to be calculated to next na, not next record
     if len(startingSeries) < len(reSampledSeries):
@@ -184,7 +179,6 @@ def fixSeriesInterval(startingSeries, reSampledSeries,interval):
     #put modified columns in result
     reSampledSeries = matchToOriginal(reSampledSeries,simulatedValues,interval)
     return reSampledSeries
-
 def scaleSigma(sigma):
     records = abs(pd.to_timedelta(pd.Series(sigma.index).diff(-1)).dt.total_seconds()) #records is the number of seconds between consecutive values - one record per second
     records = records.rolling(5, 2).mean() #mean number of seconds between intervals used to calculate sigma
@@ -218,7 +212,6 @@ def matchToOriginal(originalSeries,simulatedSeries, interval):
     # fill na's for column with simulated values
     newDF.loc[pd.isnull(newDF[originalSeries.name]), originalSeries.name] = newDF['value']
     return newDF[originalSeries.name]
-
 def upsample(series, sigma):
     # t is the time, k is the estimated value
     t, k = estimateDistribution(series[pd.notnull(series)], sigma)  # t is number of seconds since 1970
@@ -228,11 +221,7 @@ def upsample(series, sigma):
     simulatedSeries = simulatedSeries[~simulatedSeries.index.duplicated(keep='first')]
 
     return simulatedSeries
-
 def estimateDistribution(series, sigma):
-
-
-
     try:
         #return an array of arrays of values
         timeArray, values = getValues(series, sigma)
@@ -243,8 +232,6 @@ def estimateDistribution(series, sigma):
         handleMemory()
         timeArray, values = processInChunks(series, sigma)
         return timeArray, values
-
-
 def processInChunks(series,sigma):
     print("chunk processing not implemented yet")
     return
@@ -265,10 +252,7 @@ def getValues(start, sigma):
     #time step of 1 second
     defaultTimestep = 1
     records = abs(pd.to_timedelta(pd.Series(start.index).diff(-1)).dt.total_seconds()) #records is the number of seconds between consecutive values - one record per second
-
-
-
-    #n is the number of values that will be estimated -will always be records + 1 unless default Timestep changes
+   #n is the number of values that will be estimated -will always be records + 1 unless default Timestep changes
     n = (records * defaultTimestep) + 1 #all estimates are at the 1 seoond timestep
     n = n.fillna(0)
     # find the 95th percentile of number of steps - exclude gaps that are too big to fill
