@@ -175,7 +175,7 @@ def fixSeriesInterval(startingSeries, reSampledSeries,interval):
         # first records get filled with first valid values of mean and standard deviation
         sigma = sigma.bfill()
         sigma = scaleSigma(sigma)
-        simulatedValues = upsample(startingSeries,sigma)
+        simulatedValues = upsample(startingSeries[pd.notnull(startingSeries)],sigma)
     #put modified columns in result
     reSampledSeries = matchToOriginal(reSampledSeries,simulatedValues,interval)
     return reSampledSeries
@@ -192,10 +192,10 @@ def scaleSigma(sigma):
 def matchToOriginal(originalSeries,simulatedSeries, interval):
     '''
 
-    :param originalSeries:
-    :param simulatedSeries:
-    :param interval:
-    :return:
+    :param originalSeries: a pd.series with datetime index of desired time intervals
+    :param simulatedSeries: a pd.series with datetime index where there are no na values
+    :param interval: the desired time interval between timesteps in the originalSeries
+    :return: a pandas series with all previously missing values filled in wiht simulated values and timesteps floored at the desired interval.
     '''
 
     # make sure timezones match - can't join naive and nonnaive times
@@ -213,8 +213,15 @@ def matchToOriginal(originalSeries,simulatedSeries, interval):
     newDF.loc[pd.isnull(newDF[originalSeries.name]), originalSeries.name] = newDF['value']
     return newDF[originalSeries.name]
 def upsample(series, sigma):
+    '''fills in a 1 second timesteps between time indices with values estimated using a simulation equation.
+    The current (1/1/2020) implementation uses langevin for simulation. The value in series is the starting value for the simulated values
+    and sigma is the target value.
+    :param series any numeric series without nas
+    :param Series, any numeric series without na's
+    :return pd.Series at 1 second time intervals, new values are filled via simulation'''
+
     # t is the time, k is the estimated value
-    t, k = estimateDistribution(series[pd.notnull(series)], sigma)  # t is number of seconds since 1970
+    t, k = estimateDistribution(series, sigma)  # t is number of seconds since 1970
     simulatedSeries = pd.DataFrame({'value': k,'time':pd.to_datetime(t, unit='s')})
     simulatedSeries = simulatedSeries.set_index(simulatedSeries['time'])
     simulatedSeries = simulatedSeries.loc[pd.notnull(simulatedSeries['value']),'value']

@@ -1,5 +1,5 @@
 # DataClass is object with raw_data, fixed_data,baddata dictionary, and system characteristics.
-
+from MiGRIDS.InputHandler.Exceptions.DataValidationError import DataValidationError
 from MiGRIDS.InputHandler.isInline import *
 
 from matplotlib.backends.backend_pdf import PdfPages
@@ -10,8 +10,8 @@ import os
 import pandas as pd
 
 #constants
-TOTALP = 'total_p'
-TOTALL = 'total_l'
+TOTALP = 'total_power'
+TOTALL= 'total_load'
 MAXMISSING= '14 days'
 FLAGCOLUMN = 'data_flag'
 DATAFLAGS={1:'normal',2:'missing value',3:'exceeds min/max', 4:'upsampled'}
@@ -52,7 +52,8 @@ class DataClass:
         
         #self.timeInterval = sampleInterval
         self.powerComponents = []
-        self.Columns = []
+        self.loads = []
+        self.ecolumns = []
         #runTimeSteps is a list of dates that indicate the portion of the dataframe to fix and include in analysis
         self.runTimeSteps = runTimeSteps
         self.maxMissing = maxMissing
@@ -69,12 +70,11 @@ class DataClass:
     #DataFrame, timedelta ->listOfDataFrame
     #splits a dataframe where data is missing that exceeds maxMissing
     def splitDataFrame(self):
-       self.fixed = [self.df]
+       if len(self.fixed) <= 0:
+           self.fixed = [self.df]
        #dataframe splits only occurr for total_p, total load columns
        self.fixed = cutUpDataFrame(self.fixed, [TOTALP] + [TOTALL])
-       
-    # DataClass -> null
-    # summarizes raw and fixed data and print resulting dataframe descriptions
+     # summarizes raw and fixed data and print resulting dataframe descriptions
     def summarize(self):
         '''prints basic statistics describing raw and fixed data'''
         print('raw input summary: ')
@@ -89,10 +89,14 @@ class DataClass:
     # if the system can't operate withouth the generators (GEN = True) then values are filled
     # with data from a matching time of day (same as offline values)
     def fixGen(self, componentList):
+        '''Identifies records without generator values.
+        If the system can't operate without a generator (GEN == True)then values ar filled
+        with data from matching time of day from a previous day.
+        Alters the data directly in fixed dataframes
+        :param componentList a string list of components in the dataset'''
         gencolumns = self.identifyGenColumns(componentList)
         if len(gencolumns) > 0:
             df_to_fix = self.df.copy()
-            
             df_to_fix['hasData'] = (pd.notnull(df_to_fix[gencolumns])).sum(axis=1)
             df_to_fix = df_to_fix[df_to_fix['hasData'] >= 1]
             df_to_fix['gentotal'] = df_to_fix[gencolumns].sum(1)
@@ -140,29 +144,16 @@ class DataClass:
 
         pickle_out.close
         return
-
-    # DataClass->null
-
-    # Dataclass -> null
-    # sums the power columns into a single column
-    def totalPower(self):
-        self.df[TOTALP] = self.df[self.powerComponents].sum(1)
-        self.df[TOTALP] = self.df[TOTALP].replace(0, np.nan)
+    def totalField(self,tfield,sumColumns):
+        if len(sumColumns) <=0:
+            raise DataValidationError(3)
+        self.df[tfield] = self.df[sumColumns].sum(1)
+        self.df[tfield] = self.df[tfield].replace(0, np.nan)
         for df in self.fixed:
-            df[TOTALP] = df[self.powerComponents].sum(1)
-            df[TOTALP] = df[TOTALP].replace(0,np.nan)
+            df[tfield] = df[sumColumns].sum(1)
+            df[tfield] = df[tfield].replace(0, np.nan)
 
-        self.raw[TOTALP] = self.raw[self.powerComponents].sum(1)
-        return
-
-    def totalLoad(self):
-        self.df[TOTALL] = self.df[self.loads].sum(1)
-        self.df[TOTALL] = self.df[TOTALL].replace(0, np.nan)
-        for df in self.fixed:
-            df[TOTALL] = df[self.loads].sum(1)
-            df[TOTALL] = df[TOTALL].replace(0, np.nan)
-
-        self.raw[TOTALL] = self.raw[self.loads].sum(1)
+        self.raw[tfield] = self.raw[sumColumns].sum(1)
 
     # List of Components -> null
     # scales raw values to standardized units for model input
@@ -184,8 +175,21 @@ class DataClass:
         self.df = self.df.interpolate()
         self.totalPower()
         return
-    
+    def totalPower(self):
+        try:
+            self.totalField(TOTALP,self.powerComponents)
+        except DataValidationError as e:
+            raise DataValidationError(1)
+    def totalLoad(self):
+        try:
+            self.totalField(TOTALL, self.loads)
+        except DataValidationError as e:
+            raise DataValidationError(2)
     def setYearBreakdown(self):
+        '''
+
+        :return:
+        '''
         self.yearBreakdown = yearlyBreakdown(self.df)
         return
 
@@ -204,7 +208,7 @@ class DataClass:
         for g in range(len(self.yearBreakdown)):
             subS = df.loc[self.yearBreakdown.iloc[g]['first']:self.yearBreakdown.iloc[g]['last']]
             replacementS, notReplacedGroups = quickReplace(pd.DataFrame(df), subS, self.yearBreakdown.iloc[g]['offset'],notReplacedGroups)
-            
+
             df = pd.concat([df, replacementS.add_prefix('R')],axis=1, join = 'outer')
 
             #add to the dictionary
@@ -218,7 +222,7 @@ class DataClass:
                    (df.index >= min(subS.index)) &
                    (df.index <= max(subS.index))),columnsToReplace] = df.loc[((pd.notnull(df['R' + column])) &
                    (df.index >= min(subS.index)) &
-                   (df.index <= max(subS.index))),RcolumnsToReplace].values      
+                   (df.index <= max(subS.index))),RcolumnsToReplace].values
             df = df.drop(RcolumnsToReplace, axis=1)
 
         groupingColumn.name = '_'.join([column,'grouping'])
@@ -229,21 +233,23 @@ class DataClass:
         df_to_fix = self.truncateDate(df_to_fix)
         #if there is still data in the dataframe after we have truncated it 
         if len(df_to_fix) > 1:
-            
+
             #remove groups that were replaced
             # find offline time blocks
             #get groups based on column specific grouping column
             groups = pd.Series(pd.to_datetime(df_to_fix.index),index=df_to_fix.index).groupby(df_to_fix['_'.join([column,'grouping'])]).agg(['first','last'])
             groups['size'] = groups['last']-groups['first']
-            
+
             #filter groups we replaced already from the grouping column
-            groups= groups[(groups['size'] > pd.Timedelta(days=1)) | 
+            groups= groups[(groups['size'] > pd.Timedelta(days=1)) |
                     groups.index.isin(notReplacedGroups[pd.notnull(notReplacedGroups)].index.tolist())]
             cuts = groups['size'].quantile([0.25, 0.5, 0.75,1])
             cuts = list(set(cuts.tolist()))
             cuts.sort()
-            print("%s groups of missing or inline data discovered for component named %s" %(len(groups), column) )  
+            print("%s groups of missing or inline data discovered for component named %s" %(len(groups), column) )
+
         df_to_fix = doReplaceData(groups, df_to_fix.loc[pd.notnull(df_to_fix[column])], cuts,df.loc[pd.notnull(df[column])])
+
 
         #set data flags
         df_to_fix[column+'_flag'] =1
