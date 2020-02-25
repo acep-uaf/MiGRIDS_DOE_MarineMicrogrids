@@ -1,6 +1,4 @@
 import unittest
-import pandas as pd
-
 from MiGRIDS.InputHandler.DataClass import DataClass
 from MiGRIDS.InputHandler.fixDataInterval import *
 
