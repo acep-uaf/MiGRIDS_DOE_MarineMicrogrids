@@ -288,9 +288,17 @@ class DataClass_test(unittest.TestCase):
             :param possibleReplacementValues: DataFrame where replacement values are drawn from. Can be larger than df_to_fix
             :return: [DataFrame] with bad values replaced
             '''
-        newdf = doReplaceData(groups, df['wtg0P'], cuts, df['wtg0P'])
+        newdf = doReplaceData(groups, df['wtg0P'], cuts, df.loc[pd.notnull(df['wtg0P'])]['wtg0P'])
         self.assertTrue(len(newdf)>0)
-        self.assertTrue(len(newdf[pd.isnull(newdf['2020-05-01 00:02:00':'2020-05-01 22:00:00', 'wtg0p'])]) <= 0)
+        self.assertTrue(len(newdf['2020-05-01 00:02:00':'2020-05-01 22:00:00'][pd.isnull(newdf)]) <= 0)
+
+        #same process but with dataframe
+        df.loc['2020-05-01 00:0:00':'2020-05-01 22:00:00',:]= np.nan
+        newdf = doReplaceData(groups,df.loc[:,['wtg0P','load0P']], cuts, df.loc[pd.notnull(df).any(axis=1),['wtg0P','load0P']])
+        self.assertTrue(len(newdf) > 0)
+        self.assertTrue(len(newdf['2020-05-01 00:02:00':'2020-05-01 22:00:00'][pd.isnull(newdf['wtg0P'])]) <= 0)
+        self.assertTrue(len(newdf['2020-05-01 00:02:00':'2020-05-01 22:00:00'][pd.isnull(newdf['load0P'])]) <= 0)
+
     def test_listToDataframe(self):
         df = self.df.copy()
         lor = pd.DataFrame()

@@ -54,7 +54,6 @@ def processInputDataFrame(inputDict):
                 df[col] = df[col.replace('_',' ')].apply(pd.to_numeric, errors='coerce')
             # change col name to the desired name - component name + attribute type
             df = df.rename(columns={col:inputDict['componentChannels.componentName.value'][idx] + inputDict['componentChannels.componentAttribute.value'][idx]})
-    
 
         # convert to utc time
         df = dstFix(df,inputDict['timeZone.value'],inputDict['inputDST.value'])

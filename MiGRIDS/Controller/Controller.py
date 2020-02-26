@@ -1,5 +1,5 @@
 # Projet: MiGRIDS
-# Created by: # Created on: 11/15/2019
+# Created by: T.Morgan # Created on: 11/15/2019
 import os
 from PyQt5 import QtCore, QtGui
 

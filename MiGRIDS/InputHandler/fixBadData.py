@@ -37,7 +37,6 @@ TOTALP = 'total_power'  # the name of the column that contains the sum of power 
 # returns a DataClass object with raw and cleaned data and powercomponent information
 def fixBadData(data, setupDir, runTimeSteps, **kwargs):
    '''returns cleaned data Object'''
-   # create DataClass object to store raw, fixed, and summery outputs
 
 
    #look for obvious over and under values

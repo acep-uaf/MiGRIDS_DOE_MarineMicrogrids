@@ -186,11 +186,13 @@ def findValid(initialTs, d, possibles, s):
 
 
 def calculateNonNullDuration(index1,index2, s):
-    '''Calculates the time duration of a series, exlcude null values '''
+    '''Calculates the time duration of a series, excluding null values '''
     evaluationChunk = s[index1:index2]
     evaluationTime = pd.Series(evaluationChunk.index, index=evaluationChunk.index).diff()
-    evaluationTime.loc[pd.isnull(evaluationChunk)] = 0  # set to 0 where s is null
-
+    if (isinstance(s,pd.Series)):
+        evaluationTime.loc[pd.isnull(evaluationChunk)] = 0  # set to 0 where s is null
+    else:
+        evaluationTime.loc[pd.isnull(evaluationChunk).any(axis=1)] = 0
     totalCoverage = pd.notnull(evaluationTime).sum()
     totalCoverage = pd.to_timedelta(totalCoverage, 'h')
 
@@ -247,19 +249,16 @@ def doReplaceData(groups, df_to_fix, cuts, possibleReplacementValues):
     :param groups: pandas.DataFrame with columns size, first and last, first is the first indixe in a block to replace, last is the last index to replace
     :param df_to_fix: DataFrame the dataframe to fix
     :param cuts: [listOf TimeDeltas] the duration of each block of missing data will fall into a cut timedelta
-    :param possibleReplacementValues: DataFrame where replacement values are drawn from. Can be larger than df_to_fix
+    :param possibleReplacementValues: DataFrame where replacement values are drawn from. Can be larger than df_to_fix. If possibleReplacmentValues contains null
+    then values can be replaced with null
     :return: [DataFrame] with bad values replaced
     '''
-    if len(df_to_fix.shape) != len(possibleReplacementValues.shape):
-        raise Exception #TODO replace with custom exception
-    elif len(df_to_fix.shape) >1:
+
+    if (len(df_to_fix.shape)) >1 and (df_to_fix.shape[1] > 1):
         if df_to_fix.shape[1] != possibleReplacementValues.shape[1]:
-            raise Exception
+            raise Exception #TODO replace with custom exception
 
     if(len(groups) <= 0):
-
-        df_to_fix = pd.concat([df_to_fix, possibleReplacementValues], axis=1)
-        df_to_fix.loc[pd.isnull(df_to_fix)] = possibleReplacementValues.loc[pd.isnull(df_to_fix)] #actual value replacement happens here
         return df_to_fix
      #replace small missing chunks of data first, then large chunks
     else:
@@ -281,14 +280,7 @@ def doReplaceData(groups, df_to_fix, cuts, possibleReplacementValues):
             df_to_fix = dropIndices(df_to_fix, indicesOfInterest)
             #new values get appended onto the datframe
 
-            df_to_fix = expandDataFrame(indicesOfInterest, df_to_fix, possibleReplacementValues)
-            #df to fix and possibleReplacementValues must be the same shape - all columns in df_to_fix are replaced
-            if (isinstance(df_to_fix,pd.Series)):
-                columns = df_to_fix.name
-                df_to_fix = pd.DataFrame(df_to_fix)
-                possibleReplacementValues= pd.DataFrame(possibleReplacementValues).add_prefix('replacement')
-            df_to_fix = pd.concat([df_to_fix, possibleReplacementValues], join='inner', axis=1)
-            df_to_fix[pd.isnull(df_to_fix)] = 0 #TODO repalce with something meaningful
+            df_to_fix = expandDataFrame(indicesOfInterest, df_to_fix)
 
             
         return doReplaceData(groups[groups['size'] > cuts[0]], df_to_fix, cuts[1:], possibleReplacementValues)
@@ -308,16 +300,22 @@ def listsToDataframe(ioi,s):
     start = ioi['replacementsStarts']
     
     newBlock =s[start:start + (lastMissing - firstMissing)]
-    
-    if len(newBlock) > 0:
-
-        newIndex = pd.date_range(start=firstMissing,end=lastMissing, periods = len(newBlock) ) #create an index that matches the timestamps we are replaceing
-        newBlock.index = newIndex #assign the new indext to the values we took from elsewhere
-        return newBlock
+    #set the index frequency
+    if len(newBlock) == 1:
+        f = (lastMissing -firstMissing)/(len(newBlock))
     else:
-        newBlock = pd.DataFrame(index = pd.date_range(start=firstMissing,periods=2, 
-                                                      freq =(lastMissing - firstMissing)))
+        f = (lastMissing - firstMissing) / (len(newBlock) - 1)
+    if len(newBlock) > 0:
+        newIndex = pd.date_range(start=firstMissing,periods=len(newBlock),freq=f)#create an index that matches the timestamps we are replaceing
+        newBlock.index = newIndex  # assign the new indext to the values we took from elsewhere
 
+    else:
+        if (isinstance(s,pd.Series)):
+            newBlock = pd.Series(index = pd.date_range(start=firstMissing,periods=2,
+                                                      freq =(lastMissing - firstMissing)))
+        else:
+            newBlock = pd.DataFrame(index = pd.date_range(start=firstMissing,periods=2,
+                                                      freq =(lastMissing - firstMissing)))
     return newBlock
 
 #insert blocks of new data into an existing dataframe
@@ -335,15 +333,12 @@ def expandDataFrame(idf, s):
     if len(idf) <= 0:
         return s
     else:
-
         s = s.append(listsToDataframe(idf.iloc[0], s))
-
         s = s.sort_index()
-        
         return expandDataFrame(idf.iloc[1:],s)
 
 
-#returns a list of integer indices sorted by distance from s with lenght 2 * timeRange
+#returns a list of integer indices sorted by distance from s with length 2 * timeRange
 #integer, integer -> listOfInteger
 #s is start, timerange is searchrange
 def createSearchRange(s,timeRange):

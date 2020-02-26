@@ -22,9 +22,6 @@ from netCDF4 import Dataset
 from MiGRIDS.InputHandler.processInputDataFrame import processInputDataFrame
 
 
-
-
-
 def readAsHeader(file, header_dict, componentName,inputDict):
     '''extracts the header information from a MET file.
     :param file [File] a MET file to be read.

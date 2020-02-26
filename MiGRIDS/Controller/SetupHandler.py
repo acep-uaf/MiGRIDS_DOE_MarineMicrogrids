@@ -1,7 +1,6 @@
 # Projet: MiGRIDS
 # Created by: T.Morgan # Created on: 9/25/2019
 import os
-import pickle
 import pandas as pd
 from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.InputHandler.DataClass import DataClass
@@ -11,12 +10,12 @@ from MiGRIDS.InputHandler.fillProjectData import fillProjectData
 from MiGRIDS.InputHandler.fixBadData import fillComponentTypeLists
 from MiGRIDS.InputHandler.readData import readInputData_mp
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
-
+from MiGRIDS.InputHandler.createComponentDescriptor import createComponentDescriptor
 
 class SetupHandler(UIHandler):
     """
     Description: Provides methods for reading, writing, and passing main project setup information.
-    Attributes:
+    Attributes: dbhandler (passed during init)
     """
 
     def __init__(self,dbhandler):
@@ -44,7 +43,6 @@ class SetupHandler(UIHandler):
         :param soup: Beautiful soup object of tags and values to wriete
         :return: None
         '''
-        from MiGRIDS.InputHandler.createComponentDescriptor import createComponentDescriptor
 
         #soup is an optional argument, without it a template xml will be created.
         fileDir = getFilePath('Components',projectFolder=self.dbhandler.getProjectPath())
@@ -88,9 +86,10 @@ class SetupHandler(UIHandler):
         self.sender.update(3, 'Fixing bad values')
         # now fix the bad data
         #fixBad Data takes a DataClass object as input so create one
+        # create DataClass object to store raw, fixed, and summery outputs
         data = DataClass(df, inputDictionary[RUNTIMESTEPS])
 
-        # parse columns by type
+        # parse data columns by type
         eColumns, loads, powerColumns = fillComponentTypeLists(listOfComponents)
         data.powerComponents = powerColumns
         data.ecolumns = eColumns
@@ -108,8 +107,9 @@ class SetupHandler(UIHandler):
 
     def createNetCDF(self, lodf, componentDict, setupFolder):
         '''
-        Create netcdf file from a list of dataframes return a list of netcdf files created
-        :param lodf: List of DataFrames with time indices and column names that match the componentDict
+        Create netcdf file from a list of dataframes return a list of netcdf files created.
+        Netcdfs for components in the largest of the listed dataframes is are returned. No netcdfs for smaller dataframes are retained.
+        :param lodf: List of DataFrames with time indices and column names that match the componentDict keys
         :param componentDict: a dictionary of component attributes, including column names
         :param setupFolder: The folder path containing the projects setup.xml file
         :return: List of Strings naming the netcdf files created.

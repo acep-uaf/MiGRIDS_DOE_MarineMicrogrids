@@ -1,25 +1,23 @@
-# Project: GBS Tool
-# Author: Jeremy VanderMeer, jbvandermeer@alaska.edu
-# Date: October 24, 2017
-# License: MIT License (see LICENSE file of this package for more information)
-# assumes the first column is always a date column
-# reads data files from user and outputs a dataframe.
+# Project: MiGRIDS
+# Created by: T.Morgan # Created on: 11/15/2019
+
+####### general imports #######
+import pandas as pd
+import os
+import importlib.util
+import numpy as np
+from MiGRIDS.InputHandler.readAllTimeSeries import readAllTimeSeries
+from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
+from MiGRIDS.InputHandler.Component import Component
+from MiGRIDS.InputHandler.readWindData import *
 def readDataFile(inputDict):
-    # inputSpecification points to a script to accept data from a certain input data format *type string*
-    # fileLocation is the dir where the data files are stored. It is either absolute or relative to the GBS project InputData dir *type string*
-    # fileType is the file type. default is csv. All files of this type will be read from the dir *type string*
-    # columnNames, if specified, is a list of column names from the data file that will be returned in the dataframe.
-    # otherwise all columns will be returned. Note indexing starts from 0.*type list(string)*
+    '''
+    :param inputDict: dictionary of information containing fileLocation, fileType, columnNames
+    :return: pandas dataframe
+
+    Keys in inputDict must match those found in the project setup.xml file'''
     
-    ####### general imports #######
-    import pandas as pd
-    import os
-    import importlib.util
-    import numpy as np
-    from MiGRIDS.InputHandler.readAllTimeSeries import readAllTimeSeries
-    from MiGRIDS.InputHandler.readWindData import readWindData
-    from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
-    from MiGRIDS.InputHandler.Component import Component
+
 
     
     ### convert inputs to list, if not already
@@ -43,6 +41,7 @@ def readDataFile(inputDict):
                      os.path.isfile(os.path.join(inputDict['inputFileDir.value'],f)) & (f.endswith(inputDict['inputFileType.value'].upper()) or f.endswith(inputDict['inputFileType.value'].lower()))]
        
     df = pd.DataFrame()
+
     ####### Parse the time series data files ############
     # depending on input specification, different procedure
     if inputDict['inputFileType.value'].lower() =='csv':
@@ -51,7 +50,7 @@ def readDataFile(inputDict):
         #readAllTimeSeries(inputDict,result)
     elif inputDict['inputFileType.value'].lower() == 'met':
         #TODO multiprocess call here
-        fileDict, df = readWindData(inputDict)
+        fileDict, df = readAllWindData(inputDict)
     # while result:
     #     concat(result)
     # convert units
