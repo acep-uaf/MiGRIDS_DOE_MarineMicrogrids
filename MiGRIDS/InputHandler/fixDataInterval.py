@@ -47,9 +47,9 @@ def fixDataInterval(data, interval, **kwargs):
     #for all gaps of data within a dataframe
     #fix column are total_load, total_power, any other columns that are not flags or a load or power
     loc = data.fixed[0].columns
-    fixColumns = [l for l in loc if 'flag' not in l and l not in data.loads and l not in data.power]
+    fixColumns = [l for l in loc if 'flag' not in l and l not in data.loads and l not in data.powerComponents]
     try:
-        data.fixed = [fixDataFrameInterval(x, interval,fixColumns, data.loads, data.power) for x in data.fixed]
+        data.fixed = [fixDataFrameInterval(x, interval,fixColumns, data.loads, data.powerComponents) for x in data.fixed]
 
     except:
         print("could not resample dataframe")
