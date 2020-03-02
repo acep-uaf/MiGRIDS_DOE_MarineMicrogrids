@@ -3,7 +3,7 @@ import unittest
 from MiGRIDS.InputHandler.readData import readInputData_mp
 
 
-class MyTestCase(unittest.TestCase):
+class readDataTest(unittest.TestCase):
     def setUp(self):
         self.inputDict = {'inputFileDir.value': ['C:/Users/tmorga22/Documents/MiGRIDS/MiGRIDSProjects/MyProject/InputData/TimeSeriesData/RawData/HighRes', 'C:/Users/tmorga22/Documents/MiGRIDS/MiGRIDSProjects/MyProject/InputData/TimeSeriesData/RawData/LowRes', 'C:/Users/tmorga22/Documents/MiGRIDS/MiGRIDSProjects/MyProject/InputData/TimeSeriesData/RawData/RawWind'], 'timeZone.value': ['America/Anchorage', 'America/Anchorage', 'America/Anchorage'], 'inputFileType.value': ['CSV', 'CSV', 'MET'], 'timeStep.value': ['30S'], 'timeStep.unit': ['S'], 'runTimeSteps.value': ['2007-01-01', '2009-01-01'], 'dateChannel.value': ['DATE', 'DATE', 'Date_&_Time_Stamp'], 'dateChannel.Format': ['YYYY-MM-DD', 'YYYY-MM-DD', 'YYYY-MM-DD'], 'timeChannel.value': ['Date_&_Time_Stamp'], 'timeChannel.Format': ['HH:MM:SS', 'HH:MM:SS', 'HH:MM:SS'], 'utcOffset.value': ['None', 'None', 'None'], 'utcOffset.unit': ['hr'], 'inputDST.value': ['0', '0', '0'], 'flexibleYear.value': [False, False, False], 'componentChannels.headerName.value': ['Villagekw', 'loadkw', 'CH3Avg'], 'componentChannels.componentAttribute.unit': ['kW', 'kW', 'm/s'], 'componentChannels.componentAttribute.value': ['P', 'P', 'WS'], 'componentChannels.componentName.value': ['load0', 'load0', 'wtg0']}
 

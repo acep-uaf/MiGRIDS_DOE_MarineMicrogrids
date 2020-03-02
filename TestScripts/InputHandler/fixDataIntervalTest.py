@@ -96,7 +96,6 @@ class fixDataInterval_test(unittest.TestCase):
         newdf = fixDataFrameInterval(df, interval, ['e1', 'total_load'], ['c1', 'c2'], [])
         self.assertTrue(len(newdf[pd.isnull(newdf).any(axis=1)]) == 0)
         self.assertTrue(len(newdf) == (len(self.df) / 2))
-
     def test_fixDataInterval(self):
         #with 1 dataframe
         raw_df = self.df
@@ -105,7 +104,7 @@ class fixDataInterval_test(unittest.TestCase):
         dc = DataClass(raw_df)
         dc.fixed = [df]
         dc.loads = ['c1','c2']
-        dc.power = []
+        dc.powerColumns = []
         # upsample to 1 sec
         interval = pd.to_timedelta('1 s')
         newdc = fixDataInterval(dc,interval)

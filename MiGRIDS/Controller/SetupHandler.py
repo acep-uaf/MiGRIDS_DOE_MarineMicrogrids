@@ -88,7 +88,7 @@ class SetupHandler(UIHandler):
         #fixBad Data takes a DataClass object as input so create one
         # create DataClass object to store raw, fixed, and summery outputs
         data = DataClass(df, inputDictionary[RUNTIMESTEPS])
-
+        data.components = listOfComponents
         # parse data columns by type
         eColumns, loads, powerColumns = fillComponentTypeLists(listOfComponents)
         data.powerComponents = powerColumns

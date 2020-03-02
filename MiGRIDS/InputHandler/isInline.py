@@ -301,13 +301,13 @@ def listsToDataframe(ioi,s):
     
     newBlock =s[start:start + (lastMissing - firstMissing)]
     #set the index frequency
-    if len(newBlock) == 1:
-        f = (lastMissing -firstMissing)/(len(newBlock))
-    else:
-        f = (lastMissing - firstMissing) / (len(newBlock) - 1)
+
     if len(newBlock) > 0:
-        newIndex = pd.date_range(start=firstMissing,periods=len(newBlock),freq=f)#create an index that matches the timestamps we are replaceing
-        newBlock.index = newIndex  # assign the new indext to the values we took from elsewhere
+        f = (lastMissing - firstMissing) / (len(newBlock))
+        #index of newBlock gets adjusted to fit into the missing space
+        timeDiff = newBlock.index[0] - firstMissing #difference between new and missing
+        #newIndex = pd.date_range(start=firstMissing,periods=len(newBlock),freq=f)#create an index that matches the timestamps we are replaceing
+        newBlock.index = newBlock.index - timeDiff # assign the new indext to the values we took from elsewhere
 
     else:
         if (isinstance(s,pd.Series)):
@@ -524,15 +524,15 @@ def quickReplace(df,df_to_fix,offset,grouping):
     '''
     columns = df.columns
     grouping.name = 'grouping'  
-    rcolumns = ["r" + c for c in columns]
+    rcolumns = [c+"r" for c in columns]
     
     #reduce the dataset to just exclude na's unless they are new record fills (have a group id)    
     df_to_fix = pd.concat([df_to_fix,grouping],axis=1, join='outer')
     df_to_fix = df_to_fix[(np.isnan(df_to_fix[columns[0]]) & pd.notnull(df_to_fix['grouping']))|
                           (pd.notnull(df_to_fix[columns[0]]))]
     df_to_fix = df_to_fix.drop('grouping', axis=1)           
-    
-    df = pd.concat([df,grouping],axis=1, join='outer')
+    df = df.join(grouping, how='outer')
+
     df = df[(np.isnan(df[columns[0]]) & pd.notnull(df['grouping']))|
                           (pd.notnull(df[columns[0]]))]
     df = df.drop('grouping', axis=1)
@@ -549,10 +549,12 @@ def quickReplace(df,df_to_fix,offset,grouping):
         df = df.shift(periods=1, freq = pd.Timedelta(days=-1), axis=1)
     elif (diff in([2,3,4,5,-2,-3,-4,-5])) :
         return
-    mergedDf =pd.concat([df_to_fix,df.add_prefix('r')], axis = 1, join='outer')
+    mergedDf = df_to_fix.join(df, rsuffix="r",how='left')
+    #mergedDf =pd.concat([df_to_fix,df.add_prefix('r')], axis = 1, join='outer')
     mergedDf[columns[0] + "copy"] = mergedDf[columns[0]]
     
-    mergedDf = pd.concat([mergedDf,grouping], axis=1, join='outer')
+    #mergedDf = pd.concat([mergedDf,grouping], axis=1, join='outer')
+    mergedDf=mergedDf.join(grouping,how='outer')
     #if the row has been assigned to a group then it is a bad value and gets set to nan so it will be replaced
     mergedDf.loc[~np.isnan(mergedDf['grouping']),columns] = np.nan
     #rpelace all the bad values with the value at their offset position

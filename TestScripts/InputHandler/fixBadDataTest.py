@@ -3,6 +3,7 @@ import unittest
 import shutil
 
 import numpy as np
+import pandas as pd
 from MiGRIDS.InputHandler.Component import Component
 from MiGRIDS.InputHandler.createComponentDescriptor import createComponentDescriptor
 from MiGRIDS.InputHandler.fixBadData import *
@@ -31,7 +32,6 @@ class fixBadData_test (unittest.TestCase):
         for c in comps:
             s = makeComponentSoup(c.component_name, self.compFolder)
             createComponentDescriptor(c.component_name, self.compFolder, s)
-
     def createComponentDataframe(self,comps):
         self.setupProject(comps)
         tsIndex = pd.date_range('2019-01-01 00:00:00', periods=10, freq='H')
@@ -53,7 +53,6 @@ class fixBadData_test (unittest.TestCase):
             cs.name = c.column_name
             df = pd.concat([df,cs],axis=1)
         return df
-
     def test_dieselNeeded(self):
         self.setupProject(self.comps)
         myI = iter(self.comps)
@@ -127,7 +126,6 @@ class fixBadData_test (unittest.TestCase):
             df,baddata = checkMinMaxPower(c,df,xml,baddata)
             self.assertTrue('wtg0P' in baddata.keys())
             self.assertTrue(len(df[pd.isnull(df).any(axis=1)]) > 0)
-
 
 if __name__ == '__main__':
     unittest.main()

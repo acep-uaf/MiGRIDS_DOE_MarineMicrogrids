@@ -38,9 +38,8 @@ TOTALP = 'total_power'  # the name of the column that contains the sum of power 
 def fixBadData(data, setupDir, runTimeSteps, **kwargs):
    '''returns cleaned data Object'''
 
-
    #look for obvious over and under values
-   data.df, data.baddict = checkPowerComponents([data.powerComponents + data.loads],setupDir,data.df,data.badDataDict)
+   data.df, data.baddict = checkPowerComponents([c for c in data.components if c in [data.powerComponents + data.loads]],setupDir,data.df,data.badDataDict)
    #over/under values now are nas
    # calculate totals, data gaps will sum to 0.
    data.totalPower()
@@ -54,42 +53,44 @@ def fixBadData(data, setupDir, runTimeSteps, **kwargs):
    #set the yearsplits attribute for the data class
    data.setYearBreakdown()
 
-   #replace the column in the dataframe with cleaned up data
+   #replace the column in the dataframe with clean data
    try:
        columnsToReplace = [TOTALP] + data.powerComponents
-       reps = data.fixOfflineData(columnsToReplace,groupings[TOTALP])
+       reps = data.fixOfflineData(TOTALP,columnsToReplace,groupings[TOTALP])
        data.df = data.df.drop(reps.columns, axis=1)
-       data.df= pd.concat([data.df,reps],axis=1)
+       data.df= reps.join(data.df, how='outer')
    except KeyError as e:
        raise DataValidationError(1) #validation error 1 is missing power
 
    try:
        columnsToReplace=[TOTALL] + data.loads
        # replace the column in the dataframe with cleaned up data
-       reps = data.fixOfflineData(columnsToReplace, groupings[TOTALL])
+       reps = data.fixOfflineData(TOTALL,columnsToReplace, groupings[TOTALL])
        data.df = data.df.drop(reps.columns, axis=1)
-       data.df = pd.concat([data.df, reps], axis=1)
+       data.df = reps.join(data.df, how='outer')
    except KeyError as e:
        raise DataValidationError(2) #validation error 1 is missing power
 
    #now e columns performed individually
    #nas produced from mismatched file timestamps get ignored during grouping - thus not replaced during fixbaddata
    for c in data.df[data.ecolumns].columns:
-       reps= data.fixOfflineData([c], groupings[c])
+       reps= data.fixOfflineData(c,[c], groupings[c])
        data.df = data.df.drop(reps.columns, axis=1) #drop the columns we are going to replace
-       data.df= pd.concat([data.df,reps],axis=1) #add the replacement columns back in
+       data.df = reps.join(data.df, how='outer') #add the replacement columns back in
 
 
     # fill gen columns with a value if the system needs diesel to operate
-   componentIterator = iter(ListOfComponents)
+   componentIterator = iter(data.components)
    if dieselNeeded(componentIterator,setupDir,data.powerComponents):
-       data.fixGen(powerColumns)
+       data.fixGen(data.powerComponents)
        data.totalPower()
 
+   data.df = data.dropEmpties(data.df)
    # scale data based on units and offset in the component xml file
-   data.scaleData(ListOfComponents)      
+   data.scaleData(data.components)
    data.splitDataFrame() #this sets data.fixed to a list of dataframes if times are not consecutive
    data.totalPower() #recalculate total power in case na's popped up
+   data.totalLoad()
    data.truncateAllDates()
    data.preserve(setupDir) #keep a copy of the fixed data in case we want to inspect or start over
    data.logBadData(setupDir) #write our baddata file
