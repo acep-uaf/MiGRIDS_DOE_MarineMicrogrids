@@ -1,5 +1,6 @@
 # DataClass is object with raw_data, fixed_data,baddata dictionary, and system characteristics.
 from MiGRIDS.InputHandler.Exceptions.DataValidationError import DataValidationError
+from MiGRIDS.InputHandler.fixBadData import reallignSingleYear
 from MiGRIDS.InputHandler.isInline import *
 
 from matplotlib.backends.backend_pdf import PdfPages
@@ -70,9 +71,12 @@ class DataClass:
     def dropAllEmpties(self):
         for i in range(len(self.fixed)):
             self.fixed[i] = self.dropEmpties(self.fixed[i])
-
+    def keepOverlapping(self,df):
+        componentColumns = [c.column_name for c in self.components]
+        df = df[pd.notnull(df[componentColumns]).all(axis=1)]
+        return df
     def dropEmpties(self,df):
-        df = df[pd.notnull(df[[TOTALL,TOTALP] + self.ecolumns]).all(axis=1)]
+        df = df[pd.notnull(df[[TOTALL,TOTALP] + self.ecolumns]).any(axis=1)]
         return df
     #DataFrame, timedelta ->listOfDataFrame
     #splits a dataframe where data is missing that exceeds maxMissing
@@ -201,57 +205,60 @@ class DataClass:
     def fixOfflineData(self,columnToCompare, columnsToReplace,groupingColumn):
         '''replaces missing or bad data within df with values found elsewhere in the dataframe
         :param columnToCompare is the column that was used to find bad data - it can represent multiple columns as a single value
-        :param columnsToReplace list of columns whose data will be overwritten with replacement values
+        :param columnsToReplace list of columns whose data will be overwritten with replacement values. Must also include columnToCompare
         :param groupingColumn is the name of the column in df that identifies individual groups of missing data'''
         df = self.df[columnsToReplace].copy()
-        original_range = [df.first_valid_index(),df.last_valid_index()]
-        RcolumnsToReplace = ['R' + c for c in columnsToReplace]
-        notReplacedGroups = groupingColumn
-        for g in range(len(self.yearBreakdown)):
-            subS = df.loc[self.yearBreakdown.iloc[g]['first']:self.yearBreakdown.iloc[g]['last']] #find a single year of data
-            #replace missing values by matching dataframe to subset of 1 year
-            replacementS, notReplacedGroups = quickReplace(pd.DataFrame(df), subS, self.yearBreakdown.iloc[g]['offset'],notReplacedGroups)
-            df = pd.concat([df, replacementS.add_prefix('R')],axis=1, join = 'outer')
-            #add to the dictionary
-            badDictAdd(columnsToReplace, self.badDataDict, '2.Offline',
-                       df[(pd.isnull(df[columnToCompare])) &
-                               (df.index >= min(subS.index)) &
-                               (df.index <= max(subS.index))].index.tolist())
+        if len(df[pd.notnull(df[columnToCompare])]) > 0:
+            original_range = [df.first_valid_index(),df.last_valid_index()]
+            RcolumnsToReplace = ['R' + c for c in columnsToReplace]
+            notReplacedGroups = groupingColumn
+            for g in range(len(self.yearBreakdown)):
+                subS = df.loc[self.yearBreakdown.iloc[g]['first']:self.yearBreakdown.iloc[g]['last']] #find a single year of data
+                #replace missing values by matching dataframe to subset of 1 year
+                replacementS, notReplacedGroups = quickReplace(pd.DataFrame(df), subS, self.yearBreakdown.iloc[g]['offset'],notReplacedGroups)
+                df = pd.concat([df, replacementS.add_prefix('R')],axis=1, join = 'outer')
+                #add to the dictionary
+                badDictAdd(columnsToReplace, self.badDataDict, '2.Offline',
+                           df[(pd.isnull(df[columnToCompare])) &
+                                   (df.index >= min(subS.index)) &
+                                   (df.index <= max(subS.index))].index.tolist())
 
-            #set the data value
-            df.loc[((pd.notnull(df['R' + columnToCompare])) &
-                   (df.index >= min(subS.index)) &
-                   (df.index <= max(subS.index))),columnsToReplace] = df.loc[((pd.notnull(df['R' + columnToCompare])) &
-                   (df.index >= min(subS.index)) &
-                   (df.index <= max(subS.index))),RcolumnsToReplace].values
-            df = df.drop(RcolumnsToReplace, axis=1)
+                #set the data value
+                df.loc[((pd.notnull(df['R' + columnToCompare])) &
+                       (df.index >= min(subS.index)) &
+                       (df.index <= max(subS.index))),columnsToReplace] = df.loc[((pd.notnull(df['R' + columnToCompare])) &
+                       (df.index >= min(subS.index)) &
+                       (df.index <= max(subS.index))),RcolumnsToReplace].values
+                df = df.drop(RcolumnsToReplace, axis=1)
 
-        groupingColumn.name = '_'.join([columnToCompare,'grouping'])
-        df_to_fix = pd.concat([df,groupingColumn],axis=1,join='outer')
-        df_to_fix = df_to_fix[original_range[0]:original_range[1]]
-        
-        #filling in the more difficult to fill values
-        df_to_fix = self.truncateDate(df_to_fix)
-        #if there is still data in the dataframe after we have truncated it 
-        if len(df_to_fix) > 1:
-            self.logOfflineBadData(df_to_fix,columnToCompare)
-            #remove groups that were replaced
-            # find offline time blocks
-            #get groups based on column specific grouping column
-            groups = pd.Series(pd.to_datetime(df_to_fix.index),index=df_to_fix.index).groupby(df_to_fix['_'.join([columnToCompare,'grouping'])]).agg(['first','last'])
-            groups['size'] = groups['last']-groups['first']
+            groupingColumn.name = '_'.join([columnToCompare,'grouping'])
+            df_to_fix = pd.concat([df,groupingColumn],axis=1,join='outer')
+            df_to_fix = df_to_fix[original_range[0]:original_range[1]]
 
-            #filter groups we replaced already from the grouping column
-            groups= groups[(groups['size'] >= pd.Timedelta(days=1)) |
-                    groups.index.isin(notReplacedGroups[pd.notnull(notReplacedGroups)].index.tolist())]
-            cuts = groups['size'].quantile([0.25, 0.5, 0.75,1])
-            cuts = list(set(cuts.tolist()))
-            cuts.sort()
-            print("%s groups of missing or inline data discovered for component named %s" %(len(groups), columnToCompare) )
-        #don't pass the grouping column to doReplaceData
-        df_to_fix = doReplaceData(groups, df_to_fix.loc[pd.notnull(df_to_fix[columnToCompare]),columnsToReplace], cuts,df.loc[pd.notnull(df[columnToCompare]),columnsToReplace])
+            #filling in the more difficult to fill values
+            df_to_fix = self.truncateDate(df_to_fix)
+            #if there is still data in the dataframe after we have truncated it
+            if len(df_to_fix) > 1:
+                self.logOfflineBadData(df_to_fix,columnToCompare)
+                #remove groups that were replaced
+                # find offline time blocks
+                #get groups based on column specific grouping column
+                groups = pd.Series(pd.to_datetime(df_to_fix.index),index=df_to_fix.index).groupby(df_to_fix['_'.join([columnToCompare,'grouping'])]).agg(['first','last'])
+                groups['size'] = groups['last']-groups['first']
 
-        return df_to_fix.loc[pd.notnull(df_to_fix[columnToCompare]),columnsToReplace]
+                #filter groups we replaced already from the grouping column
+                groups= groups[(groups['size'] >= pd.Timedelta(days=1)) |
+                        groups.index.isin(notReplacedGroups[pd.notnull(notReplacedGroups)].index.tolist())]
+                cuts = groups['size'].quantile([0.25, 0.5, 0.75,1])
+                cuts = list(set(cuts.tolist()))
+                cuts.sort()
+                print("%s groups of missing or inline data discovered for component named %s" %(len(groups), columnToCompare) )
+                #don't pass the grouping column to doReplaceData
+                df_to_fix = doReplaceData(groups, df_to_fix.loc[pd.notnull(df_to_fix[columnToCompare]),columnsToReplace], cuts,df.loc[pd.notnull(df[columnToCompare]),columnsToReplace])
+
+                return df_to_fix.loc[pd.notnull(df_to_fix[columnToCompare]),columnsToReplace]
+        else:
+            return df
 
     def logOfflineBadData(self,df_to_fix, columnToCompare):
 
@@ -310,4 +317,3 @@ class DataClass:
         f.close()
 
         return
-

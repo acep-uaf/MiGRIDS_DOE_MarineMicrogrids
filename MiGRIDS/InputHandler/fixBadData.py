@@ -15,14 +15,12 @@ import xml.etree.ElementTree as ET
 import os
 import re
 import pandas as pd
+import numpy as np
 
 from MiGRIDS.InputHandler import EnvironmentAttributeTypes
-from MiGRIDS.InputHandler.DataClass import DataClass
 from MiGRIDS.InputHandler.Exceptions.DataValidationError import DataValidationError
 from MiGRIDS.InputHandler.isInline import isInline
 from MiGRIDS.InputHandler.badDictAdd import badDictAdd
-
-
 
 # constants
 DATETIME = 'DATE'  # the name of the column containing sampling datetime as a numeric
@@ -35,8 +33,11 @@ TOTALP = 'total_power'  # the name of the column that contains the sum of power 
 # Dataframe is the combined dataframe consisting of all data input (multiple files may have been merged)
 # SampleInterval is a list of sample intervals for each input file
 # returns a DataClass object with raw and cleaned data and powercomponent information
-def fixBadData(data, setupDir, runTimeSteps, **kwargs):
+def fixBadData(data, setupDir, **kwargs):
    '''returns cleaned data Object'''
+   if (kwargs.get("flexibleYear")) != None:
+       if (kwargs.get("flexibleYear")) & ((data.df.index[-1] - data.df.index[0]) > pd.to_timedelta('365 d')):
+           data.df = reallignSingleYear(data.df)
 
    #look for obvious over and under values
    data.df, data.baddict = checkPowerComponents([c for c in data.components if c in [data.powerComponents + data.loads]],setupDir,data.df,data.badDataDict)
@@ -78,14 +79,14 @@ def fixBadData(data, setupDir, runTimeSteps, **kwargs):
        data.df = data.df.drop(reps.columns, axis=1) #drop the columns we are going to replace
        data.df = reps.join(data.df, how='outer') #add the replacement columns back in
 
-
     # fill gen columns with a value if the system needs diesel to operate
    componentIterator = iter(data.components)
    if dieselNeeded(componentIterator,setupDir,data.powerComponents):
        data.fixGen(data.powerComponents)
        data.totalPower()
 
-   data.df = data.dropEmpties(data.df)
+   data.df = data.dropEmpties(data.df) #this drops rows of all na
+   data.df = data.keepOverlapping(data.df) #this is going to result in an empty dataframe if none of the components overlap in time
    # scale data based on units and offset in the component xml file
    data.scaleData(data.components)
    data.splitDataFrame() #this sets data.fixed to a list of dataframes if times are not consecutive
@@ -95,8 +96,24 @@ def fixBadData(data, setupDir, runTimeSteps, **kwargs):
    data.preserve(setupDir) #keep a copy of the fixed data in case we want to inspect or start over
    data.logBadData(setupDir) #write our baddata file
    return data
+def reallignSingleYear(df):
+    '''identifies the temporal range that has data for all columns
+    Not all rows need to have data, but there must be data in all columns within a 2 week temporal window - which is the maximum
+    gap size allowed for data replacement.'''
 
-
+    doy = df.index.dayofyear
+    tod = pd.Series(df.index.time)
+    startYear = df.index[0].year
+    date = (np.asarray(startYear, dtype='datetime64[Y]') - 1970) + (np.asarray(doy, dtype='timedelta64[D]') - 1)
+    dt = pd.Series(date) + pd.to_timedelta(df.index.hour * 3600 + df.index.minute * 60 + df.index.second, unit='s')
+    df.index = dt
+    newdf = pd.DataFrame(index=dt)
+    newdf.index = newdf.index.drop_duplicates(keep='first')
+    for c in df.columns:
+        s = df.loc[pd.notnull(df[c]),c]
+        s.index = s.index.drop_duplicates(keep='first')
+        newdf = newdf.join(s,how="left")
+    return newdf
 def fillComponentTypeLists(ListOfComponents):
     '''
 

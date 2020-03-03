@@ -23,7 +23,12 @@ def setupToDictionary(soup,setupXML):
     try:
         # # get project name
         setupInfo['project'] = soup.project.attrs['name']
-
+    except AttributeError as a:
+        try:
+            setupInfo['project'] = soup['project.name']
+        except:
+            pass
+    finally:
         # get children
         children = soup.findChildren()  # get all children
         #find all the children and assign them to the setupInfo model
@@ -38,5 +43,3 @@ def setupToDictionary(soup,setupXML):
 
         setupInfo['projectPath'] = os.path.realpath(os.path.join(os.path.dirname(setupXML),'..','..'))
         return setupInfo
-    except:
-        return None
