@@ -8,7 +8,7 @@ from MiGRIDS.InputHandler.fixBadData import *
 from MiGRIDS.InputHandler.isInline import *
 from MiGRIDS.InputHandler.makeSoup import makeComponentSoup
 from MiGRIDS.InputHandler.DataClass import DataClass
-
+import pickle
 class DataClass_test(unittest.TestCase):
 
     def setUp(self):
@@ -99,7 +99,7 @@ class DataClass_test(unittest.TestCase):
         df = self.df.copy()
         df.iloc[3:5, 0:] = np.nan
         D = DataClass(df)
-        D.splitDataFrame()
+        D.splitDataFrame(df.columns)
         self.assertTrue(len(D.fixed),2)
     def test_fixGen(self):
         clist = [c.component_name for c in self.comps]
@@ -265,7 +265,6 @@ class DataClass_test(unittest.TestCase):
         lor['last'] = pd.to_datetime(df.index[4])
         lor['replacementsStarts'] = pd.to_datetime(df.index[8])
         replacementSeries = df['wtg0P']
-
     def test_filteredTimes(self):
        '''filtered times compares t1 with a list of times to make sure they are the correct day'''
        t1 = pd.to_datetime('2019-04-01 00:00:00')
@@ -294,7 +293,7 @@ class DataClass_test(unittest.TestCase):
         self.assertTrue(possibleStarts[0][0] == pd.to_datetime('2020-03-30 00:00:00'))
         self.assertTrue(possibleStarts[0][-1] == pd.to_datetime('2020-04-01 00:00:00'))
     def test_fixBadData(self):
-         self.setupProject(self.comps)
+
          df = self.createMultiYearComponentDataframe(self.comps)
          df.loc['2020-05-01 00:0:00':'2020-05-02 22:00:00', :] = np.nan #over a full day missing
          df.loc['2020-08-01 00:00:00':'2020-08-01 10:00:00']['wtg0P'] = np.nan  # 10 hour - this won't get fixed because there is data in another power column
@@ -302,8 +301,7 @@ class DataClass_test(unittest.TestCase):
          data.loads = ['load0P']
          data.powerComponents = ['wtg0P', 'gen0P']
 
-         newData = fixBadData(data, self.setupFolder,
-                              pd.to_timedelta('1 m'))
+         newData = fixBadData(data, self.setupFolder)
 
          self.assertTrue(len(newData.fixed) > 0)
          self.assertTrue(len(newData.badDataDict.keys()) >0) # = ['total_power', 'wtg0P', 'gen0P', 'total_load', 'load0P']
@@ -360,7 +358,20 @@ class DataClass_test(unittest.TestCase):
         self.assertEqual(len(newdf[newdf.index.duplicated()]), 0)
         self.assertTrue(len(newdf['2020-05-01 00:02:00':'2020-05-01 22:00:00'][pd.isnull(newdf['wtg0P'])]) <= 0)
         self.assertTrue(len(newdf['2020-05-01 00:02:00':'2020-05-01 22:00:00'][pd.isnull(newdf['load0P'])]) <= 0)
-
+    def test_highlowmismatchyear(self):
+        path = os.path.join("..//..//MiGRIDS","DataObject1.pkl")
+        file = open(path,"rb")
+        data = pickle.load(file)
+        wind = data.df['wtg0WS'].copy()
+        wind = wind[pd.notnull(wind)][0:100]
+        load = data.df['load0P'][0:100].copy()
+        wind.index = load.index
+        file.close()
+        data = fixBadData(data,"",flexibleYear=True)
+        self.assertTrue(len(data.df)<=0) #this dataframe does not contain any overlapping components
+        data.df = pd.DataFrame({'wtg0WS':wind,'load0P':load})
+        data = fixBadData(data,"")
+        self.assertTrue(len(data.df)>0) #dataframe overlaps
 
 if __name__ == '__main__':
     unittest.main()

@@ -68,23 +68,23 @@ class DataClass:
     def getattribute(self, a):
         return self.__getattribute__(a)
 
-    def dropAllEmpties(self):
+    def dropAllEmpties(self,columns):
         for i in range(len(self.fixed)):
-            self.fixed[i] = self.dropEmpties(self.fixed[i])
+            self.fixed[i] = self.dropEmpties(self.fixed[i],columns)
     def keepOverlapping(self,df):
         componentColumns = [c.column_name for c in self.components]
         df = df[pd.notnull(df[componentColumns]).all(axis=1)]
         return df
-    def dropEmpties(self,df):
-        df = df[pd.notnull(df[[TOTALL,TOTALP] + self.ecolumns]).any(axis=1)]
+    def dropEmpties(self,df,columns):
+        df = df[pd.notnull(df[columns]).any(axis=1)]
         return df
     #DataFrame, timedelta ->listOfDataFrame
     #splits a dataframe where data is missing that exceeds maxMissing
-    def splitDataFrame(self):
+    def splitDataFrame(self,columns):
        if len(self.fixed) <= 0:
            self.fixed = [self.df]
        #dataframe splits only occurr for total_p, total load columns
-       self.fixed = cutUpDataFrame(self.fixed, [TOTALP] + [TOTALL])
+       self.fixed = cutUpDataFrame(self.fixed, columns)
      # summarizes raw and fixed data and print resulting dataframe descriptions
     def summarize(self):
         '''prints basic statistics describing raw and fixed data'''

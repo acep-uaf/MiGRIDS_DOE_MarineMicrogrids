@@ -49,26 +49,34 @@ def fixBadData(data, setupDir, **kwargs):
    #identify groups of missing data
    #totalp is for all power component columns
    #ecolumns and load columns are treated individually
-   columns = data.ecolumns + [TOTALL] + [TOTALP]
+   if (len(data.powerComponents)>0) & (len(data.loads) > 0):
+      columns = data.ecolumns + [TOTALL] + [TOTALP]
+   elif (len(data.powerComponents) > 0) & (len(data.loads) == 0):
+       columns = data.ecolumns + [TOTALP]
+   elif (len(data.powerComponents) == 0) & (len(data.loads) > 0):
+       columns = data.ecolumns + [TOTALL]
+
    groupings = data.df[columns].apply(lambda c: isInline(c), axis=0)
    #set the yearsplits attribute for the data class
    data.setYearBreakdown()
 
    #replace the column in the dataframe with clean data
    try:
-       columnsToReplace = [TOTALP] + data.powerComponents
-       reps = data.fixOfflineData(TOTALP,columnsToReplace,groupings[TOTALP])
-       data.df = data.df.drop(reps.columns, axis=1)
-       data.df= reps.join(data.df, how='outer')
+       if len(data.powerComponents)>0:
+           columnsToReplace = [TOTALP] + data.powerComponents
+           reps = data.fixOfflineData(TOTALP,columnsToReplace,groupings[TOTALP])
+           data.df = data.df.drop(reps.columns, axis=1)
+           data.df= reps.join(data.df, how='outer')
    except KeyError as e:
        raise DataValidationError(1) #validation error 1 is missing power
 
    try:
-       columnsToReplace=[TOTALL] + data.loads
-       # replace the column in the dataframe with cleaned up data
-       reps = data.fixOfflineData(TOTALL,columnsToReplace, groupings[TOTALL])
-       data.df = data.df.drop(reps.columns, axis=1)
-       data.df = reps.join(data.df, how='outer')
+       if len(data.loads) > 0:
+           columnsToReplace=[TOTALL] + data.loads
+           # replace the column in the dataframe with cleaned up data
+           reps = data.fixOfflineData(TOTALL,columnsToReplace, groupings[TOTALL])
+           data.df = data.df.drop(reps.columns, axis=1)
+           data.df = reps.join(data.df, how='outer')
    except KeyError as e:
        raise DataValidationError(2) #validation error 1 is missing power
 
@@ -85,11 +93,11 @@ def fixBadData(data, setupDir, **kwargs):
        data.fixGen(data.powerComponents)
        data.totalPower()
 
-   data.df = data.dropEmpties(data.df) #this drops rows of all na
+   data.df = data.dropEmpties(data.df,columns) #this drops rows of all na
    data.df = data.keepOverlapping(data.df) #this is going to result in an empty dataframe if none of the components overlap in time
    # scale data based on units and offset in the component xml file
    data.scaleData(data.components)
-   data.splitDataFrame() #this sets data.fixed to a list of dataframes if times are not consecutive
+   data.splitDataFrame(columns) #this sets data.fixed to a list of dataframes if times are not consecutive
    data.totalPower() #recalculate total power in case na's popped up
    data.totalLoad()
    data.truncateAllDates()

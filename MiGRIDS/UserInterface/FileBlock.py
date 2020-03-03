@@ -5,6 +5,7 @@ import MiGRIDS.UserInterface.ModelComponentTable as T
 import MiGRIDS.UserInterface.ModelFileInfoTable as F
 import pytz
 
+from MiGRIDS.UserInterface.BaseForm import BaseForm
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.gridLayoutSetup import setupGrid
@@ -154,11 +155,11 @@ class FileBlock(QtWidgets.QGroupBox):
         def setBox(name):
 
             wid = self.FileBlock.findChild(QtWidgets.QComboBox, name)
-            self.reconnect(wid.currentIndexChanged, None,self.saveInput) #disconnect the signal so validate isn't called here
+            BaseForm.reconnect(wid.currentIndexChanged, None,self.saveInput) #disconnect the signal so validate isn't called here
             wid.addItems(["", "index"] + list(preview.header))
 
             wid.setCurrentText(preview.__dict__.get(name))
-            self.reconnect(wid.currentIndexChanged, self.saveInput, None)
+            BaseForm.reconnect(wid.currentIndexChanged, self.saveInput, None)
 
         # show fields in date and time field selectors and set current position to most likely candidate
         for name in [F.InputFileFields.datechannelvalue.name,F.InputFileFields.timechannelvalue.name,
@@ -274,7 +275,7 @@ class FileBlock(QtWidgets.QGroupBox):
                     default = self.findDefault(wid.objectName(),g1)
                     wid.setCurrentIndex(wid.findText(default))
                     if wid.objectName() == 'inputfiletypevalue': #if the file type changes trigger the function to create a new preview
-                        self.reconnect(wid.currentIndexChanged,self.folderChanged)
+                        BaseForm.reconnect(wid.currentIndexChanged,self.folderChanged)
 
 
         # submit data changes automatically on field changes -this doesn't work
@@ -286,21 +287,6 @@ class FileBlock(QtWidgets.QGroupBox):
             self.createPreview(fileBlockModel.data(fileBlockModel.index(0,F.InputFileFields.inputfiledirvalue.value)),fileBlockModel.data(fileBlockModel.index(0,F.InputFileFields.inputfiletypevalue.value)))
             self.setValid(self.validate())
 
-    def reconnect(self, signal, newhandler=None, oldhandler=None):
-        '''
-        Connects a new slot to a widget signal
-        :param signal: the signal to respond to
-        :param newhandler: the new function to be called when the signal is triggered
-        :param oldhandler: the old function that sould be removed from the widgets slot
-        :return:
-        '''
-        try:
-            if oldhandler is not None:
-                signal.disconnect(oldhandler)
-        except TypeError:
-            pass
-        if newhandler is not None:
-            signal.connect(newhandler)
 
     def findDefault(self,name, dict):
         for k in dict.keys():

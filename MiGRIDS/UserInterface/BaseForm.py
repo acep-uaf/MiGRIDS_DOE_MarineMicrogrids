@@ -31,7 +31,11 @@ class BaseForm(QtWidgets.QWidget):
         pass
     def onControllerStateChange(self):
         pass
-
+    def showCheckin(self,title,msg):
+        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, title, msg                          )
+        msg.setStandardButtons(QtWidgets.QMessageBox.Yes,QtWidgets.QMessageBox.No)
+        result = msg.exec()
+        return result
     def showAlert(self,title,msg):
         msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,title ,msg
                                     )
@@ -88,6 +92,7 @@ class BaseForm(QtWidgets.QWidget):
             if type(i) in [QtWidgets.QLineEdit, QtWidgets.QTextEdit, ClickableLineEdit]:
                 i.setText("")
             elif type(i) in [QtWidgets.QComboBox]:
+                self.reconnect(i.currentIndexChanged, None, self.saveInput)
                 i.setCurrentIndex(0)
             i.removeEventFilter(self)
         # SQL tables get re-selected, unless its a RunTableModle, then it gets cleared.
@@ -99,3 +104,19 @@ class BaseForm(QtWidgets.QWidget):
         for t in tables:
             m = t.model()
             m.select()
+    @staticmethod
+    def reconnect(signal, newhandler=None, oldhandler=None):
+        '''
+        Connects a new slot to a widget signal
+        :param signal: the signal to respond to
+        :param newhandler: the new function to be called when the signal is triggered
+        :param oldhandler: the old function that should be removed from the widgets slot
+        :return:
+        '''
+        try:
+            if oldhandler is not None:
+                signal.disconnect(oldhandler)
+        except TypeError:
+            pass
+        if newhandler is not None:
+            signal.connect(newhandler)
