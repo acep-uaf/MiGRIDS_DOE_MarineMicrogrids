@@ -136,7 +136,9 @@ class Controller:
     def importData(self):
         return
     def loadedProject(self):
-        self.createDatabaseConnection()
+       if not self.validator.validate(ValidatorTypes.DataObject,self.controller.inputData): #this will set dataobjectvalid to its current state
+          self.showAlert("Could not create a valid data object.")
+       self.createDatabaseConnection()
     def createInputData(self):
         self.dbhandler.closeDatabase()
         self.myThread = ThreadedDataCreate()

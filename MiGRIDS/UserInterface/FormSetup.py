@@ -446,15 +446,11 @@ class FormSetup(BaseForm):
         self.controller.sender.notifyProgress.connect(self.progressBar.onProgress)
         try:
             #when thread finishes self.controller.inputData and self.components are set
-            self.controller.createInputData()
+            self.controller.createInputData() #this spins up a new thread
 
         except Exception as e:
             print(e)
 
-
-
-        # if not self.controller.validator.validate(ValidatorTypes.DataObject,self.controller.inputData): #this will set dataobjectvalid to its current state
-        #     self.showAlert("Could not create a valid data object.")
         return
 
     def updateFormProjectDataStatus(self):

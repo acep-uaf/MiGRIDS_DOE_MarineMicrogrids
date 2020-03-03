@@ -38,7 +38,8 @@ def dir2data(dirDict):
         if len(df) < 1:
             df = result.get()
         else:
-            df = df.append(result.get())
+            d = result.get()
+            df = df.append(d)
 
     return df
 
@@ -62,7 +63,13 @@ def readInputData_mp(inputDict, **kwargs):
         #add only new components
         completeComponentList.extend([c for c in dirComponents if c.component_name not in [h.component_name for h in completeComponentList]])
 
-    completeDF = pd.concat(completeDFList) #combine the dataframes from all the directories into 1 dataframe
+    #completeDF = pd.concat(completeDFList) #combine the dataframes from all the directories into 1 dataframe
+    completeDF = pd.DataFrame()
+    for d in completeDFList:
+        if len(set(completeDF.columns).intersection(set(d.columns))): #if the intersect then we are appending to an existing column
+            completeDF = pd.concat([completeDF,d],axis=0)
+        else: #if there are no common columns then we are adding columns
+            completeDF = completeDF.join(d,how="outer")
 
     return completeDF, completeComponentList
 

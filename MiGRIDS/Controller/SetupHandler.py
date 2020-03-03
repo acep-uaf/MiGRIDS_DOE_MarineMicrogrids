@@ -94,10 +94,10 @@ class SetupHandler(UIHandler):
         data.powerComponents = powerColumns
         data.ecolumns = eColumns
         data.loads = loads
-        if len(data.keepOverlapping(data.df.copy)) <=0:
-            self.showCheckin()
-            self.showShiftInput(data)
-        data= fixBadData(data, getFilePath('Setup',projectFolder=self.dbhandler.getProjectPath()),inputDictionary['runTimeSteps.value'],
+        # if len(data.keepOverlapping(data.df)) <=0:
+        #     self.showCheckin()
+        #     self.showShiftInput(data)
+        data= fixBadData(data, getFilePath('Setup',projectFolder=self.dbhandler.getProjectPath()),
                               sender=self.sender) #can update up to 2 counts on progress bar
         self.sender.update(3, 'Fixing intervals')
         # fix the intervals
