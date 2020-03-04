@@ -270,8 +270,10 @@ def getValues(start, sigma):
 
     # steps is an array of timesteps in seconds with length = max(records)
     steps = np.arange(0, int(n95)*defaultTimestep, defaultTimestep)
-    # t is the numeric value of the dataframe timestamps
-    t = pd.to_timedelta(pd.Series(pd.to_datetime(start.index.values, unit='s'), index=start.index)).dt.total_seconds()
+    # t is the numeric value of the dataframe timestamps in seconds
+    #t = pd.to_timedelta(pd.Series(pd.to_datetime(start.index.values, unit='s',tz=start.index.tz), index=start.index)-start.index[0]).dt.total_seconds()
+    s = pd.Series(start.index.values - start.index.values[0])
+    t = pd.to_timedelta(s).dt.total_seconds()
     # intervals is the steps array repeated for every row of time
     intervals = np.repeat(steps, len(t), axis=0)
     # reshape the interval matrix so each row has every timestep
