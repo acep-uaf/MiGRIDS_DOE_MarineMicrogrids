@@ -83,8 +83,7 @@ def fixDataFrameInterval(dataframe, interval, fixColumns, loadColumns, powerColu
     upSampledDataframe = data1.join(dataframe[flag_columns], how='left')
     upSampledDataframe.index = upSampledDataframe.index.floor(interval)
 
-    for f in flag_columns:
-        upSampledDataframe.loc[pd.isnull(upSampledDataframe[f]), f] = 4
+
 
     result = mp.Manager().Queue()
     # pool of processes
@@ -101,6 +100,8 @@ def fixDataFrameInterval(dataframe, interval, fixColumns, loadColumns, powerColu
     while not result.empty():
         completeDataFrame = pd.concat([completeDataFrame,result.get()],1) #each df will contain a column of data
     del df
+    for f in flag_columns:
+        completeDataFrame.loc[pd.isnull(completeDataFrame[f]), f] = 4
     completeDataFrame = spreadFixedSeries(TOTALLOAD,loadColumns,completeDataFrame )
     completeDataFrame = spreadFixedSeries( TOTALPOWER, powerColumns,completeDataFrame)
     completeDataFrame = completeDataFrame.loc[data1.index]

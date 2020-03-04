@@ -34,8 +34,8 @@ def modifyForManualInput(inputDictionary):
 
 if __name__ == '__main__':
     #specify the correct path to your project setup file here
-    fileName = os.path.join(os.getcwd(),*['..','MiGRIDSProjects','MyProject','InputData','Setup','MyProjectSetup.xml'])
-    setupFolder = os.path.join(os.getcwd(),*['..','MiGRIDSProjects','SampleProject','InputData','Setup'])
+    fileName = os.path.join(os.getcwd(),*['..','MiGRIDSProjects','Cordova','InputData','Setup','CordovaSetup.xml'])
+    setupFolder = os.path.join(os.getcwd(),*['..','MiGRIDSProjects','Cordova','InputData','Setup'])
     # get the setup Directory
 
     soup = getSetupInformation(fileName)
@@ -61,10 +61,9 @@ if __name__ == '__main__':
     data.ecolumns = eColumns
     data.loads = loads
 
-    data = fixBadData(data, setupFolder,
-                      inputDictionary['runTimeSteps.value'])
+    data = fixBadData(data, setupFolder)
     #setup intervals
-    data = fixDataInterval(data, pd.to_timedelta(inputDictionary['timestep.value'], unit=inputDictionary['timestep.unit']))
+    data = fixDataInterval(data, pd.to_timedelta(int(inputDictionary['timeStep.value']), unit=inputDictionary['timeStep.unit']))
     data.preserve(setupFolder)
 
     # now convert to a netcdf
