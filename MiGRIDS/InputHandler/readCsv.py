@@ -52,7 +52,3 @@ def readCsv(inputDict):
     df = processInputDataFrame(inputDict)
 
     return df
-
-def readCsv_mp(inputDict,result):
-    df = readCsv(inputDict)
-    result.put(df)

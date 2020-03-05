@@ -43,7 +43,8 @@ def processInputDataFrame(inputDict):
                 df['DATE'] = df['DATE'] + df[inputDict['timeChannel.value']].apply(pd.to_timedelta, errors='coerce')
             # remove rows that did not work
             df = df.drop(df.index[pd.isnull(df['DATE'])])
-        df = df.drop(inputDict['dateChannel.value'], axis=1)    #df['DATE'] = df['DATE'] + df[timeColumnName].apply(lambda t: pd.to_datetime(t,format=convertDateTimeFormat(timeColumnFormat)))
+        if inputDict['dateChannel.value'] != 'DATE':
+            df = df.drop(inputDict['dateChannel.value'], axis=1)    #df['DATE'] = df['DATE'] + df[timeColumnName].apply(lambda t: pd.to_datetime(t,format=convertDateTimeFormat(timeColumnFormat)))
     
         # convert data columns to numeric
         for idx, col in enumerate(inputDict['componentChannels.headerName.value']):

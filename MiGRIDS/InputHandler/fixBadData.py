@@ -94,7 +94,7 @@ def fixBadData(data, setupDir, **kwargs):
        data.totalPower()
 
    data.df = data.dropEmpties(data.df,columns) #this drops rows of all na
-   data.df = data.keepOverlapping(data.df) #this is going to result in an empty dataframe if none of the components overlap in time
+   #data.df = data.keepOverlapping(data.df) #this is going to result in an empty dataframe if none of the components overlap in time
    # scale data based on units and offset in the component xml file
    data.scaleData(data.components)
    data.splitDataFrame(columns) #this sets data.fixed to a list of dataframes if times are not consecutive

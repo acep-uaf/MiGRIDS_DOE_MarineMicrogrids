@@ -5,42 +5,31 @@
 import pandas as pd
 import os
 import importlib.util
-import multiprocessing as mp
 
+from MiGRIDS.InputHandler.readCsv import readCsv
 from MiGRIDS.InputHandler.InputFields import *
-from MiGRIDS.InputHandler.readCsv import readCsv, readCsv_mp
-from MiGRIDS.InputHandler.readWindData import readWindData_mp
+from MiGRIDS.InputHandler.readWindData import readIndividualWindFile
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
 from MiGRIDS.InputHandler.Component import Component
 
 def dir2data(dirDict):
     # instantiate multiprocess
-    result = mp.Manager().Queue()
-    # pool of processes
-    pool = mp.Pool(mp.cpu_count())
 
     file_list = getFileList(dirDict)
-
+    dictList = []
     for file in file_list:
 
         dirDict[FILENAME] = file
-        if dirDict[FILETYPE].lower() == 'csv':
+        dictList.append(dirDict.copy())
 
-            pool.apply_async(readCsv_mp, args=(dirDict, result))
+    if dirDict[FILETYPE].lower() == 'csv':
+        result = [readCsv(d) for d in dictList]
 
-        elif dirDict[FILETYPE].lower() == 'met':
-            pool.apply_async(readWindData_mp, args=(dirDict, result))
+    elif dirDict[FILETYPE].lower() == 'met':
+        result = [readIndividualWindFile(d) for d in dictList]
 
-    pool.close()
-    pool.join()
-    df = pd.DataFrame()
-    while not result.empty():
-        if len(df) < 1:
-            df = result.get()
-        else:
-            d = result.get()
-            df = df.append(d)
-
+    print(len(result), "files")
+    df = pd.concat(result, axis=0)
     return df
 
 def readInputData_mp(inputDict, **kwargs):
@@ -63,14 +52,14 @@ def readInputData_mp(inputDict, **kwargs):
         #add only new components
         completeComponentList.extend([c for c in dirComponents if c.component_name not in [h.component_name for h in completeComponentList]])
 
-    #completeDF = pd.concat(completeDFList) #combine the dataframes from all the directories into 1 dataframe
+    #combine the dataframes from all the directories into 1 dataframe
     completeDF = pd.DataFrame()
     for d in completeDFList:
         if len(set(completeDF.columns).intersection(set(d.columns))): #if the intersect then we are appending to an existing column
             completeDF = pd.concat([completeDF,d],axis=0)
         else: #if there are no common columns then we are adding columns
             completeDF = completeDF.join(d,how="outer")
-
+    completeDF = completeDF.sort_index()
     return completeDF, completeComponentList
 
 def standardize(dirDict, df):

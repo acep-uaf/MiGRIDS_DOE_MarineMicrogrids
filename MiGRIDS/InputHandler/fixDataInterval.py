@@ -85,21 +85,22 @@ def fixDataFrameInterval(dataframe, interval, fixColumns, loadColumns, powerColu
 
 
 
-    result = mp.Manager().Queue()
-    # pool of processes
-    pool = mp.Pool(mp.cpu_count())
-    for col in fixColumns:
-        print("fixing: ", col)
-
-        pool.apply_async(fixSeriesInterval_mp, args=(df[col],upSampledDataframe[col],interval, result))
-
-    pool.close()
-    pool.join()
-
+    # result = mp.Manager().Queue()
+    # # pool of processes
+    # pool = mp.Pool(mp.cpu_count())
+    # for col in fixColumns:
+    #     print("fixing: ", col)
+    #
+    #     pool.apply_async(fixSeriesInterval_mp, args=(df[col],upSampledDataframe[col],interval, result))
+    #
+    # pool.close()
+    # pool.join()
+    sList = [fixSeriesInterval(df[col], upSampledDataframe[col], interval) for col in fixColumns]
     completeDataFrame = dataframe[flag_columns + [c for c in other_columns if c not in fixColumns]]
-    while not result.empty():
-        completeDataFrame = pd.concat([completeDataFrame,result.get()],1) #each df will contain a column of data
-    del df
+    completeDataFrame = pd.concat([completeDataFrame] + sList,1)
+    # while not result.empty():
+    #     completeDataFrame = pd.concat([completeDataFrame,result.get()],1) #each df will contain a column of data
+    # del df
     for f in flag_columns:
         completeDataFrame.loc[pd.isnull(completeDataFrame[f]), f] = 4
     completeDataFrame = spreadFixedSeries(TOTALLOAD,loadColumns,completeDataFrame )
@@ -181,8 +182,10 @@ def fixSeriesInterval(startingSeries, reSampledSeries,interval):
     reSampledSeries = matchToOriginal(reSampledSeries,simulatedValues,interval)
     return reSampledSeries
 def scaleSigma(sigma):
+    '''Calculates the standard deviation using a rolling window'''
+    WINDOW = 5
     records = abs(pd.to_timedelta(pd.Series(sigma.index).diff(-1)).dt.total_seconds()) #records is the number of seconds between consecutive values - one record per second
-    records = records.rolling(5, 2).mean() #mean number of seconds between intervals used to calculate sigma
+    records = records.rolling(WINDOW, 2).mean() #mean number of seconds between intervals used to calculate sigma
     records = records.bfill()
     records[records < 60] = 1
     records[records >= 60] = records/60
@@ -222,8 +225,10 @@ def upsample(series, sigma):
     :return pd.Series at 1 second time intervals, new values are filled via simulation'''
 
     # t is the time, k is the estimated value
-    t, k = estimateDistribution(series, sigma)  # t is number of seconds since 1970
-    simulatedSeries = pd.DataFrame({'value': k,'time':pd.to_datetime(t, unit='s')})
+    t, k = estimateDistribution(series, sigma)  # t is number of seconds since starttime
+
+    #simulatedSeries = pd.DataFrame({'value': k,'time':pd.to_datetime(t, unit='s')})
+    simulatedSeries = pd.DataFrame({'value': k, 'time': series.index[0]+pd.to_timedelta(t,'s')})
     simulatedSeries = simulatedSeries.set_index(simulatedSeries['time'])
     simulatedSeries = simulatedSeries.loc[pd.notnull(simulatedSeries['value']),'value']
     simulatedSeries = simulatedSeries[~simulatedSeries.index.duplicated(keep='first')]
@@ -258,6 +263,7 @@ def getValues(start, sigma):
         raise ContainsNullException("Series cannot contain NA")
 
     #time step of 1 second
+    #timesteps must be 1 second if you are combining high resolution and low resolution series!
     defaultTimestep = 1
     records = abs(pd.to_timedelta(pd.Series(start.index).diff(-1)).dt.total_seconds()) #records is the number of seconds between consecutive values - one record per second
    #n is the number of values that will be estimated -will always be records + 1 unless default Timestep changes
@@ -345,11 +351,9 @@ def getValues(start, sigma):
     return t,v
 def estimateLangValues(timestep, mu, sigma, start, T):
     '''
-
     :param timestep: integer timestep value
     :param mu: vector of target values
     :param sigma:vector of std values
-
     :param start: vector of start values
     :param T: total number of timesteps
 
