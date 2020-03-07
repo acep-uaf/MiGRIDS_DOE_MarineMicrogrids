@@ -87,9 +87,9 @@ def generateRuns(projectSetDir):
             writeXmlTag(setupFile, tag, attr, value)
 
         # make changes to the predict Load input file
-        generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'predictLoad')
+        generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'loadPredict')
         # make changes to the predict Wind input file
-        generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'predictWind')
+        generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'windPredict')
         # make changes to the reDispatch input file
         generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile, 'reDispatch')
         # make changes to the getMinSrc input file
