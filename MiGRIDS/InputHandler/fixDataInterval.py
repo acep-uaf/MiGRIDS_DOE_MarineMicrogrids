@@ -103,16 +103,23 @@ def fixDataFrameInterval(dataframe, interval, fixColumns, loadColumns, powerColu
     # del df
     for f in flag_columns:
         completeDataFrame.loc[pd.isnull(completeDataFrame[f]), f] = 4
-    completeDataFrame = spreadFixedSeries(TOTALLOAD,loadColumns,completeDataFrame )
+    completeDataFrame = spreadFixedSeries(TOTALLOAD,loadColumns,completeDataFrame)
     completeDataFrame = spreadFixedSeries( TOTALPOWER, powerColumns,completeDataFrame)
     completeDataFrame = completeDataFrame.loc[data1.index]
     completeDataFrame = truncateDataFrame(completeDataFrame)
     return completeDataFrame
 def truncateDataFrame(df):
     '''retains the longest continuous sections of data within a dataframe'''
+
+    #only keep the portion of the dataframe that has data for all components
+    first_valid_loc = df.apply(lambda col: col.first_valid_index()).max()
+    last_valid_loc = df.apply(lambda col: col.last_valid_index()).min()
+    newdf = df[first_valid_loc:last_valid_loc]
+    #split up the dataframe if there are remaining gaps in data
     NAs = df[pd.isnull(df).any(axis=1)].index #list of bad indices
-    lod = makeCuts([df],NAs)
-    newdf = returnLargest(lod)
+    if len(NAs) >0:
+        lod = makeCuts([df],NAs)
+        newdf = returnLargest(lod)
     return newdf
 def returnLargest(lod):
     '''returns the dataframe with the most rows from a list of dataframes'''
@@ -161,14 +168,13 @@ def fixSeriesInterval(startingSeries, reSampledSeries,interval):
     # remove rows that are nan for this column, except for the first and last, in order to keep the same first and last
     # time stamps
     startingSeries = pd.concat([startingSeries.iloc[[0]], startingSeries.iloc[1:-1].dropna(), startingSeries.iloc[[-1]]])
-    # get first and last non nan indecies
+    # get first and last non nan indicies
     idx0 = startingSeries.first_valid_index()
-    if idx0 != None:
-        startingSeries[0] = startingSeries[idx0]
     idx1 = startingSeries.last_valid_index()
-    if idx1 != None:
-        startingSeries[-1] = startingSeries[idx1]
-    simulatedValues = reSampledSeries
+    if (idx0 != None) & (idx1 != None):
+        startingSeries = startingSeries[idx0:idx1]
+
+    simulatedValues = reSampledSeries[idx0:idx1]
     # if the resampled dataframe is bigger fill in new values
     # Timediff needs to be calculated to next na, not next record
     if len(startingSeries) < len(reSampledSeries):
@@ -267,7 +273,7 @@ def getValues(start, sigma):
     defaultTimestep = 1
     records = abs(pd.to_timedelta(pd.Series(start.index).diff(-1)).dt.total_seconds()) #records is the number of seconds between consecutive values - one record per second
    #n is the number of values that will be estimated -will always be records + 1 unless default Timestep changes
-    n = (records * defaultTimestep) + 1 #all estimates are at the 1 seoond timestep
+    n = round((records * defaultTimestep) + 1,0)#all estimates are at the 1 seoond timestep
     n = n.fillna(0)
     # find the 95th percentile of number of steps - exclude gaps that are too big to fill
     n95 = int(np.percentile(n[n < MAXUPSAMPLEINTERVAL], 95))
@@ -307,28 +313,32 @@ def getValues(start, sigma):
     values = values[values != None]
     timeArray = timeArray[timeArray != None]
     #any time gaps greater than MAXUPSAMPLEINTERVAL will not be filled
-    nRemaining = max([r for r in n[idxOver95] if r < MAXUPSAMPLEINTERVAL],default=0)
+    nRemaining = max([r-n95 for r in n[idxOver95] if r < MAXUPSAMPLEINTERVAL],default=0)
     if nRemaining >= 1:
         # individually calc the rest if they are less than the max allowable upsample interval
         start = start[idxOver95]
         mu= mu[idxOver95]
         sigma = sigma[idxOver95]
         time = time_matrix[idxOver95]
-        time = time[:,-1] #just the last column, which is the last timestamp filled
-        time = time.reshape(len(time),1)
-        time_matrix0 = np.arange(0, nRemaining * defaultTimestep,defaultTimestep) # a single row of timesteps
-        time_matrix0 = time_matrix0.reshape(1,time_matrix0.shape[0])
-        rs = np.array([1, 1])
-        rs = rs.reshape(2,1)
-        time_matrix0 = time_matrix0 * rs #its now a matrix of times to add to start times
+        time = time[:,-1] #just the last column, which is the last timestamp filled and will be the start of the next interval of time to fill
+        time = time.reshape(len(time),1) #add a column shape value
+        time_matrix0 = np.arange(0, nRemaining * defaultTimestep,defaultTimestep) # a single column of timesteps
+        #time_matrix0 = time_matrix0.reshape(1,time_matrix0.shape[0]) #make time_matrix a row
+        time_matrix0 = time_matrix0.repeat(len(time)) #row of timesteps for every time than needs estimates
+        time_matrix0 = time_matrix0.reshape(int(nRemaining),len(time)).transpose() #reshape to timesteps as rows
+        #rs = tr.values.reshape(len(t), len(time))
+        #rs = np.array([1, 1])
+        #rs = rs.reshape(1,2)
+        #time_matrix0 = time_matrix0 * rs #its now a matrix of times to add to start times
         time_matrix0 = time_matrix0 + time #time2 are our starting times (the last time filled in the previous step)
-
+        timeArray0 = np.concatenate(time_matrix0)#reshape to single vector to append to previously filled times
         x0 = estimateLangValues(defaultTimestep, mu, sigma, start, nRemaining)
         values = np.append(values, x0)
-        timeArray = np.append(timeArray,time_matrix0)
+        timeArray = np.append(timeArray,timeArray0)
         del time_matrix0
         del nRemaining
         del x0
+        #put the time and values together s
     tv = np.array(list(zip(timeArray,values)))
     tv = tv[tv[:,0].argsort()] # sort by timeArray
 

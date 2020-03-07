@@ -78,6 +78,11 @@ class DataClass:
     def dropEmpties(self,df,columns):
         df = df[pd.notnull(df[columns]).any(axis=1)]
         return df
+    def dropUnused(self):
+        if len(self.df[pd.notnull(self.df[TOTALL])])<=0:
+            self.df = self.df.drop(TOTALL,axis=1)
+        if len(self.df[pd.notnull(self.df[TOTALP])]) <=0 :
+            self.df = self.df.drop(TOTALP,axis=1)
     #DataFrame, timedelta ->listOfDataFrame
     #splits a dataframe where data is missing that exceeds maxMissing
     def splitDataFrame(self,columns):
@@ -174,13 +179,14 @@ class DataClass:
     # compared to overall data characteristics
     def removeAnomolies(self, stdNum = 3):
         # stdNum is defines how many stds from the mean is acceptable. default is 3, but this may be too tight for some data sets.
-        mean = np.mean(self.df[TOTALP])
-        std = np.std(self.df[TOTALP])
+        if TOTALP in self.df.columns:
+            mean = np.mean(self.df[TOTALP])
+            std = np.std(self.df[TOTALP])
     
-        self.df[(self.df[TOTALP] < mean - stdNum * std) | (self.df[TOTALP] > mean + stdNum * std)] = None
+            self.df[(self.df[TOTALP] < mean - stdNum * std) | (self.df[TOTALP] > mean + stdNum * std)] = None
          # replace values with linear interpolation from surrounding values
-        self.df = self.df.interpolate()
-        self.totalPower()
+            self.df = self.df.interpolate()
+            self.totalPower()
         return
     def totalPower(self):
         try:

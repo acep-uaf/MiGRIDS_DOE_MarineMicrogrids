@@ -73,6 +73,7 @@ class ThreadedProjectLoad(QtCore.QThread):
 
         # different load pathways depending on whether or not a project database is found
         projectFolder = getFilePath('Project', setupFolder=os.path.dirname(setupFile))
+        self.updateAttribute('Controller','setupFolder',os.path.dirname(setupFile))
         self.updateAttribute('Controller','projectFolder',getFilePath('Project', setupFolder=os.path.dirname(setupFile)))
         project = os.path.basename(projectFolder)
         self.updateAttribute('Controller', 'project',project)

@@ -94,12 +94,15 @@ def fixBadData(data, setupDir, **kwargs):
        data.totalPower()
 
    data.df = data.dropEmpties(data.df,columns) #this drops rows of all na
+   data.df = data.df.sort_index()
+   data.totalPower()  # recalculate total power in case na's popped up
+   data.totalLoad()
+   data.dropUnused()
    #data.df = data.keepOverlapping(data.df) #this is going to result in an empty dataframe if none of the components overlap in time
    # scale data based on units and offset in the component xml file
    data.scaleData(data.components)
    data.splitDataFrame(columns) #this sets data.fixed to a list of dataframes if times are not consecutive
-   data.totalPower() #recalculate total power in case na's popped up
-   data.totalLoad()
+
    data.truncateAllDates()
    data.preserve(setupDir) #keep a copy of the fixed data in case we want to inspect or start over
    data.logBadData(setupDir) #write our baddata file
