@@ -73,6 +73,7 @@ class ThreadedProjectLoad(QtCore.QThread):
 
         # different load pathways depending on whether or not a project database is found
         projectFolder = getFilePath('Project', setupFolder=os.path.dirname(setupFile))
+        self.updateAttribute('Controller','setupFolder',os.path.dirname(setupFile))
         self.updateAttribute('Controller','projectFolder',getFilePath('Project', setupFolder=os.path.dirname(setupFile)))
         project = os.path.basename(projectFolder)
         self.updateAttribute('Controller', 'project',project)
@@ -106,15 +107,22 @@ class ThreadedProjectLoad(QtCore.QThread):
 
        # get input data object
         data= findDataObject()
+        #validate setup file
+        setupDictionary = self.setupHandler.readInSetupFile(setupFile)
+        if self.validator.validate(ValidatorTypes.SetupXML, setupDictionary):
+            self.updateAttribute('Controller', 'setupValid', True)
+            #self.dbHandler.updateSetupInfo(setupDictionary, setupFile)
+        #validate input data files
         if self.validator.validate(ValidatorTypes.InputData):
             self.updateAttribute('Controller', 'inputDataValid', True)
+        #validate data object
         if self.validator.validate(ValidatorTypes.DataObject, data):
-            self.updateAttribute('Controller', 'inputDataValid', True) #TODO this should be validated seperately
             self.updateAttribute('Controller','dataObjectValid',True)
             self.updateAttribute('Controller', 'inputData', data)  # send the object to the controller
         self.updateProgress(3, 'Loading NetCDFs')
         # get model input netcdfs
         netcdfs = listNetCDFs()
+        #validate netcdfs
         if self.validator.validate(ValidatorTypes.NetCDFList, netcdfs):
             self.updateAttribute('Controller','netcdfsValid',True)
             self.updateAttribute('Controller', 'netcdfs', netcdfs)  # send the object to the controller

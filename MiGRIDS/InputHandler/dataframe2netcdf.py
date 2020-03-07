@@ -7,7 +7,7 @@
 def dataframe2netcdf(df,components,saveLocation=''):
     '''
     :param df: [pandas.DataFrame] a dataframe with datetime index and columns with column names that match the provided components
-    :param components: [ListOf Components] a dictionary of component information. A netcdf file will be generated for each key.
+    :param components: a dictionary of component information. A netcdf file will be generated for each key.
     :param saveLocation: [string] directory to save netcdf files to
     :return: netCDFList [ListOf String] a list of netcdf files that were created
     '''

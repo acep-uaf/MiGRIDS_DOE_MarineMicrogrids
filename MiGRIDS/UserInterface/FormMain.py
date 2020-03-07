@@ -5,6 +5,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui,QtSql
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface import FormContainer
 from MiGRIDS.UserInterface.ConsoleDisplay import ConsoleDisplay
+from MiGRIDS.UserInterface.FormModelRuns import FormModelRun
 
 from MiGRIDS.UserInterface.FormSetup import FormSetup
 from MiGRIDS.UserInterface.switchProject import saveProject
@@ -193,6 +194,8 @@ class MainForm(QtWidgets.QMainWindow):
 
         setupForm = self.findChild(QtWidgets.QWidget, 'setupDialog')
         setupForm.closeEvent(event)
+        runForm = self.findChild(FormModelRun)
+        runForm.closeForm()
 
         # copy the project database to the project folder and save xmls
         dbhandler = ProjectSQLiteHandler()
@@ -275,6 +278,8 @@ class PageBlock(QtWidgets.QTabWidget):
         import os
         import shutil
         setupForm = self.findChild(QtWidgets.QWidget,'setupDialog')
+
+
         # move the default database to the project folder and save xmls
         if 'projectFolder' in setupForm.model.__dict__.keys():
             path = os.path.dirname(__file__)

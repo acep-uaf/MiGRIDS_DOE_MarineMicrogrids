@@ -2,10 +2,15 @@
 Created by: T. Morgan
 ComponentTableView is a default table view tied to the component table in project_manager database
 '''
+import typing
+
 from MiGRIDS.UserInterface.Delegates import *
 from MiGRIDS.UserInterface.Delegates import ComboDelegate
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from enum import Enum
+
+from MiGRIDS.UserInterface.ModelRunTable import customTableView
+
 
 class ComponentFields(Enum):
     _id=0
@@ -22,6 +27,7 @@ class ComponentFields(Enum):
 #QTableView for displaying component information
 class ComponentTableView(QtWidgets.QTableView):
     def __init__(self, *args, **kwargs):
+        #super(ComponentTableView, self).__init__()
         # column 1 gets autfilled with filedir
         self.tabPosition = kwargs.get('position')
         QtWidgets.QTableView.__init__(self, *args)
@@ -32,7 +38,6 @@ class ComponentTableView(QtWidgets.QTableView):
         fields = []
         #combo columns
         self.setItemDelegateForColumn(ComponentFields.headernamevalue.value,ComboDelegate(self,QtCore.QStringListModel(fields),'headernamevalue'))
-        #self.setItemDelegateForColumn(ComponentFields.component_id.value,ComboDelegate(self, RefTableModel(comps),'componentnamevalue'))
         self.setItemDelegateForColumn(ComponentFields.component_id.value, RelationDelegate(self, 'componentnamevalue'))
         self.setItemDelegateForColumn(ComponentFields.componenttype.value, RelationDelegate(self, 'componenttype'))
         self.setItemDelegateForColumn(ComponentFields.componentattributevalue.value, RelationDelegate(self, 'componentattributevalue'))
@@ -61,12 +66,6 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         #database gets updated when fields are changed
         self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
 
-        #select the data to display filtered to the input directory selected
-        '''dirm = parent.FileBlock.findChild(QtWidgets.QWidget,F.InputFileFields.inputfiledirvalue.name).text()
-        handler = ProjectSQLiteHandler()
-
-        self.setFilter('inputfile_id = ' + str(handler.getId('input_files','inputfiledirvalue',dirm)))'''
-
         self.select()
 
     def columnCount(self, parent=QtCore.QModelIndex()):
@@ -77,5 +76,4 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return QtCore.QVariant(self.header[section])
         return QtCore.QVariant()
-
 

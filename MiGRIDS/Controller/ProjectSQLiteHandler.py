@@ -209,7 +209,6 @@ class ProjectSQLiteHandler:
          componentoffset double,
          FOREIGN KEY (componentattributeunit) REFERENCES ref_universal_units(code),
          FOREIGN KEY (componentattributevalue) REFERENCES ref_attributes(code)
- 
          );""")
         self.connection.commit()
 

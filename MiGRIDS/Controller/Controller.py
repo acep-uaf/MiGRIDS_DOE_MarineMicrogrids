@@ -1,5 +1,5 @@
 # Projet: MiGRIDS
-# Created by: # Created on: 11/15/2019
+# Created by: T.Morgan # Created on: 11/15/2019
 import os
 from PyQt5 import QtCore, QtGui
 
@@ -137,6 +137,9 @@ class Controller:
         return
     def loadedProject(self):
         self.createDatabaseConnection()
+        if not self.validator.validate(ValidatorTypes.DataObject,self.inputData): #this will set dataobjectvalid to its current state
+            self.showAlert("Could not create a valid data object.")
+
     def createInputData(self):
         self.dbhandler.closeDatabase()
         self.myThread = ThreadedDataCreate()

@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtWidgets, QtSql
 
 #class for combo boxes that are not derived from database relationships
-from MiGRIDS.UserInterface.getFilePaths import getFilePath
+
 from MiGRIDS.UserInterface.displayComponentXML import displayComponentXML
 
 
@@ -27,6 +27,8 @@ class ComboDelegate(QtWidgets.QItemDelegate):
         #set the combo to the selected index
         if isinstance(index.model().data(index),str):
             editor.setCurrentText(index.model().data(index))
+        elif isinstance(index.model().data(index),int):
+             editor.setCurrentIndex(index.model().data(index))
         else:
             editor.setCurrentIndex(index.model().data(index))
         editor.blockSignals(False)
@@ -43,7 +45,7 @@ class ComboDelegate(QtWidgets.QItemDelegate):
     def currentIndexChanged(self):
         self.commitData.emit(self.sender())
         #if its the sets table then the attribute list needs to be updated
-
+        return
 
 #LineEdit textbox connected to the table
 class TextDelegate(QtWidgets.QItemDelegate):

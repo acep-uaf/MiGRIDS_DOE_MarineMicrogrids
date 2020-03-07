@@ -19,10 +19,7 @@ import os
 
 import pytz
 from netCDF4 import Dataset
-from MiGRIDS.InputHandler.processInputDataFrame import processInputDataFrame
-
-
-
+from MiGRIDS.InputHandler.processInputDataFrame import processInputDataFrame, dstFix
 
 
 def readAsHeader(file, header_dict, componentName,inputDict):
@@ -50,8 +47,6 @@ def readAsHeader(file, header_dict, componentName,inputDict):
         if (componentName is not None) & (len(inline) > 1):
            header_dict[componentName][inline[0].rstrip()] = inline[1].rstrip()
         return readAsHeader(file, header_dict, componentName,inputDict)
-
-
 def readAsData(file, names):
     '''reast the data portion of a MET file into a dataframe
     :param file [File] the MET file to be read
@@ -70,7 +65,6 @@ def readAsData(file, names):
     filedf = pd.DataFrame(rowList)
 
     return filedf
-
 #if a new channel speficication is encountered within the input files it gets incremented with an appended number
 #i.e. Channel 3 was windspeed in input file 1 but in input file 6 it becomes wind direction thus the channel name becomes CH3_1
 def channelUp(channel, existing, increment = 1) :
@@ -117,8 +111,8 @@ def scaleData(fileData, headerDict):
             pass
     return fileData
 
-
 def readIndividualWindFile(inputDict):
+
     DATETIME = inputDict['dateChannel.value']
     with open(os.path.join(inputDict['inputFileDir.value'],inputDict['fileName.value']), 'r', errors='ignore') as file:
         # read the header information of each file
@@ -139,11 +133,14 @@ def readIndividualWindFile(inputDict):
 
         fileData = fileData.sort_index()
 
+        #assumes the channel name has a 'Avg' suffix or no suffix at all
+        fileData = fillWindRecords(fileData,inputDict['componentChannels.headerName.value'], inputDict)
         #reduce to only columns of interest
-        fileData = fileData[inputDict['componentChannels.headerName.value']]
+        fileData.columns = inputDict['componentChannels.headerName.value']
         #apply file designated scale and offset from headerdict
 
         fileData = scaleData(fileData,headerDict)
+
         fileData.columns = [t[0] + t[1] for t in list(zip(*[inputDict['componentChannels.componentName.value'],inputDict['componentChannels.componentAttribute.value']]))]
 
     return fileData
@@ -190,60 +187,66 @@ def readAllWindData(inputDict):
 
     return fileDict, winddf
 
-
-def createNetCDF(df,increment,inputDict):
+def createNetCDF(df,increment,dir):
     # create a netcdf file
     dtype = 'float'
     # column = df.columns.values[i]
-    ncName = os.path.join(inputDict['inputFileDir.value'], (str(increment) + 'WS.nc'))
+    ncName = os.path.join(dir, (str(increment) + 'WS.nc'))
     rootgrp = Dataset(ncName, 'w', format='NETCDF4')  # create netCDF object
     rootgrp.createDimension('time', None)  # create dimension for all called time
     # create the time variable
     rootgrp.createVariable('time', dtype, 'time')  # create a var using the varnames
-    rootgrp.variables['time'][:] = pd.to_timedelta(pd.Series(df.index)).values.dt.total_seconds().astype(int)
+    rootgrp.variables['time'][:] = pd.to_timedelta(pd.Series(df.index)-df.index[0]).dt.seconds.values.astype(int)
 
     # create the value variable
     rootgrp.createVariable('value', dtype, 'time')  # create a var using the varnames
     rootgrp.variables['value'][:] = np.array(df['values'])  # fill with values
     # assign attributes
     rootgrp.variables['time'].units = 'seconds'  # set unit attribute
-    rootgrp.variables['value'].units = 'm/s'  # set unit attribute
+    rootgrp.variables['value'].units = 'm/s'  # set unit attribute #TODO should not be static
     rootgrp.variables['value'].Scale = 1  # set unit attribute
     rootgrp.variables['value'].offset = 0  # set unit attribute
     # close file
     rootgrp.close()
 
 #now we need to fill in the gaps between sampling points
-#apply to every row, 10 minutes = 600 seconds
+#wind estimates are always for 1 minute intervals.
 def fillWindRecords(df, channels,inputDict):
+
     database = os.path.join(inputDict['inputFileDir.value'], 'wind.db')
     connection = lite.connect(database)
 
+
     for k in channels:
         logging.info(k)
-
+        thisChannel = k.replace('Avg','')
         newdf = df.copy()
         newdf = newdf.sort_index()
-        newColumns = [x.replace(k,'').rstrip() for x in newdf.columns]
+        newColumns = [x.replace(thisChannel,'').rstrip() for x in newdf.columns]
         newdf.columns = newColumns
         valuesdf = pd.DataFrame()
         valuesdf['time'] = None
         valuesdf['values'] = None
 
         newdf['date'] = pd.to_datetime(newdf.index)
+
+
+
         #turn the df records into windrecords
         ListOfWindRecords = newdf.apply(lambda x: WindRecord(x['SD'], x['Avg'], x['Min'], x['Max'], x['date']), 1)
         logging.info(len(ListOfWindRecords))
         #k is a list of values for each 10 minute interval
         recordCount = 0
+        duration = newdf.index[1]-newdf.index[0]
+        records = duration/pd.to_timedelta('1m') #creating 1 minute records
         for r in ListOfWindRecords:
             #logging.info(recordCount)
-            start = r.getStart(pd.Timedelta(minutes=10), valuesdf)
+            start = r.getStart(duration, valuesdf)
             recordCount +=1
 
-            r.estimateDistribution(601,'1s',start)
-            valuesdf = pd.concat([valuesdf,pd.DataFrame({'time':r.distribution[1],'values':r.distribution[0]})])
-            valuesdf['values'] = valuesdf['values']
+            r.estimateDistribution(records,'1m',start)
+            valuesdf = pd.concat([valuesdf,pd.DataFrame({'time':r.distribution[1].values,'values':r.distribution[0]})])
+
             #every 5000 records write the new values
             if recordCount%5000 == 0:
                 valuesdf.to_sql('windrecord' + k, connection, if_exists='append')
@@ -254,22 +257,29 @@ def fillWindRecords(df, channels,inputDict):
         valuesdf.to_sql('windrecord' + k, connection, if_exists='append')
 
         winddf = pd.read_sql_query("select * from windrecord" + k, connection)
-
-        winddf = winddf.set_index(pd.to_datetime(winddf[inputDict['dateChannel.value']], unit='s'))
+        timeZone = pytz.timezone(inputDict['timeZone.value'])
+        winddf['time'] = pd.to_datetime(winddf['time'])
+        winddf['time'] = winddf['time'].apply(lambda d: timeZone.localize(d, is_dst=inputDict['inputDST.value']))
+        winddf['time'] = winddf['time'].dt.tz_convert('UTC')
+        winddf = winddf.set_index(pd.to_datetime(winddf['time']),drop=True)
         winddf = winddf[~winddf.index.duplicated(keep='first')]
+
         try:
-            createNetCDF(winddf, k)
+            createNetCDF(winddf, k,inputDict['inputFileDir.value'])
             connection.close()
             os.remove(database)
 
-        except:
+        except Exception as e:
             print ('An error occured. Current results are stored in %s' %database)
+        finally:
+            winddf = winddf.rename(columns={'values': k})
+    winddf = winddf[channels]
     return winddf
 
-
-def readWindData_mp(inputDict, result):
-    df = readIndividualWindFile(inputDict)
-    result.put(df)
+# def readWindData_mp(individualDict, result):
+#     print("sending", individualDict['fileName.value'])
+#     df = readIndividualWindFile(individualDict)
+#     result.put(df)
 
 # a data class for estimating and storing windspeed data collected at intervals
 class WindRecord():
@@ -298,39 +308,39 @@ class WindRecord():
         return myvalue
 
     #self, integer, numeric,string, integer
-    def getValues(self, elapsed_time, start,interval, tau = None):
+    def getValues(self, records, start,timestep, tau = None):
         mu = self.mu
         sigma = self.sigma
-        timestep = pd.Timedelta(interval).seconds
-
-        #number of records to estimate
-        n = int(elapsed_time/timestep)
-
+        timestep = pd.to_timedelta(timestep)
+        records = int(records)
         #tau scales the relationship between time and change in value of x
         #larger values result in larger drift and diffusion
         if tau is None:
-            tau = n
+            tau = records * 0.2
 
-        x = np.zeros(n)
+        x = np.zeros(int(records))
         #renormalized variables
-        sigma_bis = sigma * np.sqrt(2.0 /n)
-        sqrtdt = np.sqrt(timestep)
+        sigma_bis = sigma * np.sqrt(2.0 /records)
+        sqrtdt = np.sqrt(timestep.seconds)
 
         x[0] = start
         #np.random is the random gaussian with mean 0
-        for i in range(n-1):
-            x[i+1] = x[i] + timestep*(-(x[i]-mu)/tau) + sigma_bis * sqrtdt * np.random.randn()
-
+        #1 timestep between records
+        for i in range(records-1):
+            x[i+1] = x[i] + 1 *(-(x[i]-mu)/tau) + sigma_bis * sqrtdt * np.random.randn()
+        x[x < 0] = 0
+        x[x > self.maxws] = self.maxws
         return x
 
 
     def estimateDistribution(self, records,interval, start = None, tau = None):
        if start is None:
            start = self.minws
-       tau = records
+
        x = self.getValues(records, start, interval, tau)
 
-       t = pd.date_range(self.datetime - pd.to_timedelta(pd.Timedelta(interval).seconds * records, unit='s'), periods=records,freq='s')
+       t = pd.date_range(self.datetime - pd.to_timedelta(pd.Timedelta(interval) * records, unit='s'), periods=records,
+                         freq=pd.to_timedelta(interval))
        self.distribution = [x,t]
        return
 

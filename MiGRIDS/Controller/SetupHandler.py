@@ -1,20 +1,21 @@
 # Projet: MiGRIDS
 # Created by: T.Morgan # Created on: 9/25/2019
 import os
-import pickle
 import pandas as pd
 from MiGRIDS.Controller.UIHandler import UIHandler
+from MiGRIDS.InputHandler.DataClass import DataClass
 from MiGRIDS.InputHandler.InputFields import *
 from MiGRIDS.InputHandler.buildProjectSetup import buildProjectSetup
 from MiGRIDS.InputHandler.fillProjectData import fillProjectData
+from MiGRIDS.InputHandler.fixBadData import fillComponentTypeLists
 from MiGRIDS.InputHandler.readData import readInputData_mp
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
-
+from MiGRIDS.InputHandler.createComponentDescriptor import createComponentDescriptor
 
 class SetupHandler(UIHandler):
     """
     Description: Provides methods for reading, writing, and passing main project setup information.
-    Attributes:
+    Attributes: dbhandler (passed during init)
     """
 
     def __init__(self,dbhandler):
@@ -42,7 +43,6 @@ class SetupHandler(UIHandler):
         :param soup: Beautiful soup object of tags and values to wriete
         :return: None
         '''
-        from MiGRIDS.InputHandler.createComponentDescriptor import createComponentDescriptor
 
         #soup is an optional argument, without it a template xml will be created.
         fileDir = getFilePath('Components',projectFolder=self.dbhandler.getProjectPath())
@@ -60,7 +60,6 @@ class SetupHandler(UIHandler):
     def createCleanedData(self):
         ''' calls input handler functions to create a clean dataset that can be used to produce input files for modeling.
         Input information is pulled from the project_manager database'''
-
         from MiGRIDS.InputHandler.fixBadData import fixBadData
         from MiGRIDS.InputHandler.fixDataInterval import fixDataInterval
 
@@ -86,21 +85,34 @@ class SetupHandler(UIHandler):
 
         self.sender.update(3, 'Fixing bad values')
         # now fix the bad data
-        data_fixed = fixBadData(df, getFilePath('Setup',projectFolder=self.dbhandler.getProjectPath()), listOfComponents, inputDictionary['runTimeSteps.value'],
+        #fixBad Data takes a DataClass object as input so create one
+        # create DataClass object to store raw, fixed, and summery outputs
+        data = DataClass(df, inputDictionary[RUNTIMESTEPS])
+        data.components = listOfComponents
+        # parse data columns by type
+        eColumns, loads, powerColumns = fillComponentTypeLists(listOfComponents)
+        data.powerComponents = powerColumns
+        data.ecolumns = eColumns
+        data.loads = loads
+        # if len(data.keepOverlapping(data.df)) <=0:
+        #     self.showCheckin()
+        #     self.showShiftInput(data)
+        data= fixBadData(data, getFilePath('Setup',projectFolder=self.dbhandler.getProjectPath()),
                               sender=self.sender) #can update up to 2 counts on progress bar
         self.sender.update(3, 'Fixing intervals')
         # fix the intervals
         print('fixing data timestamp intervals to %s %s' % (inputDictionary[TIMESTEP],inputDictionary[TIMESTEPUNIT]))
         #can update upto 2 counts on progress bar
-        df_fixed_interval = fixDataInterval(data_fixed, pd.to_timedelta(inputDictionary[TIMESTEP], unit = inputDictionary[TIMESTEPUNIT]), sender=self.sender)
-        df_fixed_interval.preserve(getFilePath('Setup',projectFolder=self.dbhandler.getProjectPath()))
+        data = fixDataInterval(data, pd.to_timedelta(inputDictionary[TIMESTEP], unit = inputDictionary[TIMESTEPUNIT]), sender=self.sender)
+        data.preserve(getFilePath('Setup',projectFolder=self.dbhandler.getProjectPath()))
         self.sender.update(10, 'done') #the process is complete
-        return df_fixed_interval, listOfComponents
+        return data, listOfComponents
 
     def createNetCDF(self, lodf, componentDict, setupFolder):
         '''
-        Create netcdf file from a list of dataframes return a list of netcdf files created
-        :param lodf: List of DataFrames with time indices and column names that match the componentDict
+        Create netcdf file from a list of dataframes return a list of netcdf files created.
+        Netcdfs for components in the largest of the listed dataframes is are returned. No netcdfs for smaller dataframes are retained.
+        :param lodf: List of DataFrames with time indices and column names that match the componentDict keys
         :param componentDict: a dictionary of component attributes, including column names
         :param setupFolder: The folder path containing the projects setup.xml file
         :return: List of Strings naming the netcdf files created.
@@ -119,37 +131,3 @@ class SetupHandler(UIHandler):
                 largest = len(df)
         return netCDFList
 
-    # def storeComponents(self, ListOfComponents, setupFile):
-    #     '''
-    #     Creates a pickle object for component objects within the setup folder
-    #     :param ListOfComponents: A list of Component Objects
-    #     :param setupFile: path to the setup xml file
-    #     :return: None
-    #     '''
-    #     outputDirectory = os.path.dirname(setupFile)
-    #
-    #     if not os.path.exists(outputDirectory):
-    #         os.makedirs(outputDirectory)
-    #     outfile = os.path.join(outputDirectory, 'components.pkl')
-    #     file = open(outfile, 'wb')
-    #     pickle.dump(ListOfComponents, file)
-    #     file.close()
-    #     return
-    #
-    # def storeData(self, df, setupFile):
-    #     '''
-    #     Creates a pickle object of a DataClass object within the processed data folder
-    #     :param df:
-    #     :param setupFile:
-    #     :return:
-    #     '''
-    #
-    #     outputDirectory = getFilePath(os.path.dirname(setupFile), 'Processed')
-    #     print("processed data saved to %s: " % outputDirectory)
-    #     if not os.path.exists(outputDirectory):
-    #         os.makedirs(outputDirectory)
-    #     outfile = os.path.join(outputDirectory, 'processed_input_file.pkl')
-    #     file = open(outfile, 'wb')
-    #     pickle.dump(df, file)
-    #     file.close()
-    #     return

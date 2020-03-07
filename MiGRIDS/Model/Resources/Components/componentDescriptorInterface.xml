@@ -25,5 +25,14 @@
     <!-- 'POutMaxPa' is the maximum real power the unit can deliver to the grid. Should be 0 if sink. Units: kW -->
     </POutMaxPa>
 
+    <!-- Grid service capabilities -->
+    <isVoltageSource value="FALSE">
+    <!-- 'isVoltageSource' describes the capability of the component to regulate vars. -->
+    </isVoltageSource>
+
+    <isFrequencyReference value="FALSE">
+    <!-- 'isFrequencyReference' describes the units capability to be the frequency reference of the the grid. -->
+    </isFrequencyReference>
+
 </component>
 <!-- EOF -->

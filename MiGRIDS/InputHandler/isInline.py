@@ -9,7 +9,7 @@ import datetime
 # series -> series
 from MiGRIDS.InputHandler.badDictAdd import badDictAdd
 
-
+MAXSMALLBLOCKDURATION = 1209600
 def checkDataGaps(s):
     '''checkDataGaps looks for gaps in the timestamp index that is greater than the median sampling interval
      new records will have NA for values.
@@ -22,22 +22,26 @@ def checkDataGaps(s):
     #shift it up so duration is to the next row
     timeDiff = timeDiff.shift(periods = -1)
     #find the median timestep
-    medians = createMedians(timeDiff)
-    timeDiff = pd.DataFrame(timeDiff)
-    timeDiff['medians'] = medians   
-    timeDiff.columns = ['timeDiff','medians']
+   # medians = createMedians(timeDiff)
+    #timeDiff = pd.DataFrame(timeDiff)
+    #timeDiff['medians'] = medians
+    #timeDiff.columns = ['timeDiff','medians']
 
     #local function to create datetime index
     #r is a row consisting of value and timedelta column named dif
     def makeIndex(r):
-        d = pd.date_range(start =pd.to_datetime(r.name), periods=int(r['timeDiff']/r['medians']), freq=r['medians']).tolist()
-        return [d,None]
+        d = pd.date_range(start =pd.to_datetime(r.start), periods=int(r.timeDiff/m), freq=m).tolist()
+        return [d]
     
     #filtered is a dataframe of values that need to be filled in because gaps in 
     #timestamps are greater than the median sample interval multiplied by 2
     
-    filtered = timeDiff[timeDiff['timeDiff'] > timeDiff['medians'] * 2]
-
+    #filtered = timeDiff[timeDiff['timeDiff'] > timeDiff['medians'] * 2]
+    m = timeDiff.median()
+    timeDiff = pd.DataFrame(timeDiff)
+    timeDiff.columns = ['timeDiff']
+    filtered = timeDiff[timeDiff.timeDiff > m]
+    filtered['start'] = pd.Series(pd.to_datetime(filtered.index),index=filtered.index)
     #list of missing timestamps for each indice in filtered
     missingIndices =filtered.apply(lambda r: makeIndex(r),axis=1)
     if len(missingIndices) > 0:
@@ -55,15 +59,12 @@ def checkDataGaps(s):
         s = s.sort_index(0, ascending=True)
     return s
     
-
-# series -> series
-# returns the group id for values in the series, consecutive values will belong to the same group
 def isInline(s):
     '''
     Itentifies rows of data that are inline (unchanged values) or datagaps (inline due to no data). Returns a series of same length as s of group id's.
-     Inline values will all have the same group id. Non-inline values will have NA
+     Inline values will all have the same group id.
     :param s: [Series] to be evalueated.
-    :return: [Series] group id's for inline values, NA for non-inline values
+    :return: [Series] group id's for inline values
     '''
     #get rid of na's added through merging seperate files - this happens when timestamps don't match between files
     #these are not actual na's that we want to identify
@@ -86,20 +87,22 @@ def isInline(s):
     
     return pd.Series(s)
 
-#splits a dataframe into 2 dataframes and returns a list of resulting dataframes
-#Dataframe,index, Timedelta-> list of Dataframe
-def removeChunk(df, i1, d):
-    newlist = [df[:i1][:-1],df[i1 + d:][1:]]
+def removeChunk(df, i1, i2):
+    '''splits a df into 2 dataframes at the specified indices
+    df1 will not includ i1, and df 2 will not include i2
+    :param df a pandas dataframe
+    :param i1 a pandas index that will be the location of the first split
+    :param i2 a pandas index that will be the location of the second split'''
+    newlist = [df[:i1][:-1],df[i2:][1:]]
     return newlist
 
-#Identify indices to split a dataframe at based on absence of data for a specified interval
-#ListOfDataframe, String, timedelta  ->Series  
+
 def identifyCuts(lod, cname, cutoff, cutStarts):
     '''Evaluates a list of dataframes for gaps in data beyond an acceptable tolerance. Indices returned provide cut points to spit the dataframes at.
     :param lod: [ListOf Dataframe] list of dataframes to evaluate
     :param cname: [String] column within a dataframe to evaluate
     :param cutoff: [pandas.TimeDelta] max duration tolerable without data
-    :param cutStarts: [Listof Indices] a list of indices to split the dataframes at
+    :param cutStarts: pandas.series of indices
     :return: [Listof Indices] a list of indices to split the dataframes at
     '''
     if (len(lod) <= 0):
@@ -124,12 +127,15 @@ def cutUpDataFrame(lod, loc):
 
 #split a dataframe at cut and return the 2 dataframes as a list
 def makeCut(lod, cut,newlist):
+    '''cut is index'''
     if len(lod) <= 0:
         return None
     else:
-        if (cut.index[0] in lod[0].index):
-            newlist = removeChunk(lod[0], cut.index[0], cut[0]) + lod[1:] + newlist
-            
+        #if (cut.index[0] in lod[0].index)
+        #    newlist = removeChunk(lod[0], cut.index[0], cut[0]) + lod[1:] + newlist
+        if (cut[0] in lod[0].index):
+            newlist = removeChunk(lod[0], cut[0], cut[:1][0]) + lod[1:] + newlist
+
             return newlist
         else:
             return makeCut(lod[1:],cut,newlist + lod[:1])
@@ -147,61 +153,80 @@ def makeCuts(lod, cuts):
            return makeCuts(lod, cuts[1:])
            
 
-#Find blocks of data to replace bad data
+
 def findValid(initialTs, d, possibles, s):
     '''
     Finds a datetime indices to be used as the start point for replacing bad data.
     if a valid replacement block is not found the initial timestamp is returned.
     inline values need to become na before this point.
-    :param initialTs: [DateTime] is the timestamp for the beginning of the bad data
-    :param d: [TimeDelta] is the duration of the missing data
-    :param possibles: [DateTimeIndices] vector of possible starting points for replacement block
-    :param s: [pandas.Series] series being evaluated.
-    :return: [DateTimeIndex] a single datetime to that indicates the start of the data block to be used as replacement
+    :param initialTs: pandas datetime is the timestamp for the beginning of the bad data
+    :param d: TimeDelta is the duration of the missing data
+    :param possibles: A series with index type that matches S and contains possible replacement values
+    :param s: pandas.Series series being evaluated.
+    :return: pandas.datetime a single datetime that indicates the start of the data block to be used as replacement
     '''
     s = s.copy()
     s.loc[initialTs:initialTs + d,] = np.nan
     if len(possibles) < 1:
         return initialTs
     else:
-        if len(s[pd.to_datetime(possibles.first_valid_index()):pd.to_datetime(possibles.first_valid_index()) + d].dropna()) < len(s[pd.to_datetime(possibles.first_valid_index()):pd.to_datetime(possibles.first_valid_index()) + d]):
-            possibles = possibles[possibles.first_valid_index():][1:]
+        totalCoverage = calculateNonNullDuration(pd.to_datetime(possibles.first_valid_index()),pd.to_datetime(possibles.first_valid_index())+d, s)
+
+        if (totalCoverage < d * 0.9 ) | (totalCoverage >  d * 1.2): #not a fit so keep looking
+        #if len(s[pd.to_datetime(possibles.first_valid_index()):pd.to_datetime(possibles.first_valid_index()) + d].dropna()) < len(s[pd.to_datetime(possibles.first_valid_index()):pd.to_datetime(possibles.first_valid_index()) + d]):
+            possibles = possibles[possibles.first_valid_index():][1:] #remove the first possible value from consideration
             return findValid(initialTs, d, possibles, s)
         else:
-            return possibles[possibles.first_valid_index()]
+            return possibles.first_valid_index()
             
 
     #first value is startof missing block
     #second value is end of missing block   
     #third value is list of possible replacement indices
-#s is a series containing replacement values and matching indices to n
-def validReplacements(n, s):
+
+
+def calculateNonNullDuration(index1,index2, s):
+    '''Calculates the time duration of a series, excluding null values '''
+    evaluationChunk = s[index1:index2]
+    evaluationTime = pd.Series(evaluationChunk.index, index=evaluationChunk.index).diff()
+    if (isinstance(s,pd.Series)):
+        evaluationTime.loc[pd.isnull(evaluationChunk)] = 0  # set to 0 where s is null
+    else:
+        evaluationTime.loc[pd.isnull(evaluationChunk).any(axis=1)] = 0
+    totalCoverage = pd.notnull(evaluationTime).sum()
+    totalCoverage = pd.to_timedelta(totalCoverage, 'h')
+
+    return totalCoverage
+
+
+def validReplacements(possibleIndices, possibleReplacementValues):
     '''
     Identifies if a specified record is the start of valid replacement block
-    :param n: [Named Array] consisting of first, last and possibles.
-    :param s: [pandas.Series] replacement values to evaluate
+    :param possibleIndices: DataFrame consisting of first, last and possibles.
+    :param possibleReplacementValues: pandas.Series replacement values to evaluate
     :return: [DateTimeIndex]
     '''
-    if type(n['possibles']) is not list:
-        return n['first']
+    if type(possibleIndices['possibles']) is not list:
+        return possibleIndices['first']
     #n is the entire indicesOfinterest dataframe
-    p = pd.Series(n['possibles'],index=n['possibles'])
+    p = pd.Series(possibleIndices['possibles'], index=possibleIndices['possibles'])
     p = p[~p.index.duplicated(keep='first')]
-    df = pd.concat([s,p],
-               keys=['series','possibles'],
-               axis=1, join='inner') 
+    df = pd.concat([possibleReplacementValues, p],
+                   keys=['series','possibles'],
+                   axis=1, join='inner')
     
-    if type(s) is pd.DataFrame:
-        df = df.drop(s.columns, axis=1, level=1)
+    if type(possibleReplacementValues) is pd.DataFrame:
+        df = df.drop(possibleReplacementValues.columns, axis=1, level=1)
         #get rid of level 1 index
         df.columns = df.columns.droplevel(1)
         
        
-    diff = abs(pd.to_timedelta(df['possibles'] - pd.to_datetime(n['first'])))
+    diff = abs(pd.to_timedelta(pd.Series(df.index) - pd.to_datetime(possibleIndices['first'])))
+    diff.index = df.index
     df['diff'] = diff
     df = df.sort_values('diff')
     p = df['possibles']
-    v = findValid(n['first'], n['last']-n['first'], p, s)
+    v = findValid(possibleIndices['first'], possibleIndices['last'] - possibleIndices['first'], p, possibleReplacementValues)
     return v
 
 
@@ -210,51 +235,55 @@ def dropIndices(df, listOfRanges):
     if len(listOfRanges) <= 0:
         return df
     else:
-       l = removeChunk(df, listOfRanges['first'].iloc[0], listOfRanges['last'].iloc[0] - listOfRanges['first'].iloc[0])
+       l = removeChunk(df, listOfRanges['first'].iloc[0], listOfRanges['last'].iloc[0])
        if len(l)>1:
            df = l[0].append(l[1])
        return dropIndices(df,listOfRanges.iloc[1:])
    
 #
 
-def doReplaceData(groups, df_to_fix, cuts, s):
+def doReplaceData(groups, df_to_fix, cuts, possibleReplacementValues):
     '''
     replace bad data in a dataframe starting with small missing blocks of data and moving to big blocks of missing data
-    :param groups: [pandas.DataFrame] with columns size, first and last
-    :param df_to_fix: [DataFrame] the dataframe to fix
-    :param cuts: [listOf TimeDeltas]
-    :param s:[Series Or DataFrame] where replacement values are drawn from. Can be larger than df_to_fix
+    df_to_fix and possibleReplacementValues need to have the same columns.
+    :param groups: pandas.DataFrame with columns size, first and last, first is the first indixe in a block to replace, last is the last index to replace
+    :param df_to_fix: DataFrame the dataframe to fix
+    :param cuts: [listOf TimeDeltas] the duration of each block of missing data will fall into a cut timedelta
+    :param possibleReplacementValues: DataFrame where replacement values are drawn from. Can be larger than df_to_fix. If possibleReplacmentValues contains null
+    then values can be replaced with null
     :return: [DataFrame] with bad values replaced
     '''
+
+    if (len(df_to_fix.shape)) >1 and (df_to_fix.shape[1] > 1):
+        if df_to_fix.shape[1] != possibleReplacementValues.shape[1]:
+            raise Exception #TODO replace with custom exception
+
     if(len(groups) <= 0):
         return df_to_fix
      #replace small missing chunks of data first, then large chunks
     else:
-        groupsOfInterest = groups[groups['size'] <= cuts[0]]
-        indicesOfInterest = groupsOfInterest
-        #s2 is our new values dataframe
+        indicesOfInterest = groups[groups['size'] <= cuts[0]]
+        #if thera are any blocks of the appropriate size replace them.
         if len(indicesOfInterest) > 0:
-
-            #convert datetimes to integers
-            origin = s.first_valid_index()
-            totalDuration = (s.last_valid_index() - origin).total_seconds()
-            indicesSeconds = pd.DataFrame()
-            indicesSeconds['first'] = (indicesOfInterest['first']-origin).astype('timedelta64[s]')
-            indicesSeconds['last'] = (indicesOfInterest['last']-origin).astype('timedelta64[s]')
-            print(datetime.datetime.now())
-            indicesOfInterest.loc[:,'possibles'] = getPossibleStarts(indicesSeconds['first'], indicesSeconds['last'], origin, totalDuration)
-            
-            replacementStarts = indicesOfInterest.apply(lambda n: validReplacements(n, s), axis = 1)
+            indices = pd.DataFrame()
+            indices['first'] = indicesOfInterest['first']
+            indices['last'] = indicesOfInterest['last']
+            searchSeries = pd.Series(possibleReplacementValues.index)
+            searchSeries.index = searchSeries
+            pos = indices.apply(lambda i: getPossibleStarts(i['first'],i['last'], searchSeries),axis=1)
+            indicesOfInterest.loc[:, 'possibles'] = pos
+            replacementStarts = indicesOfInterest.apply(lambda n: validReplacements(n, possibleReplacementValues), axis = 1)
             
             indicesOfInterest.loc[:,'replacementsStarts'] = replacementStarts
        
             #replace blocks of nas with blocks of replacementstarts
             df_to_fix = dropIndices(df_to_fix, indicesOfInterest)
             #new values get appended onto the datframe
-            df_to_fix = expandDataFrame(indicesOfInterest,df_to_fix)
+
+            df_to_fix = expandDataFrame(indicesOfInterest, df_to_fix)
 
             
-        return doReplaceData(groups[groups['size'] > cuts[0]],df_to_fix,cuts[1:],s)
+        return doReplaceData(groups[groups['size'] > cuts[0]], df_to_fix, cuts[1:], possibleReplacementValues)
 
 #ioi is a single row from indicesOfInterest
 #s is the series with na's removed
@@ -264,23 +293,29 @@ def listsToDataframe(ioi,s):
     '''generates an dataframe with the specified range of indices and values drawn from a list provided by ioi
     :param ioi: [namedArray] a single row from a indicesOfInterest Dataframe with columns, first, last and replacementStarts
     :param s: [Series] that replacement values are extracted from
-    :return: [DataFrame] filled with values from ioi['replacements']
+    :return: [DataFrame] filled with values from replacement series
     '''
     firstMissing = ioi['first']
     lastMissing = ioi['last']
     start = ioi['replacementsStarts']
     
     newBlock =s[start:start + (lastMissing - firstMissing)]
-    
-    if len(newBlock) > 0:
-        timeFromStart = pd.Series(pd.to_datetime(newBlock.index)- pd.to_datetime(newBlock.index[0]))
-        adjustedBlockTimes = timeFromStart + firstMissing 
-        newBlock.index=adjustedBlockTimes
-        #values that can't be replaced get returned to na and filled during upsampling
-    else:
-        newBlock = pd.DataFrame(index = pd.date_range(start=firstMissing,periods=2, 
-                                                      freq =(lastMissing - firstMissing)))
+    #set the index frequency
 
+    if len(newBlock) > 0:
+        f = (lastMissing - firstMissing) / (len(newBlock))
+        #index of newBlock gets adjusted to fit into the missing space
+        timeDiff = newBlock.index[0] - firstMissing #difference between new and missing
+        #newIndex = pd.date_range(start=firstMissing,periods=len(newBlock),freq=f)#create an index that matches the timestamps we are replaceing
+        newBlock.index = newBlock.index - timeDiff # assign the new indext to the values we took from elsewhere
+
+    else:
+        if (isinstance(s,pd.Series)):
+            newBlock = pd.Series(index = pd.date_range(start=firstMissing,periods=2,
+                                                      freq =(lastMissing - firstMissing)))
+        else:
+            newBlock = pd.DataFrame(index = pd.date_range(start=firstMissing,periods=2,
+                                                      freq =(lastMissing - firstMissing)))
     return newBlock
 
 #insert blocks of new data into an existing dataframe
@@ -289,6 +324,8 @@ def listsToDataframe(ioi,s):
 def expandDataFrame(idf, s):
     '''
     insert blocks of new data into an existing dataframe
+    gets number of records from replacement, adds indices between start and end based on number of records
+    replacements and s need to be the same shape
     :param idf: [DataFrame] consisting of first, last and replacementstart columns
     :param s: [pandas.Series or pandas.DataFrame] dataframe or series to be expanded
     :return: [pandas.Series or pandas.DataFrame]
@@ -296,139 +333,117 @@ def expandDataFrame(idf, s):
     if len(idf) <= 0:
         return s
     else:
-        s = s.append(listsToDataframe(idf.iloc[0],s))
-
+        s = s.append(listsToDataframe(idf.iloc[0], s))
         s = s.sort_index()
-        
         return expandDataFrame(idf.iloc[1:],s)
 
 
-#find the range of time to search based on a input duration
-def getTimeRange(d):
-    '''find the range of time to search based on a input duration
-    :param d: [integer] the number of seconds to be replaced
-    :return: [integer] the number of seconds that should be searched for a replacement
-    '''
-    #days missing 
-    days = round(d/86400, 0)
-    days[days == 0] = 1
-    days= days * 432000  
-    return days
-
-#returns a list of integer indices sorted by distance from s with lenght 2 * timeRange
+#returns a list of integer indices sorted by distance from s with length 2 * timeRange
 #integer, integer -> listOfInteger
 #s is start, timerange is searchrange
 def createSearchRange(s,timeRange):
     '''
     creates a search window based on the input timerange and start indice
     :param s: [datetime] the start datetime
-    :param timeRange: [integer] the number of seconds to include in the search window
-    :return: [pandas.DateTimeRange] the date time range surrounding the start point to use as a search window
+    :param timeRange: pandas timedelta the number of seconds to include in the search window
+    :return: list the date time range surrounding the start point to use as a search window
     '''
-    fullRange = list(range(int(s),int(timeRange),1)) + list(range(int(s), int(s)-int(timeRange),-1))
-    RangeAsSeries = pd.Series(fullRange, index = fullRange)
-    #how far away from the origon a list item is
-    RangeAsSeries = RangeAsSeries - s
-    return RangeAsSeries.sort_values().index.tolist()
+    fullRange =[s - timeRange, s+timeRange]
+    return fullRange
     
     
 #find possible replacement starts
-def getPossibleStarts(firstMissingIndex, lastMissingIndex, origin, totalDuration):
+def getPossibleStarts(missingIndexFirst,missingIndexLast,searchIndex):
     ''' find the possible start indices for replacement data based in the indices of missing data and total duration of missing data.
     If there are multiple years represented in the dataset that possible starts are biassed towards previous years data.
 
-    :param firstMissingIndex: [Index] the index of the first missing record
-    :param lastMissingIndex: [Index] the index of the last missing record
-    :param origin: [Index] the start index of a dataframe that contains missing data
-    :param totalDuration: [Integer] the number of seconds covered by missing data
+    :param MissingIndex: pandas date_range of missing values
+    :param searchIndex: pandas.index of possible replacements
     :return: [ListOf Indices] the indices of records that could be used as the start point for replacement blocks
     '''
     # if there is a match then stop looking,
     # otherwise increment the search window by a year and look again
-   
-    #duration will be an integer of seconds of missing data
-    duration = (lastMissingIndex- firstMissingIndex)
-    smallBlock = duration < 1209600 #the number of second that we are willing to replace with data from the same year
-    timeRange = getTimeRange(duration)
-    firstMissingTimestamp = origin + pd.to_timedelta(firstMissingIndex, unit='s') #to timestamp
-    # s is the first point we can start searching (attempts to go back as far as dataset will allow)
-    #start and small block are vectors
-    #make start and small block a dataframe
-    dd = pd.DataFrame({'start':firstMissingIndex, 'smallBlock':smallBlock,'timeRange':timeRange,'totalDuration':totalDuration, 'firstMissingTimestamp':firstMissingTimestamp})
-    dd = getStartYear(dd)
 
-    dd.loc[:,'possibles'] = 0
-    #this seems to be running three times per n
-    dd.loc[:,'possibles'] = dd.apply(lambda n: calculateStarts([],n['smallBlock'],n['startyear'],n['start'], n['timeRange'], n['totalDuration'], origin)  ,axis=1)
+    smallBlock = (missingIndexLast-missingIndexFirst).total_seconds() < MAXSMALLBLOCKDURATION #the number of second that we are willing to replace with data from the same year
+
+
+    #make start and small block a dataframe
+    #dd = pd.DataFrame({'smallBlock':smallBlock,'missingIndex':missingIndexFirst})
+    sy = getStartYear(smallBlock,missingIndexFirst,searchIndex)
+
+    possibles = calculateStarts([], smallBlock, sy,[missingIndexFirst,missingIndexLast], searchIndex)
     #possibles get filtered 
-    return dd['possibles']
+    return possibles
 
 
 #DataFrame -> DataFrame
 #input dataframe contains columns start for the start index of a mising block of data in seconds from beginning of dataset
 #totalduration is the to time covered in the dataset
 #smallBlock is whether the missing block is less than 2 weeks - boolean
-def getStartYear(df):
+def getStartYear(smallBlock, firstMissingIndex,searchIndex):
     ''' Identifies what year to start searching for replacement data in. Prioritizes previous year.
     If it is a large block of missing data then data from the same year is not considered acceptable
     input dataframe contains columns start for the start index of a mising block of data in seconds from beginning of dataset
      totalduration is the to time covered in the dataset
      smallBlock is whether the missing block is less than 2 weeks - boolean
-    :param df: [pandas.DataFrame] of data provided for replacement
-    :return: df [pandas.DataFrame] startyear column is filled in
+    :param searchIndex: the indices provided for replacement
+    :return: df dataframe characteristics of the data to replace
+    TimeRange is the duration of time missing
+    start is the start index of the potential placement block
+    smallblock is wheather or not it is a small block of missing data
+    firstmissing is the timestamp at the start of the missing block
+    startyear is the valeu the search will begin at
     '''
-    #subtract 
-    df.loc[:,'startyear'] = df['start'] - 31536000 
-     #if its still above 0 try subtracting again
-    df.loc[(df['startyear'] > 0 ),'startyear'] = df['startyear'] - 31536000 
-    
+    #start by going back 1 year
+    #subtract a year from the start point
+    sy = firstMissingIndex - pd.to_timedelta(31536000,'s')
+
     #if it goes before the origin try increasing by a year
-    df.loc[(df['startyear'] < 0 ),'startyear'] = df['startyear']+ 31536000 
+    if sy < searchIndex.index[0]:
+        sy = sy + pd.to_timedelta(31536000,'s')
    
-    #anything still below zero go up again
-    df.loc[(df['startyear'] < 0 ),'startyear'] = df['startyear'] + 31536000 
+    #anything still below the first possible index go up again
+    if sy  < searchIndex.index[0] :
+        sy = sy+ pd.to_timedelta(31536000,'s')
     #or any are big blocks and are now at the start year
-    df.loc[(abs(df['startyear'] - df['start']) < 31536000) & (df['smallBlock'] == False),'startyear'] = df['startyear'] + 31536000 
-    # if any are above the range acceptable - totalDuration go back down
-    df.loc[(df['startyear'] > df['totalDuration'] ),'startyear'] = df['startyear'] - 31536000
+    if (abs(sy- searchIndex.index[0]) < pd.to_timedelta(31536000,'s')) & (smallBlock == False):
+        sy = sy + pd.to_timedelta(31536000,'s')
+    # if any are above the range acceptable - go back down
+    if (sy > searchIndex.index[-1] ):
+        sy = sy - pd.to_timedelta(31536000,'s')
     #if the difference between start year and start is less than a year and smallBlock is false startyear = np.nan
-    df.loc[(abs(df['startyear'] - df['start']) < 31536000) & (df['smallBlock'] == False),'startyear']= np.nan
-    return df
+    if (abs(sy - searchIndex.index[0]) < pd.to_timedelta(31536000,'s')) & (smallBlock == False):
+        sy =  np.nan
+    return sy
 
-
-#generate list of start points to consider for replacement blocks
-def calculateStarts(possibles, smallBlock, searchPoint, start, timeRange,totalDuration, origin):
+def calculateStarts(possibles, smallBlock, searchPoint, missingIndex, searchSeries):
     '''
+    [], n['smallBlock'], n['startyear'],n['missingIndex'], n['searchIndex']
     finds the possible start points for replacement blocks for a given block of missing data
     :param possibles: [ListOfIndices] the possible start indices
     :param smallBlock: [Boolean] whether or not the missing data is small or large in duration
     :param searchPoint: [index] index of the initial search point - changes with each recursive call
     :param start: [index] start index of the rows to be replaced
     :param timeRange: [integer] number of seconds on either side of the searchPoint to include in the search range
-    :param totalDuration: [integer] the total number of seconds covered by the dataframe
+    :param lastIndex: [integer] the total number of seconds covered by the dataframe
     :param origin: [index] the first index of the dataframe
     :return: [ListOf DatetimeIndices]
     '''
-    if searchPoint > totalDuration:
-        p = pd.Series(possibles, index = possibles)
-        possibles = pd.to_timedelta(p,unit = 's')
-        
-        i = origin + possibles 
-        possibles.index = i  
-        #go back to initial year
-        return [filteredTimes(possibles, origin + pd.Timedelta(seconds = start))]
-    elif np.isnan(searchPoint):
-        return pd.Series([None])
-    elif abs(searchPoint - start) > 31536000:
-        return  calculateStarts(createSearchRange(searchPoint,10800), smallBlock, cycleYear(searchPoint,True,start, smallBlock),start, timeRange, totalDuration,origin)
+    if searchPoint > searchSeries.index[-1]: #can't search any more so return the possibles
+
+        p = searchSeries[searchSeries.between(pd.to_datetime(possibles[0]), pd.to_datetime(possibles[1]))]
+        return [filteredTimes(p, missingIndex[0])]
+    elif abs(searchPoint - missingIndex[0]) > pd.to_timedelta(31536000,'s'): #search point is more than a year from block to replace
+        #generate a new range of values to search and create a list of possibles based on a small window around the search point
+        return  calculateStarts(createSearchRange(searchPoint,pd.to_timedelta(10800,'s')), smallBlock, cycleYear(searchPoint,True,missingIndex[0], smallBlock), missingIndex, searchSeries)
     else:
-        return  calculateStarts(createSearchRange(searchPoint,timeRange), smallBlock, cycleYear(searchPoint,True,start, smallBlock), start, timeRange, totalDuration,origin)
+        return  calculateStarts(createSearchRange(searchPoint,missingIndex[1]-missingIndex[0]), smallBlock, cycleYear(searchPoint,True,missingIndex[0], smallBlock), missingIndex, searchSeries)
 
 
 #filters the possible times to match day of week and time envelope
-def filteredTimes(possibles,firstMissingTimestamp):
+def filteredTimes(possibles,missingIndexStart):
     ''' filters the a list of possible times to match day of week and time envelope of a given datetime
-    :param possibles: [Listof DateTime]
+    :param possibles: Listof DateTime start and end point of range
     :param firstMissingTimestamp: [DateTime
     :return: [ListOfDateTime]
     '''
@@ -437,9 +452,9 @@ def filteredTimes(possibles,firstMissingTimestamp):
     
     # restrict the search to only matching days of the week and time of day
     #day to match
-    dayToMatch = firstMissingTimestamp.dayofweek
+    dayToMatch = missingIndexStart.dayofweek
     
-    possibles = possibles.between_time((firstMissingTimestamp - pd.Timedelta(hours=3)).time(),(firstMissingTimestamp + pd.Timedelta(hours=3)).time())
+    possibles = possibles.between_time((missingIndexStart - pd.Timedelta(hours=3)).time(),(missingIndexStart + pd.Timedelta(hours=3)).time())
     possibles = pd.Series(pd.to_datetime(possibles.index), index= possibles.index)
     possibles =  possibles.dt.dayofweek
     #5 is a saturday
@@ -509,15 +524,15 @@ def quickReplace(df,df_to_fix,offset,grouping):
     '''
     columns = df.columns
     grouping.name = 'grouping'  
-    rcolumns = ["r" + c for c in columns]
+    rcolumns = [c+"r" for c in columns]
     
     #reduce the dataset to just exclude na's unless they are new record fills (have a group id)    
     df_to_fix = pd.concat([df_to_fix,grouping],axis=1, join='outer')
     df_to_fix = df_to_fix[(np.isnan(df_to_fix[columns[0]]) & pd.notnull(df_to_fix['grouping']))|
                           (pd.notnull(df_to_fix[columns[0]]))]
     df_to_fix = df_to_fix.drop('grouping', axis=1)           
-    
-    df = pd.concat([df,grouping],axis=1, join='outer')
+    df = df.join(grouping, how='outer')
+
     df = df[(np.isnan(df[columns[0]]) & pd.notnull(df['grouping']))|
                           (pd.notnull(df[columns[0]]))]
     df = df.drop('grouping', axis=1)
@@ -534,10 +549,12 @@ def quickReplace(df,df_to_fix,offset,grouping):
         df = df.shift(periods=1, freq = pd.Timedelta(days=-1), axis=1)
     elif (diff in([2,3,4,5,-2,-3,-4,-5])) :
         return
-    mergedDf =pd.concat([df_to_fix,df.add_prefix('r')], axis = 1, join='outer')
+    mergedDf = df_to_fix.join(df, rsuffix="r",how='left')
+    #mergedDf =pd.concat([df_to_fix,df.add_prefix('r')], axis = 1, join='outer')
     mergedDf[columns[0] + "copy"] = mergedDf[columns[0]]
     
-    mergedDf = pd.concat([mergedDf,grouping], axis=1, join='outer')
+    #mergedDf = pd.concat([mergedDf,grouping], axis=1, join='outer')
+    mergedDf=mergedDf.join(grouping,how='outer')
     #if the row has been assigned to a group then it is a bad value and gets set to nan so it will be replaced
     mergedDf.loc[~np.isnan(mergedDf['grouping']),columns] = np.nan
     #rpelace all the bad values with the value at their offset position
@@ -553,25 +570,26 @@ def quickReplace(df,df_to_fix,offset,grouping):
 
 
 #bump the year up or down
-def cycleYear(dt, up, dtStart,smallBlock = True):
+def cycleYear(dt, up, missinIndexStart, smallBlock = True):
     '''
+
     Find a start year approrpiate to the starting datetime and missing block size
-    :param dt: [DateTime] is the date we are adjust by a year
+    :param dt: [DateTime] is the date we are adjusting by a year
     :param up: [Boolean] whether to search up or down from our stop point
-    :param dtStart: [DateTime] is our original search start
+    :param missinIndexStart: [DateTime] is our original search start
     :param smallBlock: [boolean] indicates the missing block is less than 2 weeks - 1209600 seconds
     :return:
     '''
     if up:
-        t = dt + 31536000   #seconds in a year  
+        t = dt + pd.to_timedelta(31536000,'s')  #seconds in a year
     else: 
-       t = dt - 31536000
-    if t < 0:
-        return cycleYear(t,True,dtStart,smallBlock)
+       t = dt - pd.to_timedelta(31536000,'s')
+    if t < missinIndexStart - pd.to_timedelta(31536000, 's'):
+        return cycleYear(t, True, missinIndexStart, smallBlock)
     #if its a big block missing and the test date is in the same year (less than 31536000 seconds away) 
     #bump the test start up a year
-    if (t - dtStart < 31536000) & (smallBlock == False):
-       return cycleYear(dt + 31536000, up,dtStart,smallBlock) 
+    if (t - missinIndexStart < pd.to_timedelta(31536000, 's')) & (smallBlock == False):
+       return cycleYear(dt + pd.to_timedelta(31536000,'s'), up, missinIndexStart, smallBlock)
     return t  
 
 #find the median value for timesteps between records
