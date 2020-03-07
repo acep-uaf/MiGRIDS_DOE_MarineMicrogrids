@@ -29,7 +29,7 @@ def generateRuns(projectSetDir):
     #os.chdir(projectSetDir)
     #os.chdir('../..')
     #projectDir = os.getcwd()
-    projectDir = getFilePath('project',set=projectSetDir)
+    projectDir = getFilePath('Project',set=projectSetDir)
     projectName = os.path.basename(projectDir)
 
     #os.chdir(projectSetDir)
