@@ -6,13 +6,9 @@ import os
 import re
 
 from MiGRIDS.Controller.Controller import Controller
-from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.UserInterface.GridFromXML import GridFromXML
 from bs4 import BeautifulSoup
-
-from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
-
 
 class XMLEditor(QtWidgets.QWidget):
     SUFFIX = 'Inputs.xml'
@@ -197,7 +193,6 @@ class XMLForm(QtWidgets.QWidget):
         myGrid = self.findChildren(GridFromXML)[0]
 
         self.controller.runHandler.writeSoup(myGrid.extractValues()[0], file)
-
 
 class TitleBar(QtWidgets.QWidget):
 

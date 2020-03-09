@@ -162,7 +162,6 @@ class XMLEditorHolder(QtWidgets.QWidget):
         setup = self.controller.setupHandler.readInSetupFile(setupFile)
         return setup
 
-
     def writeToSetFolder(self,setName):
         for k in self.xmls.keys():
             for r in self.xmls[k].keys():

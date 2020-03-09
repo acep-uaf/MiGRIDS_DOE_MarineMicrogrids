@@ -156,7 +156,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     def rehide(self,tview,loc):
         for i in loc:
             tview.hideColumn(i)
-
     def submitData(self):
         self.setModel.submitAll()
         print(self.setModel.lastError().text())
@@ -194,7 +193,6 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.startDate = start
         self.endDate = end
         return
-
     def makeSetInfoCollector(self):
         '''
         Creates the input form for fields needed to create and run a model set
@@ -461,9 +459,8 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         return
     def updateDependents(self):
         self.refreshDataPlot()
-
-    # the run table shows ??
     def createRunTable(self,setId):
+        '''Show table of run information'''
         gb = QtWidgets.QGroupBox('Runs')
 
         tableGroup = QtWidgets.QVBoxLayout()
@@ -489,16 +486,11 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         resultDisplay = self.window().findChild(ResultsModel)
         resultDisplay.makePlotArea()
         resultDisplay.showPlot()
-
-
     def receiveUpdateRunBaseCase(self,id, checked):
-
          self.controller.dbhandler.updateBaseCase(self.setId, id, checked)
          self.run_Model.refresh()
          self.refreshDataPlot()
 
-
-    # close event is triggered when the form is closed
     def closeForm(self):
          self.submitData()
          self.setupSet() #write all the xml files required to restart the project later
