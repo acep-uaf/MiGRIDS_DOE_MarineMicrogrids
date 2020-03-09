@@ -1,3 +1,5 @@
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 2/25/2018
 # string, dictionary, string, list of indices -> dictionary
 # adds a list of indices to a dictionary of bad values existing within a dataset.
 def badDictAdd(component, currentDict, msg, loi):

@@ -1,3 +1,6 @@
+# Projet: MiGRIDS
+# Created by: T. Morgan # Created on: 8/16/2019
+
 # Widget, method, String, String, String,String -> QtQidget.QPushButton
 # returns a button with specified text, icon, hint and connection to the specified function
 def makeButtonBlock(parent, buttonFunction, text=None, icon=None, hint=None, name=None):

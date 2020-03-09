@@ -1,4 +1,5 @@
-# DataClass is object with raw_data, fixed_data,baddata dictionary, and system characteristics.
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 9/20/2019
 from MiGRIDS.InputHandler.Exceptions.DataValidationError import DataValidationError
 from MiGRIDS.InputHandler.fixBadData import reallignSingleYear
 from MiGRIDS.InputHandler.isInline import *

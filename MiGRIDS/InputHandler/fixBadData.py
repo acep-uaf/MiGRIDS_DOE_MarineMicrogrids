@@ -1,8 +1,5 @@
-# Project: GBS Tool
-# Author: Jeremy VanderMeer, jbvandermeer@alaska.edu
-# Date: October 24, 2017
-# License: MIT License (see LICENSE file of this package for more information)
-
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 1/23/2018
 # reads dataframe of data input compares values to descriptor xmls and returns a clean dataframe from a DataClass object
 # Out of bounds values for each component are replaced first, followed by datagaps and periods of inline data.
 # assumes df column headings match header values in setup.xml

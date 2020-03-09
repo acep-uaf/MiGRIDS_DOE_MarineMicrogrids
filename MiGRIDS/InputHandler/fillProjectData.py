@@ -1,8 +1,5 @@
-# Project: GBS Tool
-# Author: Jeremy VanderMeer, jbvandermeer@alaska.edu
-# Date: November 3, 2017
-# License: MIT License (see LICENSE file of this package for more information)
-
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 9/25/2019
 # fill in information about the project into the descriptor and setup xml files
 #
 #String, ModelSetupInformation - > None

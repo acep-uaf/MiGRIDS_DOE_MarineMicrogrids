@@ -1,4 +1,5 @@
-
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 9/25/2019
 # Component class consisting of component name, units,offset, scale, datatype, column name, original field name and attribute
 from MiGRIDS.InputHandler.componentSupport import inferComponentName, inferComponentType
 

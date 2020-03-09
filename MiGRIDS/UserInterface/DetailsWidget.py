@@ -7,8 +7,7 @@ class DetailsWidget(QtWidgets.QDockWidget):
     """
     Description: Floating widget to view text
     Attributes: 
-        
-        
+
     """
 
     def __init__(self,title,details):

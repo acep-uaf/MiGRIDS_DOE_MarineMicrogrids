@@ -1,7 +1,8 @@
-from PyQt5 import QtWidgets, QtCore, QtGui
+# Projet: MiGRIDS
+# Created by: T. Morgan# Created on: 11/8/2019
 
+from PyQt5 import QtWidgets
 from MiGRIDS.UserInterface.BaseForm import BaseForm
-
 
 class FormContainer(BaseForm):
     #if the screen is big enough show input and results

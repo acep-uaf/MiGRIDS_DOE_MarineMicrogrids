@@ -1,4 +1,5 @@
-
+# Projet: MiGRIDS
+# Created by: T. Morgan # Created on: 11/1/2019
 import os
 
 from PyQt5 import QtWidgets, QtCore, QtSql

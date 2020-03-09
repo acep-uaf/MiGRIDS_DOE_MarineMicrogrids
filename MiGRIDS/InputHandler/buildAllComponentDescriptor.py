@@ -1,7 +1,6 @@
-# Project: GBS Tool
-# Author: Jeremy VanderMeer, jbvandermeer@alaska.edu
-# Date: October 31, 2017
-# License: MIT License (see LICENSE file of this package for more information)
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 9/25/2019
+
 
 # this accepts a list of component names with acceptable format and generates empty component descriptor files for them
 # and saves them in the input directory specified. These files will then be updated each time the user updates the information

@@ -1,5 +1,8 @@
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 9/25/2019
+
 #fill project xml files
-#String, ModelSetupInformation - > None
+
 from MiGRIDS.Controller.Controller import Controller
 
 

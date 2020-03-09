@@ -1,3 +1,5 @@
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 9/25/2019
 import unittest
 import pickle
 from MiGRIDS.InputHandler.DataClass import DataClass

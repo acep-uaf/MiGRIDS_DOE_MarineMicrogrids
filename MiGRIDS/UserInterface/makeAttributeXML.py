@@ -1,3 +1,6 @@
+# Projet: MiGRIDS
+# Created by: T. Morgan # Created on: 8/16/2019
+
 import datetime
 import pandas as pd
 

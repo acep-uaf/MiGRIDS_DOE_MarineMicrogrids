@@ -1,9 +1,13 @@
-#class for writing console output to a widget
+# Projet: MiGRIDS
+# Created by: T. Morgan# Created on: 11/8/2019
+
+
 import sys
 import logging
 from PyQt5 import QtCore
 
 class DisplayWriter(QtCore.QObject):
+    #writer for writing output to the consoledisplay
     _stdout = None
     _stderr = None
 

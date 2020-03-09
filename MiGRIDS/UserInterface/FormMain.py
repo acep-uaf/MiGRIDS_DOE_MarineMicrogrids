@@ -1,3 +1,6 @@
+# Projet: MiGRIDS
+# Created by: T. Morgan# Created on: 11/8/2019
+
 #MainForm is the parent for for all sections of the User Interface
 #it consists of a navigation tree and pages
 from PyQt5 import QtWidgets, QtCore, QtGui,QtSql

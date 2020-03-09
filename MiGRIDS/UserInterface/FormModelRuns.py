@@ -1,4 +1,6 @@
-#Form for display model run parameters
+# Projet: MiGRIDS
+# Created by: T. Morgan# Created on: 11/8/2019
+
 from PyQt5 import QtWidgets, QtCore, QtSql
 from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.UserInterface.BaseForm import BaseForm
@@ -11,19 +13,16 @@ from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.TableHandler import TableHandler
 from MiGRIDS.UserInterface.ModelSetTable import SetTableModel, SetTableView
 from MiGRIDS.UserInterface.ModelRunTable import RunTableModel, RunTableView
-
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.Pages import Pages
 from MiGRIDS.UserInterface.DialogComponentList import ComponentSetListForm
 from MiGRIDS.UserInterface.qdateFromString import qdateFromString
+from MiGRIDS.InputHandler.InputFields import *
 import datetime
 import os
 
-
-#main form containing setup and run information for a project
-
 class FormModelRun(BaseForm):
-
+    #model run information and result metadata
     def __init__(self, parent):
         super().__init__(parent)
         self.initUI()
@@ -88,15 +87,13 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.init(set)
     def init(self, set):
         self.controller = Controller()
-        self.componentDefault = []
+        self.defaultComponents = []
         self.set = set #set is an integer corresponding to the tab position
         self.setId = -1
         self.setName = "Set" + str(self.set) #set name is a string with a prefix
         self.tabName = "Set " + str(self.set)
-
-
         #main layouts
-        #tableGroup = QtWidgets.QVBoxLayout()
+
         tableGroup = QtWidgets.QGridLayout()
 
         #setup info for a set
@@ -159,13 +156,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     def rehide(self,tview,loc):
         for i in loc:
             tview.hideColumn(i)
-    def loadSetData(self):
-        #load and update from set setup file
-        #self.controller.runHandler.loadExistingProjectSet(self.setName)
-        #load and update from attributeXML
-        #load and update from xml resources
-        self.updateForm()
-        return
+
     def submitData(self):
         self.setModel.submitAll()
         print(self.setModel.lastError().text())
@@ -203,9 +194,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.startDate = start
         self.endDate = end
         return
-    @QtCore.pyqtSlot()
-    def onClick(self, buttonFunction):
-        buttonFunction()
+
     def makeSetInfoCollector(self):
         '''
         Creates the input form for fields needed to create and run a model set
@@ -312,10 +301,10 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
 
         setInfo = self.controller.dbhandler.getSetInfo('set' + str(setName))
         if setInfo != None:
-            if type(setInfo['componentNames.value']) == str:
-                self.componentDefault = setInfo['componentNames.value'].split(',')
+            if type(setInfo[COMPONENTNAMES]) == str:
+                self.defaultComponents = setInfo[COMPONENTNAMES].split(',')
             else:
-                self.componentDefault = setInfo['componentNames.value']
+                self.defaultComponents = setInfo[COMPONENTNAMES]
             start,end = self.getDefaultDates() #this gets the range of possible dates based on original input
             self.getSetDates(self.setName)#this sets the attributes startdate, enddate which can be used in range
             #fillSetInfo the widget values
@@ -325,7 +314,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
             self.findChild(QtWidgets.QDateEdit, 'endDate').setDateRange(start, end)
             self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'startDate'))
             self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'endDate'),False)
-            self.findChild(QtWidgets.QLineEdit,'componentNames').setText(','.join(self.componentDefault))
+            self.findChild(QtWidgets.QLineEdit,'componentNames').setText(','.join(self.defaultComponents))
             #self.updateComponentDelegate(self.componentDefault)
 
         return

@@ -1,14 +1,13 @@
+# Projet: MiGRIDS
+# Created by: T. Morgan # Created on: 8/16/2019
 from PyQt5 import QtSql
-
-
-from MiGRIDS.Controller.RunHandler import RunHandler, METADATANAMES
-from MiGRIDS.UserInterface.ModelRunTable import RunFields
+from MiGRIDS.Controller.RunHandler import  METADATANAMES
 from MiGRIDS.UserInterface.ResultsPlot import ResultsPlot
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 
 class ResultsModel(ResultsPlot):
-    '''Class for plotting results of model simulation runs. Displayed within the 'model' containiner form
+    '''Class for plotting results of model simulation runs. Displayed within the 'model' container form
 '''
 
     def defaultDisplay(self):

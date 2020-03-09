@@ -1,4 +1,5 @@
-
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 9/25/2019
 # build an empty descriptor file for a single component
 #fill the descriptor file if a soup object is provided, otherwise use defaults
 #String string, Soup-> None

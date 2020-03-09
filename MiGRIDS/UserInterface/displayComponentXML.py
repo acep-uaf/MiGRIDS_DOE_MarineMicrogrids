@@ -1,19 +1,26 @@
 # Projet: MiGRIDS
-# Created by: # Created on: 8/16/2019
+# Created by: T. Morgan # Created on: 8/16/2019
 # Purpose :  displayComponentXML
 from PyQt5 import QtWidgets
+
+from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.componentFormFromXML import componentFormFromXML
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 def displayComponentXML(component_name):
-    dbHandler = ProjectSQLiteHandler()
-    uihandler = UIHandler()
-    projectFolder = dbHandler.getProjectPath()
+    '''
+
+    :param component_name:
+    :return:
+    '''
+    controller = Controller()
+    uihandler = UIHandler(controller.dbhandler)
+    projectFolder = uihandler.dbHandler.getProjectPath()
     componentDir = getFilePath('Components', projectFolder=projectFolder)
-    component_id = dbHandler.getId("component",["componentnamevalue"],[component_name])
-    component = dbHandler.getRecordDictionary("component",component_id)
+    component_id = uihandler.dbHandler.getId("component",["componentnamevalue"],[component_name])
+    component = uihandler.dbHandler.getRecordDictionary("component",component_id)
 
     try:
         # tell the input handler to create or read a component descriptor and combine it with attributes in component

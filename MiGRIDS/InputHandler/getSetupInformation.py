@@ -1,3 +1,6 @@
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 2/25/2018
+
 def getSetupInformation(setupXML):
     '''
     Creates a dictionary based on tags in the setup xml

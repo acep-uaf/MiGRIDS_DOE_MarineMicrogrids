@@ -1,3 +1,5 @@
+# Projet: MiGRIDS
+# Created by: T. Morgan # Created on: 8/16/2019
 '''
 Created by: T. Morgan
 ComponentTableView is a default table view tied to the component table in project_manager database

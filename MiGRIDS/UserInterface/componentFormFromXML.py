@@ -1,3 +1,5 @@
+# Projet: MiGRIDS
+# Created by: # Created on: 11/8/2019
 #creates a dynamic form based on the information in xml files
 from PyQt5 import QtWidgets, QtCore
 from MiGRIDS.Controller.UIHandler import UIHandler

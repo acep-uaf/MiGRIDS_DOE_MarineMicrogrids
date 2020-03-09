@@ -1,3 +1,5 @@
+# Projet: MiGRIDS
+# Created by: T. Morgan # Created on: 9/12/2019
 from MiGRIDS.InputHandler import DataClass
 from MiGRIDS.UserInterface.ResultsPlot import ResultsPlot
 import pandas as pd

@@ -1,3 +1,6 @@
+# Projet: MiGRIDS
+# Created by: T. Morgan # Created on: 11/1/2019
+
 import shutil
 import os
 

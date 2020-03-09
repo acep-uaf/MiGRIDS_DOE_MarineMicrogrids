@@ -1,4 +1,5 @@
-
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 1/23/2018
 import pandas as pd
 import numpy as np
 

@@ -1,5 +1,5 @@
 # Projet: MiGRIDS
-# Created by: # Created on: 9/10/2019
+# Created by: T. Morgan # Created on: 9/10/2019
 # Purpose :  qdateFromString
 import datetime
 from PyQt5 import QtCore

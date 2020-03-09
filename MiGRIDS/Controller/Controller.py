@@ -8,19 +8,15 @@ from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.RunHandler import RunHandler
 from MiGRIDS.Controller.SetupHandler import SetupHandler
 from MiGRIDS.Controller.Validator import Validator,ValidatorTypes
-
 from MiGRIDS.InputHandler.DataClass import DataClass
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
-
 from MiGRIDS.UserInterface.switchProject import saveProject, clearAppForms, clearProjectDatabase
-
 
 class Controller:
     """
     Description: Controller is singleton with methods to manage project flow from creation to completion
     Attributes: 
-        
-        
+
     """
 
     def __new__(cls):
@@ -61,6 +57,7 @@ class Controller:
 
 
     def validate(self,validatorType,input=None):
+        '''calls the validator to validate a specific type of input'''
         if validatorType == ValidatorTypes.SetupXML:
            self.setupValid = self.validator.validate(validatorType, input)
         elif validatorType == ValidatorTypes.NetCDFList:

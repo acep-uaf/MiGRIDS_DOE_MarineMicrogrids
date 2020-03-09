@@ -1,13 +1,11 @@
 # Projet: MiGRIDS
-# Created by: # Created on: 11/8/2019
-from PyQt5 import QtWidgets, QtCore, QtSql
+# Created by: T. Morgan# Created on: 11/8/2019
+from PyQt5 import QtWidgets, QtCore
 
 class CustomProgressBar(QtWidgets.QProgressDialog):
     """
     Description: A custom progress dialog
-    Attributes: 
-        
-        
+
     """
 
     def __init__(self,title):

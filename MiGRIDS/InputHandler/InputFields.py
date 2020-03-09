@@ -1,5 +1,5 @@
 # Projet: MiGRIDS
-# Created by: # Created on: 1/29/2020
+# Created by: T. Morgan# Created on: 1/29/2020
 # Purpose :  Specify constanstants used when reading and writing fileds for xml files InputFields
 
 #SetupXML

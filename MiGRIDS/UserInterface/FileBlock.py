@@ -1,5 +1,5 @@
-from MiGRIDS.Controller.Controller import Controller
-from MiGRIDS.Controller.Exceptions.NoValidFilesError import NoValidFilesError
+# Projet: MiGRIDS
+# Created by: T. Morgan# Created on: 11/8/2019
 
 import MiGRIDS.UserInterface.ModelComponentTable as T
 import MiGRIDS.UserInterface.ModelFileInfoTable as F
@@ -9,18 +9,16 @@ from MiGRIDS.UserInterface.BaseForm import BaseForm
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.gridLayoutSetup import setupGrid
-
+from MiGRIDS.Controller.Controller import Controller
+from MiGRIDS.Controller.Exceptions.NoValidFilesError import NoValidFilesError
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.TableHandler import TableHandler
-
+from MiGRIDS.Controller.DirectoryPreview import DirectoryPreview
 from PyQt5 import QtWidgets,QtCore,QtSql
 
 
-# The file block is a group of widgets for entering file specific inputs
-#its parent is FormSetup
-from MiGRIDS.Controller.DirectoryPreview import DirectoryPreview
-
 class FileBlock(QtWidgets.QGroupBox):
+    '''FileBlock is the portion of a form that hold input information related to file import'''
     def __init__(self, parent, tabPosition):
         super().__init__(parent)
         self.BLOCKED = False
@@ -59,7 +57,8 @@ class FileBlock(QtWidgets.QGroupBox):
         return windowLayout
 
         # creates a horizontal layout containing gridlayouts for data input
-    def typeChanged(self, selectedType):
+    def typeChanged(self):
+        '''method called if the input type is changed. Changes the possible preview based on input type changes'''
         if not self.BLOCKED:
             self.saveInput()
             self.filterTables()
@@ -72,12 +71,8 @@ class FileBlock(QtWidgets.QGroupBox):
                 print(a)
 
     def folderChanged(self,selectedFolder = None):
+        '''called when the selected directory changes. Preview changes based on files found in the newly designated directory'''
         if not self.BLOCKED:
-            # save the input to the setup data model and into the database
-            # self.saveInput()
-            # update the filedir path - this should be handled by mapper
-
-            # filter the component and environemnt input tables to the current input directory
             print("Input folder %s is %s" %(self.tabPosition,selectedFolder))
             self.saveInput()
             self.filterTables()
@@ -287,7 +282,6 @@ class FileBlock(QtWidgets.QGroupBox):
             self.createPreview(fileBlockModel.data(fileBlockModel.index(0,F.InputFileFields.inputfiledirvalue.value)),fileBlockModel.data(fileBlockModel.index(0,F.InputFileFields.inputfiletypevalue.value)))
             self.setValid(self.validate())
 
-
     def findDefault(self,name, dict):
         for k in dict.keys():
             try:
@@ -297,7 +291,6 @@ class FileBlock(QtWidgets.QGroupBox):
             except:
                pass
         return None
-
 
     def createTableBlock(self, title, table, fn):
 
@@ -328,8 +321,6 @@ class FileBlock(QtWidgets.QGroupBox):
         fn(gb)
         return
 
-    # Load an existing descriptor file and populate the component table
-    # -> None
     def functionForLoadDescriptor(self):
         '''load a descriptor file for a component and populate the project_manager database with its values
         '''
@@ -361,8 +352,6 @@ class FileBlock(QtWidgets.QGroupBox):
             model.select()
         return
 
-    # Add an empty record to the specified datatable
-    # String -> None
     def functionForNewRecord(self, table):
         # add an empty record to the table
         tableHandler = TableHandler(self)
@@ -371,10 +360,9 @@ class FileBlock(QtWidgets.QGroupBox):
         id = self.controller.dbhandler.getId('input_files',['inputfiledirvalue'],[filedir])
         tableHandler.functionForNewRecord(table,fields=[1],values=[id])
 
-    # delete the selected record from the specified datatable
-    # String -> None
-    def functionForDeleteRecord(self, table):
 
+    def functionForDeleteRecord(self, table):
+        '''Deletes a selected record'''
         # get selected rows
         tableView = self.findChild((QtWidgets.QTableView), table)
         model = tableView.model()
@@ -411,8 +399,12 @@ class FileBlock(QtWidgets.QGroupBox):
                 print(model.lastError().text())
                 model.select()
 
-    # string -> QGroupbox
     def dataButtons(self, table):
+        '''
+        creates buttons associated with table behavior
+        :param table: String the name of the table buttons actions are for
+        :return: QHBoxLayout
+        '''
         self.ComponentButtonBox = QtWidgets.QGroupBox()
         buttonRow = QtWidgets.QHBoxLayout()
 
@@ -434,7 +426,6 @@ class FileBlock(QtWidgets.QGroupBox):
         self.ComponentButtonBox.setEnabled(False)
         return self.ComponentButtonBox
 
-
     def assignComponentBlock(self,value):
         self.componentBlock = value
 
@@ -445,8 +436,8 @@ class FileBlock(QtWidgets.QGroupBox):
         self.FileBlock.setObjectName('fileInput')
 
 
-    #reads data from an file input top block and returns a list of fields and values
-    def getSetupInfo(self):
+    def getSetupInfoFromFileBlock(self):
+        '''reads data from an file input top block and returns a list of fields and values'''
         fieldNames = ['_id']
 
         values=[self.tabPosition]
@@ -464,9 +455,8 @@ class FileBlock(QtWidgets.QGroupBox):
 
         return fieldNames,values
 
-    #save the form input to the form setup data model
     def saveInput(self):
-
+        '''save the form input to the form setup data model'''
         #update model info from fileblock
         row = self.mapper.currentIndex()
         j = self.mapper.submit() #boolean true if values submitted
@@ -496,9 +486,10 @@ class FileBlock(QtWidgets.QGroupBox):
                 pass
                 #print('attempted to set component table items before component table was created')
 
-    # calls the specified function connected to a button onClick event
+
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):
+        '''calls the specified function connected to a button onClick event'''
         buttonFunction()
 
     def validate(self):
@@ -540,6 +531,7 @@ class FileBlock(QtWidgets.QGroupBox):
             return False
 
     def filterTables(self):
+        '''filter tables to only show values associated with specific input directories'''
         tables = self.findChildren(QtWidgets.QTableView)
         filedir = self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).text()
         id = self.controller.dbhandler.getId("input_files",['inputfiledirvalue'],[filedir])
@@ -566,7 +558,7 @@ class FileBlock(QtWidgets.QGroupBox):
             #input to model
             self.saveInput()
             #input to database
-            setupFields, setupValues = self.getSetupInfo()
+            setupFields, setupValues = self.getSetupInfoFromFileBlock()
 
             # update database table
             if not self.controller.dbhandler.insertRecord('input_files', setupFields, setupValues):
@@ -576,5 +568,3 @@ class FileBlock(QtWidgets.QGroupBox):
             self.saveTables()
             # on leave save the xml files
             self.controller.setupHandler.makeSetup()
-
-        #self.controller.dbhandler.closeDatabase()

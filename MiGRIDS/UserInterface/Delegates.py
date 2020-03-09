@@ -1,3 +1,6 @@
+# Projet: MiGRIDS
+# Created by: T. Morgan# Created on: 11/8/2019
+
 from PyQt5 import QtCore, QtWidgets, QtSql
 
 #class for combo boxes that are not derived from database relationships

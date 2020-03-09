@@ -1,8 +1,11 @@
-#form for selecting what components to use in a model set
+# Projet: MiGRIDS
+# Created by: T. Morgan# Created on: 11/8/2019
+
+
 from PyQt5 import QtWidgets, QtCore
 
-
 class ComponentSetListForm(QtWidgets.QDialog):
+    '''Dialog widget with select list to choose components to include in model'''
     #initialize with a list of component names and list of boolean values for whether or not to include
     def __init__(self,setName):
         super().__init__()

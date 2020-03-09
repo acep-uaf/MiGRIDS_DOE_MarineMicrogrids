@@ -1,5 +1,5 @@
 # Project: MiGRIDS
-# Author: tmorgan
+# Author: T. Morgan
 # Date: September 17, 2020
 # License: MIT License (see LICENSE file of this package for more information)
 

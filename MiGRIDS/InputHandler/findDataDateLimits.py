@@ -1,3 +1,6 @@
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 2/14/2018
+
 def findDataDateLimits(setupXML):
     '''reads the runTimeSteps value in the setup xml and returns the value string
     :param setupXML:

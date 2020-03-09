@@ -1,3 +1,5 @@
+# Projet: MiGRIDS
+# Created by: T. Morgan# Created on: 11/8/2019
 #class to create a console display to encorperate into a block of a user interface page
 import logging
 
@@ -13,6 +15,7 @@ logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 class ConsoleDisplay(QtWidgets.QDialog):
+    '''Creates a console to display messages. Text can be saved to a text file'''
     def __init__(self, parent=None):
         super(ConsoleDisplay, self).__init__(parent)
 
@@ -43,8 +46,7 @@ class ConsoleDisplay(QtWidgets.QDialog):
         self.setLayout(layout)
 
         #connect to output class actions
-        #DisplayWriter.stdout().messageWritten.connect(self._console.insertPlainText)
-        #TODO uncomment when not testing otherwise fatal errors won't be seen
+        DisplayWriter.stdout().messageWritten.connect(self._console.insertPlainText)
         #DisplayWriter.stderr().messageWritten.connect(self._console.insertPlainText)
 
 

@@ -1,4 +1,7 @@
-'''created by T.Morgan
+# Projet: MiGRIDS
+# Created by: T. Morgan# Created on: 11/8/2019
+#
+'''
 The FormSetup widget has 3 purposes.
 1. Creates or loads a setup.xml file for a specific project
 2. It creates or loads descriptor xml files for each component that will be included in the model

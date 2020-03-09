@@ -1,4 +1,7 @@
+# Projet: MiGRIDS
+# Created by: T. Morgan # Created on: 8/16/2019
 def replaceDefaultDatabase(projectdb):
+    '''Replaces the default project_manager database with on stored in a project folder by clearing then filling data tables'''
     from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
     import pandas as pd
     tables = ['project','component_files','component','set_components','input_files','optimize_input','set_','pretty_names','run','run_attributes','setup']

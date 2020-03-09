@@ -1,6 +1,5 @@
-# Project: GBS Tool
-# Author: Jeremy VanderMeer, jbvandermeer@alaska.edu
-# Date: October 24, 2017
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 9/25/2019
 # License: MIT License (see LICENSE file of this package for more information)
 
 '''Technical note. Estimations are always done at the 1 second timestep level
@@ -25,27 +24,16 @@ TOTALLOAD = 'total_load'
 TOTALPOWER = 'total_power'
 def fixDataInterval(data, interval, **kwargs):
     '''
-     data is a DataClass with a pandas dataframe with datetime index.
-     interval is the desired interval of data samples as a timedelta value. If this is
+     standardizes the time steps within a data object's df attribute, splitting the df attribute if consecutive data can not be generated.
+     Puts all resulting dataframes as a list in the fixed attribute of data.
      less than what is available in the df a langevin estimator will be used to fill
      in missing times. If the interval is greater than the original time interval
      the mean of values within the new interval will be generated
-     We don't upsample to fill more than 6 hours of data - gaps larger than this need to be filled in the fix data method.
-    :param data: a DataClass object
-    :param interval: pandas Timedelta
+     Gaps larger than MAXUPSAMPLEINTERVAL need to be filled with fixBadData. They will result in a split dataframe in fixDataInterval.
+    :param data: a DataClass object with a df attribute that is a pandas dataframe with datetime index.
+    :param interval: pandas Timedelta interval is the desired interval of data samples as a timedelta value.
     :return: A DataClass object with data filled at consistent time intervals
     '''
-    updateSubject = kwargs.get("subject"); #connect to a subject
-    def broadCastStatus(progress, task):
-        if updateSubject:
-            updateSubject.notify(progress/updateSubject.limit,task)
-    #integer, numeric, numeric, numeric -> numeric array
-    #uses the Langevin equation to estimate records based on provided mean (mu) and standard deviation and a start value
-
-    #dataframe -> integer array, integer array
-    #returns arrays of time as seconds and values estimated using the Langevin equation
-    #for all gaps of data within a dataframe
-    #fix column are total_load, total_power, any other columns that are not flags or a load or power
     loc = data.fixed[0].columns
     fixColumns = [l for l in loc if 'flag' not in l and l not in data.loads and l not in data.powerComponents]
     try:
@@ -60,9 +48,12 @@ def fixDataInterval(data, interval, **kwargs):
     return data
 def fixDataFrameInterval(dataframe, interval, fixColumns, loadColumns, powerColumns):
     '''
-
+    up or downsample all series within a single dataframe to the desired interval
     :param dataframe: a dataframe with datetime index
     :param interval: pandas deltatime
+    :param fixColumns: string column names of columns within dataframe that get estimated independently
+    :param loadColumns: string column names of columns within dataframe that will be estimated based on a total_load column
+    :param powerColumns: string column names of columns within dataframe that will be estimated based on a total_pwer column
     :return: dataframe
     '''
 
@@ -100,7 +91,9 @@ def fixDataFrameInterval(dataframe, interval, fixColumns, loadColumns, powerColu
     completeDataFrame = truncateDataFrame(completeDataFrame)
     return completeDataFrame
 def truncateDataFrame(df):
-    '''retains the longest continuous sections of data within a dataframe'''
+    '''retains the longest continuous sections of data within a dataframe
+    :param df: a pandas dataframe with or without na's
+    :return a dataframe with only contiuous rows of data'''
 
     #only keep the portion of the dataframe that has data for all components
     first_valid_loc = df.apply(lambda col: col.first_valid_index()).max()
@@ -121,22 +114,7 @@ def returnLargest(lod):
         else:
             lod.pop(0)
     return df
-def handleMemory():
-    """Not implemented yet.
-    Prints current memory usage stats.
-    """
-    import psutil
-    import os
-    PROCESS = psutil.Process(os.getpid())
-    MEGA = 10 ** 6 #convert to megabits
 
-    total, available, percent, used, free = psutil.virtual_memory()
-    total, available, used, free = total / MEGA, available / MEGA, used / MEGA, free / MEGA
-    proc = PROCESS.memory_info()[1] / MEGA
-    print('process = %s total = %s available = %s used = %s free = %s percent = %s'
-          % (proc, total, available, used, free, percent))
-
-    raise MemoryError
 def fixSeriesInterval_mp(startingSeries,reSampledSeries,interval,result):
     resultdf = fixSeriesInterval(startingSeries,reSampledSeries,interval)
     result.put(resultdf)
@@ -149,12 +127,9 @@ def fixSeriesInterval(startingSeries, reSampledSeries,interval):
     up or downsample a series to reflect the desired interval
     assumes interval to upsample to is small (< 6 hours)
     :param startingSeries: a named pandas series
-    :param dataframe:
-    :param df: DataFrame
-    :param data: DataClass
-    :param interval: Timedelta
-    :param result: mp result
-    :return: Series
+    :param reSampledSeries: the starting series up or downsampled to the desired interval
+    :param interval: a pandas timedelta value of the desired sample interval
+    :return: Series with all values filled in by taking the mean between values if downsampled or using a simulation algorithm is upsampled
     '''
     # remove rows that are nan for this column, except for the first and last, in order to keep the same first and last
     # time stamps
@@ -192,11 +167,12 @@ def scaleSigma(sigma):
     return sigma
 def matchToOriginal(originalSeries,simulatedSeries, interval):
     '''
-
+    Matches the indices of two series, replacing the values in the first series where they are na.
+    The interval is used to floor series to increase the number of matching indices
     :param originalSeries: a pd.series with datetime index of desired time intervals
     :param simulatedSeries: a pd.series with datetime index where there are no na values
     :param interval: the desired time interval between timesteps in the originalSeries
-    :return: a pandas series with all previously missing values filled in wiht simulated values and timesteps floored at the desired interval.
+    :return: a pandas series with all previously missing values filled in with simulated values and timesteps floored at the desired interval.
     '''
 
     # make sure timezones match - can't join naive and nonnaive times
@@ -204,15 +180,14 @@ def matchToOriginal(originalSeries,simulatedSeries, interval):
     simulatedSeries.index = simulatedSeries.index.floor(interval)
     # need to remove duplicate indices genereatd from flooring
     simulatedSeries = simulatedSeries[~simulatedSeries.index.duplicated(keep='first')]
-    # .apply(lambda d: timeZone.localize(d, is_dst=useDST))
-    #simulatedSeries.index = simulatedSeries.index.tz_localize('UTC')
+
     try:
         simulatedSeries.index = simulatedSeries.index.tz_localize(tz)
     except:
         pass
     # join the simulated values to the upsampled dataframe by timestamp
-    newDF = pd.DataFrame({originalSeries.name:originalSeries,'value':simulatedSeries},index = originalSeries.index)
-    #originalDataFrame = originalDataFrame.join(simulatedSeries, how='left')
+    newDF = pd.DataFrame({originalSeries.name:originalSeries,'value':simulatedSeries.values},index = originalSeries.index)
+
     # fill na's for column with simulated values
     newDF.loc[pd.isnull(newDF[originalSeries.name]), originalSeries.name] = newDF['value']
     return newDF[originalSeries.name]
@@ -242,12 +217,8 @@ def estimateDistribution(series, sigma):
     except MemoryError:
         # handle memory error exceptions by working with smaller subsets
         print("Memory Error: re-attempting to process.")
-        handleMemory()
-        timeArray, values = processInChunks(series, sigma)
-        return timeArray, values
-def processInChunks(series,sigma):
-    print("chunk processing not implemented yet")
-    return
+
+        return
 def getValues(start, sigma):
     '''
     Uses the Langevin equation to estimate records based on provided start value and standard deviation.
@@ -379,19 +350,20 @@ def estimateLangValues(timestep, mu, sigma, start, T):
         x[:, i + 1] = x[:, i] + timestep * (-(x[:, i] - mu) / tau) + (np.multiply(
             sigma_bis * sqrtdt, np.random.randn(len(start))))
     return x
-def calculateSubColumns(col,components,df):
+def calculateSubColumns(total_column, spreadColumns, df):
     '''
-
-    :param col: filled column to subdivide
-    :param components: list of components to parse values to.
+    Calculates na values for a list of columns based on the average (calculated with a rolling window) proportion that each column makes up
+    of the total colomn.
+    :param total_column: filled column to subdivide
+    :param spreadColumns: list of components to parse values to.
     :param df: is a dataframe of the components to adjusted based on filled total
-    :return:
+    :return: Dataframe with spreadColumn values filled in
     '''
-    if len(components) ==1:
-        df.loc[pd.isnull(df[components[0]]), components[0]] = df[col]
+    if len(spreadColumns) ==1:
+        df.loc[pd.isnull(df[spreadColumns[0]]), spreadColumns[0]] = df[total_column]
     else:
-        adj_m = df[components].div(df[col], axis=0)
+        adj_m = df[spreadColumns].div(df[total_column], axis=0)
         adj_m = adj_m.ffill()
-        df[components] = adj_m.multiply(df[col], axis=0)
+        df[spreadColumns] = adj_m.multiply(df[total_column], axis=0)
         del adj_m
     return df

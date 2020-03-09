@@ -1,3 +1,6 @@
+# Projet: MiGRIDS
+# Created by: T. Morgan# Created on: 11/8/2019
+
 from PyQt5 import QtWidgets, QtCore
 from bs4 import BeautifulSoup
 import os

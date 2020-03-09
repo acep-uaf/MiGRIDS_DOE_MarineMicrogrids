@@ -1,4 +1,5 @@
-
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 2/25/2018
 
 def readAllTimeSeries(inputDict):
     '''

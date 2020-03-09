@@ -1,3 +1,5 @@
+# Projet: MiGRIDS
+# Created by: T. Morgan # Created on: 8/16/2019
 #subclass of QTableView for displaying component information
 from enum import Enum
 

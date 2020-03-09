@@ -1,4 +1,5 @@
-
+# Projet: MiGRIDS
+# Created by: T.Morgan# Created on: 9/25/2019
 #String- > None
 def fillProjectDataFromCSV(projectDir):
     '''

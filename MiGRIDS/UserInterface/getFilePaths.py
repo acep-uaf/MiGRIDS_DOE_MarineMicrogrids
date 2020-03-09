@@ -1,3 +1,5 @@
+# Projet: MiGRIDS
+# Created by: T. Morgan# Created on: 11/8/2019
 import os
 
 #gets the file path for a specific folder within the application data ouput structure
