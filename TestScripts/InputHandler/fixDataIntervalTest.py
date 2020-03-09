@@ -152,8 +152,7 @@ class fixDataInterval_test(unittest.TestCase):
         file = open("..\\..\\fixed_data.pkl",'rb')
         data = pickle.load(file)
         file.close()
-        if len(pd.isnull(data.fixed[0]['total_power'])):
-            data.fixed[0] = data.fixed[0].drop('total_power', axis=1)
+
         newdc = fixDataInterval(data, pd.to_timedelta('1 s'))
         self.assertTrue(len(newdc.fixed[0][pd.isnull(newdc.fixed[0]).any(axis=1)]) == 0)
         self.assertEqual(newdc.fixed[0].index[1]-newdc.fixed[0].index[0],pd.to_timedelta('1 s'))
@@ -162,8 +161,7 @@ class fixDataInterval_test(unittest.TestCase):
         file = open("..\\..\\fixed_data.pkl", 'rb')
         data = pickle.load(file)
         file.close()
-        if len(pd.isnull(data.fixed[0]['total_power'])):
-            data.fixed[0] = data.fixed[0].drop('total_power', axis=1)
+
         data.fixed[0].iloc[100:103]['wtg0WS'] = np.nan
         newdc = fixDataInterval(data, pd.to_timedelta('1 s'))
         self.assertTrue(len(newdc.fixed[0][pd.isnull(newdc.fixed[0]).any(axis=1)]) == 0)
@@ -171,12 +169,12 @@ class fixDataInterval_test(unittest.TestCase):
         file = open("..\\..\\fixed_data.pkl", 'rb')
         data = pickle.load(file)
         file.close()
-        if len(pd.isnull(data.fixed[0]['total_power'])):
-            data.fixed[0] = data.fixed[0].drop('total_power', axis=1)
-
         newdc = fixDataInterval(data, pd.to_timedelta('300 s'))
         self.assertTrue(len(data.fixed[0] > len(newdc.fixed[0])))
         self.assertTrue(len(newdc.fixed[0][pd.isnull(newdc.fixed[0]).any(axis=1)]) == 0)
         self.assertEqual(newdc.fixed[0].index[1] - newdc.fixed[0].index[0], pd.to_timedelta('300 s'))
+        self.assertEqual(newdc.fixed[0].index[12] - newdc.fixed[0].index[11], pd.to_timedelta('300 s'))
+
+
 if __name__ == '__main__':
     unittest.main()

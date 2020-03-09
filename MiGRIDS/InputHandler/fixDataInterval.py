@@ -83,24 +83,15 @@ def fixDataFrameInterval(dataframe, interval, fixColumns, loadColumns, powerColu
     upSampledDataframe = data1.join(dataframe[flag_columns], how='left')
     upSampledDataframe.index = upSampledDataframe.index.floor(interval)
 
-
-
-    # result = mp.Manager().Queue()
-    # # pool of processes
-    # pool = mp.Pool(mp.cpu_count())
-    # for col in fixColumns:
-    #     print("fixing: ", col)
-    #
-    #     pool.apply_async(fixSeriesInterval_mp, args=(df[col],upSampledDataframe[col],interval, result))
-    #
-    # pool.close()
-    # pool.join()
     sList = [fixSeriesInterval(df[col], upSampledDataframe[col], interval) for col in fixColumns]
     completeDataFrame = dataframe[flag_columns + [c for c in other_columns if c not in fixColumns]]
-    completeDataFrame = pd.concat([completeDataFrame] + sList,1)
-    # while not result.empty():
-    #     completeDataFrame = pd.concat([completeDataFrame,result.get()],1) #each df will contain a column of data
-    # del df
+    #floor the dataframe or actual values could be lost - if they fall between interval endpoints
+    completeDataFrame.index = completeDataFrame.index.floor(interval)
+    completeDataFrame = completeDataFrame[~completeDataFrame.index.duplicated(keep='first')]
+
+    completeSeries = pd.concat(sList,1)
+    completeDataFrame = completeSeries.join(completeDataFrame, how = 'left')
+
     for f in flag_columns:
         completeDataFrame.loc[pd.isnull(completeDataFrame[f]), f] = 4
     completeDataFrame = spreadFixedSeries(TOTALLOAD,loadColumns,completeDataFrame)
@@ -116,7 +107,7 @@ def truncateDataFrame(df):
     last_valid_loc = df.apply(lambda col: col.last_valid_index()).min()
     newdf = df[first_valid_loc:last_valid_loc]
     #split up the dataframe if there are remaining gaps in data
-    NAs = df[pd.isnull(df).any(axis=1)].index #list of bad indices
+    NAs = newdf[pd.isnull(newdf).any(axis=1)].index #list of bad indices
     if len(NAs) >0:
         lod = makeCuts([df],NAs)
         newdf = returnLargest(lod)
@@ -215,7 +206,10 @@ def matchToOriginal(originalSeries,simulatedSeries, interval):
     simulatedSeries = simulatedSeries[~simulatedSeries.index.duplicated(keep='first')]
     # .apply(lambda d: timeZone.localize(d, is_dst=useDST))
     #simulatedSeries.index = simulatedSeries.index.tz_localize('UTC')
-    simulatedSeries.index = simulatedSeries.index.tz_localize(tz)
+    try:
+        simulatedSeries.index = simulatedSeries.index.tz_localize(tz)
+    except:
+        pass
     # join the simulated values to the upsampled dataframe by timestamp
     newDF = pd.DataFrame({originalSeries.name:originalSeries,'value':simulatedSeries},index = originalSeries.index)
     #originalDataFrame = originalDataFrame.join(simulatedSeries, how='left')
@@ -393,9 +387,11 @@ def calculateSubColumns(col,components,df):
     :param df: is a dataframe of the components to adjusted based on filled total
     :return:
     '''
-
-    adj_m = df[components].div(df[col], axis=0)
-    adj_m = adj_m.ffill()
-    df[components] = adj_m.multiply(df[col], axis=0)
-    del adj_m
+    if len(components) ==1:
+        df.loc[pd.isnull(df[components[0]]), components[0]] = df[col]
+    else:
+        adj_m = df[components].div(df[col], axis=0)
+        adj_m = adj_m.ffill()
+        df[components] = adj_m.multiply(df[col], axis=0)
+        del adj_m
     return df
