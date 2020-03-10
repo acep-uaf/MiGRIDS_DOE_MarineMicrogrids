@@ -29,16 +29,16 @@ def generateRuns(projectSetDir):
     #os.chdir(projectSetDir)
     #os.chdir('../..')
     #projectDir = os.getcwd()
-    projectDir = getFilePath('project',set=projectSetDir)
+    projectDir = getFilePath('Project',set=projectSetDir)
     projectName = os.path.basename(projectDir)
 
     #os.chdir(projectSetDir)
 
     # load the file with the list of different component attributes
-    compName = readXmlTag(projectName + 'Set'+str(setNum) + 'Attributes.xml', ['compAttributeValues', 'compName'], 'value')
-    compTag = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml', ['compAttributeValues', 'compTag'], 'value')
-    compAttr = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml', ['compAttributeValues', 'compAttr'], 'value')
-    compValue = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml', ['compAttributeValues', 'compValue'], 'value')
+    compName = readXmlTag(projectName + 'Set'+str(setNum) + 'Attributes.xml', ['compAttributeValues', 'compName'], 'value',projectSetDir)
+    compTag = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml', ['compAttributeValues', 'compTag'], 'value',projectSetDir)
+    compAttr = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml', ['compAttributeValues', 'compAttr'], 'value',projectSetDir)
+    compValue = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml', ['compAttributeValues', 'compValue'], 'value',projectSetDir)
 
     # check if wind turbine values were varied from base case. If so, will set the 'recalculateWtgPAvail' tag to 1
     # for each wind turbine
@@ -57,10 +57,10 @@ def generateRuns(projectSetDir):
     heading = [x + '.' + compTag[idx] + '.' + compAttr[idx] for idx, x in enumerate(compName)]
 
     # get the setup information for this set of simulations
-    setupTag = readXmlTag(projectName + 'Set'+str(setNum) + 'Attributes.xml', ['setupAttributeValues', 'setupTag'], 'value')
-    setupAttr = readXmlTag(projectName + 'Set'+str(setNum) + 'Attributes.xml', ['setupAttributeValues', 'setupAttr'], 'value')
+    setupTag = readXmlTag(projectName + 'Set'+str(setNum) + 'Attributes.xml', ['setupAttributeValues', 'setupTag'], 'value',projectSetDir)
+    setupAttr = readXmlTag(projectName + 'Set'+str(setNum) + 'Attributes.xml', ['setupAttributeValues', 'setupAttr'], 'value',projectSetDir)
     setupValue = readXmlTag(projectName + 'Set'+str(setNum) + 'Attributes.xml', ['setupAttributeValues', 'setupValue'],
-                           'value')
+                           'value',projectSetDir)
 
     # copy the setup xml file to this simulation set directory and make the specified changes
     # if Setup dir does not exist, create
@@ -201,12 +201,12 @@ def generateInputFile(projectDir, projectSetDir, projectName, setNum, setupFile,
 
     # get the control inputs for this set of simulations
     controlInputsTag = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml',
-                                     [controlNameRoot+'InputAttributeValues', controlNameRoot+'InputTag'], 'value')
+                                     [controlNameRoot+'InputAttributeValues', controlNameRoot+'InputTag'], 'value',projectSetDir)
     controlInputAttr = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml',
-                                     [controlNameRoot+'InputAttributeValues', controlNameRoot+'InputAttr'], 'value')
+                                     [controlNameRoot+'InputAttributeValues', controlNameRoot+'InputAttr'], 'value',projectSetDir)
     controlInputValue = readXmlTag(projectName + 'Set' + str(setNum) + 'Attributes.xml',
                                       [controlNameRoot+'InputAttributeValues', controlNameRoot+'InputValue'],
-                                      'value')
+                                      'value',projectSetDir)
 
     # copy the reDispatchInput xml file to this simulation set directory and make the specified changes
     setControlInputFile = os.path.join(projectSetDir, 'Setup',
