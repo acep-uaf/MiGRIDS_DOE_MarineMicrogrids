@@ -3,12 +3,8 @@
 
 import shutil
 import os
-
-import time
-from PyQt5 import QtWidgets, QtCore
-from MiGRIDS.UserInterface.Delegates import ClickableLineEdit, ComboDelegate
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
-from MiGRIDS.UserInterface.ModelRunTable import RunTableModel
+
 
 
 def saveProject(pathTo):

@@ -191,7 +191,8 @@ class FormSetup(BaseForm):
     def resetValidateStatus(self):
         self.controller.initializeState()
 
-
+    def saveInput(self):
+        pass
     def createNewProject(self):
         # calls the setup wizard to fill the database from wizard information
         self.controller.initializeState()
@@ -295,13 +296,7 @@ class FormSetup(BaseForm):
         #if we were already working on a project its state gets saved and  new project is loaded
         if (self.controller.dbhandler.getProjectPath() != '') & (self.controller.dbhandler.getProjectPath() is not None):
             pathTo = self.controller.dbhandler.getProjectPath()
-
-
             self.controller.switchProject(self,pathTo)
-
-
-
-
             self.controller.createDatabaseConnection()
 
         #launch file navigator to identify setup file
@@ -319,8 +314,6 @@ class FormSetup(BaseForm):
             self.myThread.start()
         except Exception as e:
             print(e)
-
-
 
     def onProjectLoaded(self):
     #TODO this is time consuming - should happen on background thread - check progress bar status
@@ -559,7 +552,6 @@ class FormSetup(BaseForm):
         if 'projectFolder' in self.__dict__.keys():
             #self.sendSetupInputToModel()
             # on close save the xml files
-
             self.controller.setupHandler.makeSetup() #The setup form always contains information for set0
             self.controller.dbhandler.closeDatabase()
         #close the fileblocks

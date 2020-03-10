@@ -216,7 +216,6 @@ class MainForm(QtWidgets.QMainWindow):
     #page block contains all the forms
     def createPageBlock(self):
         pageBlock = PageBlock(lastProjectPath = self.lastProjectPath,screen=self.screen)
-
         return pageBlock
 
 
