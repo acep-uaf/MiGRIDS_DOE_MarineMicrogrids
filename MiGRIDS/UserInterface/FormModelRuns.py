@@ -490,7 +490,10 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
          self.controller.dbhandler.updateBaseCase(self.setId, id, checked)
          self.run_Model.refresh()
          self.refreshDataPlot()
-
+    #TODO move to base form slot?
+    @QtCore.pyqtSlot()
+    def onClick(self, buttonFunction):
+        buttonFunction()
     def closeForm(self):
          self.submitData()
          self.setupSet() #write all the xml files required to restart the project later

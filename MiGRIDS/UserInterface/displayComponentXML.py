@@ -17,10 +17,11 @@ def displayComponentXML(component_name):
     '''
     controller = Controller()
     uihandler = UIHandler(controller.dbhandler)
-    projectFolder = uihandler.dbHandler.getProjectPath()
+
+    projectFolder = controller.dbhandler.getProjectPath()
     componentDir = getFilePath('Components', projectFolder=projectFolder)
-    component_id = uihandler.dbHandler.getId("component",["componentnamevalue"],[component_name])
-    component = uihandler.dbHandler.getRecordDictionary("component",component_id)
+    component_id = controller.dbhandler.getId("component",["componentnamevalue"],[component_name])
+    component = controller.dbhandler.getRecordDictionary("component",component_id)
 
     try:
         # tell the input handler to create or read a component descriptor and combine it with attributes in component
