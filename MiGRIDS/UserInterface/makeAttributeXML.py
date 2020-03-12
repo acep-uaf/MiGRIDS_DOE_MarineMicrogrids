@@ -36,18 +36,19 @@ def dropAttr(lotag):
 def updateComponentAttributes(currentSet, dbhandler,  soup):
     '''updates a soup with changes entered into the project database'''
     compChanges = dbhandler.getSetChanges(dbhandler.getSetId(currentSet))
-    compName, compTag, compValue = zip(*compChanges)
-    splitTags = [dropAttr(t) for t in compTag]
-    compTag,compAttr =list(zip(*splitTags))
-    tag = soup.find('compName')
-    tag.attrs['value'] = ' '.join(compName)
-    tag = soup.find('compTag')
-    tag.attrs['value'] = ' '.join(compTag)
-    tag = soup.find('compAttr')
-    tag.attrs['value'] = ' '.join(compAttr)
-    tag = soup.find('compValue')
-    tag.attrs['value'] = ' '.join(compValue)
-    return soup
+    if len(compChanges) >0:
+        compName, compTag, compValue = zip(*compChanges)
+        splitTags = [dropAttr(t) for t in compTag]
+        compTag,compAttr =list(zip(*splitTags))
+        tag = soup.find('compName')
+        tag.attrs['value'] = ' '.join(compName)
+        tag = soup.find('compTag')
+        tag.attrs['value'] = ' '.join(compTag)
+        tag = soup.find('compAttr')
+        tag.attrs['value'] = ' '.join(compAttr)
+        tag = soup.find('compValue')
+        tag.attrs['value'] = ' '.join(compValue)
+        return soup
 
 def updateSetupAttributes(currentSet, dbhandler,  soup):
     # Changes to setup file

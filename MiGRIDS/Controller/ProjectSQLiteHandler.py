@@ -40,6 +40,7 @@ class ProjectSQLiteHandler:
     def __init__(self, database='project_manager'):
 
         self.connection = lite.connect(database)
+
         self.cursor = self.connection.cursor()
         invalidAttributeCombos = {}
         invalidAttributeCombos['wtg'] = [7, 12, 13, 14]
@@ -52,6 +53,7 @@ class ProjectSQLiteHandler:
     def closeDatabase(self):
         self.cursor.close()
         self.connection.close()
+
         return
 
     def getProjectPath(self):
@@ -145,7 +147,7 @@ class ProjectSQLiteHandler:
         self.addRefValues('ref_speed_units', [(0, 'm/s','meters per second'),(1,'ft/s','feet per second'),
                                               (2,'km/hr','kilometers per hour'),(3,'mi/hr','miles per hour')])
         self.insertRecord('ref_time_units',['sort_order','code','description','multiplier'],[(0,'S','Seconds',1),(1,'m','Minutes',0.01667),(2,'ms','Milliseconds',0.001)])
-        self.addRefValues('ref_date_format',[(0,'MM/DD/YY','(0[0-9]|1[0-2])/[0-3][0-9]/[0-9]{2}'),(1,'MM/DD/YYYY','(0[0-9]|1[0-2])/[0-3][0-9]/[0-9]{4}'),
+        self.addRefValues('ref_date_format',[(0,'MM/DD/YY','(0[0-9]|1[0-2])/[0-3][0-9]/[0-9]{2}'),(1,'MM/DD/YYYY','(0[0-9]|[0-9]|1[0-2])/([0-3][0-9]|[0-9])/[0-9]{4}'),
                                                  (2,'YYYY/MM/DD','[0-9]{4}/(0[0-9]|1[0-2])/[0-9]{2}'),(3,'DD/MM/YYYY','[0-9]{2}/(0[0-9]|1[0-2])/[0-9]{4}'),
                                              (4, 'MM-DD-YY', '(0[0-9]|1[0-2])-[0-3][0-9]-[0-9]{2}'), (5, 'MM-DD-YYYY', '(0[0-9]|1[0-2])-[0-3][0-9]-[0-9]{4}'),
                                              (6, 'YYYY-MM-DD', '[0-9]{4}-(0[0-9]|1[0-2])-[0-9]{2}'), (7, 'DD-MM-YYYY', '[0-9]{2}-(0[0-9]|1[0-2])-[0-9]{4}'),
@@ -391,7 +393,9 @@ class ProjectSQLiteHandler:
             if startPoint == None:
                 #if there is not start date information we can't identify the position so None is returned
                 return None
-            dateDiff = pd.to_timedelta(asDate(startPoint) - asDate(value),unit='s')
+            dateDiff = pd.to_timedelta(startPoint - asDate(value),unit='s')
+            if dateDiff < pd.to_timedelta('0 s'):
+                dateDiff = pd.to_timedelta('0 s')
             interval = self.getFieldValue(SETUPTABLE,self.dbName(TIMESTEP),ID,1)
             record_position = dateDiff / interval
             return record_position
@@ -406,7 +410,7 @@ class ProjectSQLiteHandler:
             setDict[ENDDATE] = values[4]
             start = asDatasetIndex(str(values[3]))
             if start != None:
-                setDict[RUNTIMESTEPS] = ",".join([asDatasetIndex(str(values[3])),asDatasetIndex(str(values[4]))])
+                setDict[RUNTIMESTEPS] = ",".join([str(asDatasetIndex(str(values[3]))),str(asDatasetIndex(str(values[4])))])
             else:
                 setDict[RUNTIMESTEPS] = str(values[5])
             #as long as there was basic set up info look for component setup info
@@ -1097,6 +1101,7 @@ class ProjectSQLiteHandler:
         '''
 
         conn = lite.connect('project_manager')
+
         conn.row_factory = lite.Row
         cursor = conn.cursor()
 
@@ -1109,6 +1114,7 @@ class ProjectSQLiteHandler:
         finally:
             cursor.close()
             conn.close()
+
         return rowDict
     def getSetChanges(self,set_id):
 

@@ -132,7 +132,8 @@ class XMLEditor(QtWidgets.QWidget):
                 folder = os.path.join(getFilePath(setName,projectFolder=path),'Setup')
             xmlpath = os.path.join(folder,fileName)
             currentForm = self.findChild(XMLForm,selected)
-            currentForm.writeXML(xmlpath)
+            if currentForm != None:
+                currentForm.writeXML(xmlpath)
             self.updateSetupFile(selected[0].lower() + selected[1:],self.objectName())
 
     def updateSetupFile(self,selectedFile, tag):

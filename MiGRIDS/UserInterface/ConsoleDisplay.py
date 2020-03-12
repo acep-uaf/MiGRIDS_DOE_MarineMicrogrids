@@ -46,7 +46,8 @@ class ConsoleDisplay(QtWidgets.QDialog):
         self.setLayout(layout)
 
         #connect to output class actions
-        DisplayWriter.stdout().messageWritten.connect(self._console.insertPlainText)
+        #TODO
+        #DisplayWriter.stdout().messageWritten.connect(self._console.insertPlainText)
         #DisplayWriter.stderr().messageWritten.connect(self._console.insertPlainText)
 
 

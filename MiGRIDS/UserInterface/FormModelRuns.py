@@ -78,6 +78,7 @@ class FormModelRun(BaseForm):
             if not isinstance(m,RunTableModel): #runtable model doesn't have a submitall method
                 m.submitAll()
                 print(m.lastError().text())
+
 class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     '''
     The setAttributeEditorBlock contains inputs to determin what runs will occurr within a set and displays run results
@@ -110,6 +111,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.set_componentsModel = SetTableModel(self,self.set)
         self.set_componentsModel.setFilter('set_id = ' + str(self.set + 1) + " and tag != 'None'")
         tv.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
+        self.updateComponentLineEdit(self.controller.dbhandler.getComponentNames())  # update the clickable line edit to show current components
 
         self.set_componentsModel.select()
 
@@ -157,9 +159,9 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         for i in loc:
             tview.hideColumn(i)
     def submitData(self):
-        self.setModel.submitAll()
-        print(self.setModel.lastError().text())
-        self.set_componentsModel.submitAll()
+        #result = self.setModel.submitAll()
+        #print(self.setModel.lastError().text())
+        result = self.set_componentsModel.submitAll()
         print(self.set_componentsModel.lastError().text())
     def updateComponentLineEdit(self,listNames):
         '''component line edit is unbound so it gets called manually to update'''
@@ -231,6 +233,14 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         infoRow.addWidget(self.componentSelector(), 2)
         infoBox.setLayout(infoRow)
         return infoBox
+
+    def loadSetData(self):
+        # load and update from set setup file
+        # self.controller.runHandler.loadExistingProjectSet(self.setName)
+        # load and update from attributeXML
+        # load and update from xml resources
+        self.updateForm()
+        return
     def setValidators(self):
         #timesteps need to be equal to or greater than te setup timestep
         minSeconds = self.controller.dbhandler.getFieldValue('setup','timestepvalue','_id',1)
@@ -416,8 +426,11 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
     def setupRuns(self):
         '''Calculates the the run combinations and creates a folder for each run. Necessary xmls are transferred to the run folder'''
         #make sure all set attribute entries are entered
-        self.set_componentsModel.submitAll()
-        self.setModel.submitAll()
+        self.controller.dbhandler.getAllRecords('set_components')
+        result = self.set_componentsModel.submitAll()
+        self.controller.dbhandler.getAllRecords('set_components')
+        print(self.set_componentsModel.lastError().text())
+        #self.setModel.submitAll()
         # calculate the run matrix
         runs = self.calculateRuns()
         # create a folder for each run
@@ -442,7 +455,7 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
         self.controller.createDatabaseConnection()
     def runModels(self):
         #make sure data is up to date in the database
-        self.submitData()
+        self.set_componentsModel.submitAll()
         #cretae the required xml files and set directory
         self.setupSet()
         self.startModeling()
@@ -455,7 +468,8 @@ class SetsAttributeEditorBlock(QtWidgets.QGroupBox):
             self.updateDependents() #update the plot to show results
         except Exception as e:
             print("Could not complete model simulations")
-
+        finally:
+            self.controller.runHandler.sender.notifyProgress(10, "complete")
         return
     def updateDependents(self):
         self.refreshDataPlot()

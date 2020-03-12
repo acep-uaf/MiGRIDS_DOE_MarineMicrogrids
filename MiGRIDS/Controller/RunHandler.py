@@ -239,13 +239,13 @@ class RunHandler(UIHandler):
             if runNum == None:  # this is the only exit
                 break
             else:
-                self.sender.notifyProgress(1/runCount,"Running simulation " + str(runNum))
+                self.sender.update(1/runCount,"Running simulation " + str(runNum))
                 self.dbhandler.updateRunToStarted('Set' + str(currentSet), runNum)
                 Sim.runIndividualSimulation(runNum)
                 self.dbhandler.updateRunToFinished('Set' + str(self.setNum), runNum)
-        self.sender.notifyProgress(9,"Extracting run results")
+        self.sender.update(9,"Extracting run results")
         fillRunMetaData(setDir, []) #get metadata for all the runs
-        self.sender.notifyProgress(10, "complete")
+        self.sender.update(10, "complete")
 
     def createRun(self, setComponentIds, run,setName):
         # make the run directory

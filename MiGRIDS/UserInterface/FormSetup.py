@@ -485,8 +485,8 @@ class FormSetup(BaseForm):
         # start and end dates get set written to database as default date ranges
 
         values = self.updateInputDataDependents(data)
-
         self.updateModelInputDependents(values)
+
 
     def updateModelInputDependents(self, values):
         if len(self.controller.sets)<=0:

@@ -121,12 +121,12 @@ class Simulation:
                               genDispatchFile=self.genDispatchFile,
                               genScheduleFile=self.genScheduleFile, genDispatchInputsFile=self.genDispatchInputFile,
                               genScheduleInputsFile=self.genScheduleInputFile,
-                              wtgIDs=wtgIDs, wtgStates=wtgStates, wtgDescriptors=self.wtgDescriptors,
+                              wtgIDs=wtgIDs, wtgStates=wtgStates, wtgDescriptors=wtgDescriptors,
                               windSpeedDir=self.timeSeriesDir,
                               wtgDispatchFile=self.wtgDispatchFile, wtgDispatchInputsFile=self.wtgDispatchInputFile,
                               eesIDs=eesIDs, eesStates=eesStates, eesSOCs=eesSOC, eesDescriptors=eesDescriptors,
                               eesDispatchFile=self.eesDispatchFile, eesDispatchInputsFile=self.eesDispatchInputFile,
-                              tesIDs=tesIDs, tesTs=self.tesT, tesStates=tesStates, tesDescriptors=tesDescriptors,
+                              tesIDs=tesIDs, tesTs=tesT, tesStates=tesStates, tesDescriptors=tesDescriptors,
                               tesDispatchFile=self.tesDispatchFile, tesDispatchInputsFile=self.tesDispatchInputFile)
 
         SO.runSimulation()
@@ -173,13 +173,10 @@ class Simulation:
 
 
 
-    def PrepareSimulationInput(self,projectSetDir):
-        if projectSetDir == '':
-            # throw an error
-            raise NoDirectoryException("Specify a valid directory")
+    def PrepareSimulationInput(self):
 
         def getFile(inputfile):
-            filePath = os.path.join(projectSetDir, 'Setup',
+            filePath = os.path.join(self.projectSetDir, 'Setup',
                                     self.projectName + 'Set' + str(self.setNum) + inputfile[
                                         0].upper() + inputfile[
                                                      1:] + 'Inputs.xml')
@@ -191,7 +188,7 @@ class Simulation:
         # extract the numerical part of the set folder name
 
         # timeseries directory
-        self.timeSeriesDir = getFilePath('Processed', set=projectSetDir)
+        self.timeSeriesDir = getFilePath('Processed', set=self.projectSetDir)
           # get the time step
         self.timeStep = readXmlTag(self.projectSetupFile, 'timeStep', 'value', returnDtype='int')[0]
         # get the time steps to run
@@ -202,9 +199,10 @@ class Simulation:
                 self.runTimeSteps = int(runTimeSteps)
             elif 'None' in runTimeSteps:  # TODO remove this conversion and make sure it doesn't effect model reading in data
                 self.runTimeSteps = 'all'
-
+        elif runTimeSteps[0] == runTimeSteps[1]:
+            self.runTimeSteps = 'all'
         else:  # convert to int
-            self.runTimeSteps = [int(x) for x in runTimeSteps]
+            self.runTimeSteps = [int(x) for x in runTimeSteps] #TODO should be additional check for string date vs string int
         try:
             # get the load predicting function
             self.predictLoadFile = readXmlTag(self.projectSetupFile, 'loadPredict', 'value')[0]
