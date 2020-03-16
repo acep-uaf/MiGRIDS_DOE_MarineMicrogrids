@@ -5,6 +5,7 @@ import MiGRIDS.UserInterface.ModelComponentTable as T
 import MiGRIDS.UserInterface.ModelFileInfoTable as F
 import pytz
 
+from MiGRIDS.UserInterface.BaseEditorTab import BaseEditorTab
 from MiGRIDS.UserInterface.BaseForm import BaseForm
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
@@ -17,27 +18,13 @@ from MiGRIDS.Controller.DirectoryPreview import DirectoryPreview
 from PyQt5 import QtWidgets,QtCore,QtSql
 
 
-class FileBlock(QtWidgets.QGroupBox):
+class FileBlock(BaseEditorTab):
     '''FileBlock is the portion of a form that hold input information related to file import'''
-    def __init__(self, parent, tabPosition):
-        super().__init__(parent)
-        self.BLOCKED = False
-        #integer -> FileBlock
-        self.init(tabPosition)
-
 
     # creates a single form for entering individual file type information
     def init(self, tabPosition):
-        self.controller = Controller()
-        self.tabPosition = tabPosition
         self.tabName = "Input " + str(self.tabPosition)
-        windowLayout = self.createFileTab()
-        self.setLayout(windowLayout)
-        self.setFocusPolicy(QtCore.Qt.StrongFocus)
-        self.validated = False
-
-    def flash(self,msg=None):
-        print("flash: " + str(msg))
+        self.makeForm()
 
     def createFileTab(self):
 
@@ -360,7 +347,6 @@ class FileBlock(QtWidgets.QGroupBox):
         id = self.controller.dbhandler.getId('input_files',['inputfiledirvalue'],[filedir])
         tableHandler.functionForNewRecord(table,fields=[1],values=[id])
 
-
     def functionForDeleteRecord(self, table):
         '''Deletes a selected record'''
         # get selected rows
@@ -435,7 +421,6 @@ class FileBlock(QtWidgets.QGroupBox):
         self.FileBlock.sizePolicy().retainSizeWhenHidden()
         self.FileBlock.setObjectName('fileInput')
 
-
     def getSetupInfoFromFileBlock(self):
         '''reads data from an file input top block and returns a list of fields and values'''
         fieldNames = ['_id']
@@ -486,11 +471,11 @@ class FileBlock(QtWidgets.QGroupBox):
                 pass
                 #print('attempted to set component table items before component table was created')
 
-
-    @QtCore.pyqtSlot()
-    def onClick(self, buttonFunction):
-        '''calls the specified function connected to a button onClick event'''
-        buttonFunction()
+    def makeForm(self):
+        windowLayout = self.createFileTab()
+        self.setLayout(windowLayout)
+        self.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.validated = False
 
     def validate(self):
         '''

@@ -351,7 +351,6 @@ class ProjectSQLiteHandler:
     def getSetupDateRange(self):
         '''
 
-        :param setName: String name of the set to get date range for
         :return: start and end are string datetime values in the start and end date fields in the setup table
         '''
 
@@ -480,20 +479,20 @@ class ProjectSQLiteHandler:
         return setDict
     def getNewSetInfo(self,setName):
         '''
-        returns dictionary for attributes that are changed between an original setup file and a setup file for a set
+        returns dictionary for attributes that are changed between an original setup file and a setup file for a setInfo
         :return: Dictionary of attributes that have new values
         '''
-        set = self.getSetInfo(setName)
+        setInfo = self.getSetInfo(setName)
         setup = self.getSetUpInfo()
 
-        for k in list(set.keys()):
-            if set[k] == setup[k]:
-                del set[k]
-        if STARTDATE in set.keys():
-            del set[STARTDATE]
-        if ENDDATE in set.keys():
-            del set[ENDDATE]
-        return set
+        for k in list(setInfo.keys()):
+            if (setInfo[k] == setup[k]) | (setInfo[k]=='None') | (setInfo[k]==None) :
+                del setInfo[k]
+        if STARTDATE in setInfo.keys():
+            del setInfo[STARTDATE]
+        if ENDDATE in setInfo.keys():
+            del setInfo[ENDDATE]
+        return setInfo
     def updateSetSetup(self, setName, setupDict):
         '''Update the set_ table for a specific set and make sure all set components are in the set_component table'''
 
@@ -846,10 +845,9 @@ class ProjectSQLiteHandler:
 
         return codes
 
-    def getComponentNames(self,):
+    def getComponentNames(self):
         '''
-        returns a list of names for components in the set_components table. Defaults to set0
-        :param setName: String name of the set
+        returns a list of names for components in the components table.
         :return: list of string component names
         '''
 

@@ -220,7 +220,7 @@ class SystemOperations:
         :return:
         '''
 
-        tsvars = [a for a in dir(self) if isinstance(self.__getattribute__(a), TSVar)]
+        tsvars = [self.__getattribute__(a) for a in dir(self) if isinstance(self.__getattribute__(a), TSVar)]
 
         return tsvars
 

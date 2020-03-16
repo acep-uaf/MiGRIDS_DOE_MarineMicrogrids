@@ -9,7 +9,7 @@ import pandas as pd
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 
 
-def makeAttributeXML(currentSet):
+def makeAttributeXML(currentSet, compChanges, setChanges):
     soup = readTemplateAttributeXML()
 
     #fillSetInfo the soup to reflect the model
@@ -17,10 +17,12 @@ def makeAttributeXML(currentSet):
 
 
     #changes to component files
-    dbhandler = ProjectSQLiteHandler()
+
     #get a list of tuples for tag modifications
-    updateComponentAttributes(currentSet, dbhandler, soup)
-    updateSetupAttributes(currentSet, dbhandler, soup)
+
+    updateComponentAttributes(currentSet, compChanges, soup)
+
+    updateSetupAttributes(currentSet, setChanges, soup)
     return soup
 
 def dropAttr(lotag):
@@ -33,9 +35,9 @@ def dropAttr(lotag):
         newA = ",".join(a)
         return newT, newA
 
-def updateComponentAttributes(currentSet, dbhandler,  soup):
+def updateComponentAttributes(currentSet, compChanges,  soup):
     '''updates a soup with changes entered into the project database'''
-    compChanges = dbhandler.getSetChanges(dbhandler.getSetId(currentSet))
+
     if len(compChanges) >0:
         compName, compTag, compValue = zip(*compChanges)
         splitTags = [dropAttr(t) for t in compTag]
@@ -50,9 +52,9 @@ def updateComponentAttributes(currentSet, dbhandler,  soup):
         tag.attrs['value'] = ' '.join(compValue)
         return soup
 
-def updateSetupAttributes(currentSet, dbhandler,  soup):
+def updateSetupAttributes(currentSet, dataDict, soup):
     # Changes to setup file
-    dataDict = dbhandler.getNewSetInfo(currentSet)
+
     dataTuple = [(t, dataDict[t]) for t in dataDict.keys()]
     setupTag, setupValue = list(zip(*dataTuple))
     setupSplitTag = [dropAttr(t) for t in setupTag]

@@ -48,7 +48,9 @@ class RunHandler(UIHandler):
     def makeAttributeXML(self,currentSet):
 
         # generate the setAttributes xml file
-        soup = makeAttributeXML(currentSet)
+        compChanges = self.dbhandler.getSetChanges(self.dbhandler.getSetId(currentSet))
+        setChanges = self.dbhandler.getNewSetInfo(currentSet)
+        soup = makeAttributeXML(currentSet,compChanges,setChanges)
 
         fileName = self.dbhandler.getProject() + currentSet.capitalize() + 'Attributes.xml'
         setDir = getFilePath(currentSet, projectFolder=self.dbhandler.getProjectPath())
