@@ -148,17 +148,17 @@ class Controller:
         self.myThread.finished.connect(self.loadedProject)
         self.myThread.start()
 
-    @QtCore.pyqtSlot()
+    #@QtCore.pyqtSlot()
     def updateAttribute(self,className,attr,value):
         if className == 'Controller':
            self.setAttribute(attr, value)
 
 
-    @QtCore.pyqtSlot()
+    #@QtCore.pyqtSlot()
     def gotData(self,data):
         self.inputData = data
 
-    @QtCore.pyqtSlot()
+    #@QtCore.pyqtSlot()
     def gotComponents(self,loc):
         self.components = loc
 

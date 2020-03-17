@@ -42,7 +42,7 @@ class FormModelRun(BaseForm):
         newTabButton = QtWidgets.QPushButton()
         newTabButton.setText(' + Set')
         newTabButton.setFixedWidth(100)
-        newTabButton.clicked.connect(self.newTab)
+        newTabButton.clicked.connect(lambda:self.newTab(self.getTabCount()))
         self.layout.addWidget(newTabButton)
 
         #set table goes below the new tab button
@@ -50,13 +50,15 @@ class FormModelRun(BaseForm):
 
         self.setLayout(self.layout)
         self.showMaximized()
+    def getTabCount(self):
+        return len(self.tabs)
     #add a new set to the project, this adds a new tab for the new set information
-    def newTab(self):
+    def newTab(self,position):
         # get the set count
-        tab_count = self.tabs.count()
-        widg = SetsAttributeEditorBlock(self, tab_count)
+
+        widg = SetsAttributeEditorBlock(self, position)
         #widg.fillSetInfo()
-        self.tabs.addTab(widg, 'Set' + str(tab_count))
+        self.tabs.addTab(widg, 'Set' + str(position))
 
     # calls the specified function connected to a button onClick event
     @QtCore.pyqtSlot()
@@ -80,3 +82,8 @@ class FormModelRun(BaseForm):
                 m.submitAll()
                 print(m.lastError().text())
 
+    def projectLoaded(self):
+        tab_count = len(self.controller.dbhandler.getAllRecords('set_'))
+        self.displayTabbedData(tab_count,0)  #0 based tabs
+        modelForms = self.window().findChildren(SetsAttributeEditorBlock)
+        [m.loadSetData() for m in modelForms]  # load data individually for each set

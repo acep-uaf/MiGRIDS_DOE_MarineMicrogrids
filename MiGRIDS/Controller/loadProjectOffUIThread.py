@@ -5,8 +5,6 @@ import os
 from PyQt5 import QtGui, QtCore
 
 from MiGRIDS.Analyzer.DataRetrievers.getAllRuns import getAllSets
-
-
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.RunHandler import RunHandler
 from MiGRIDS.Controller.SetupHandler import SetupHandler

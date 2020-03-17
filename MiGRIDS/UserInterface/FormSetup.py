@@ -13,6 +13,7 @@ import os
 from PyQt5 import QtWidgets, QtCore
 from glob2 import glob
 
+from MiGRIDS.UserInterface.FormModelRuns import FormModelRun
 from MiGRIDS.UserInterface.BaseForm import BaseForm
 from MiGRIDS.UserInterface.FileBlock import FileBlock
 from MiGRIDS.UserInterface.Pages import Pages
@@ -322,7 +323,9 @@ class FormSetup(BaseForm):
             setupXML = os.path.join(setupFolder, self.controller.project + 'Setup.xml')
             self.controller.validator.validateSetupXML(setupXML)
             self.controller.sender.callStatusChanged()
-            self.displayModelData() #update the form with loaded data
+            # the number of directories listed in inputFileDir indicates how many tabs are required
+            tab_count = len(self.controller.dbhandler.getAllRecords('input_files'))
+            self.displayTabbedData(tab_count, 1) #update the form with loaded data
             self.updateFormProjectDataStatus()
 
             #boolean indicator of whether or not model sets have already been run
@@ -354,21 +357,6 @@ class FormSetup(BaseForm):
         loc = self.controller.dbhandler.makeComponents()
         return loc
 
-    def displayModelData(self):
-        """creates a tab for each input directory specified the SetupModelInformation model inputFileDir attribute.
-        Each tab contains a FileBlock object to interact with the data input
-        Each FileBlock is filled with data specific to the input directory"""
-        self.tabs.removeTab(0)
-        #the number of directories listed in inputFileDir indicates how many tabs are required
-        tab_count = len(self.controller.dbhandler.getAllRecords('input_files'))
-        #if directories have been entered then replace the first tab and create a tab for each directory
-        if tab_count > 0:
-            self.tabs.removeTab(0)
-            for i in range(tab_count):
-                self.newTab(i+1)
-        else:
-            self.newTab(1)
-        return
 
     def buildWizardTree(self, dlist):
         '''
@@ -493,8 +481,9 @@ class FormSetup(BaseForm):
             self.controller.dbhandler.insertFirstSet(values)
             self.controller.dbhandler.insertAllComponents('Set0')
         # Deliver appropriate info to the ModelForm
-        modelForms = self.window().findChildren(SetsAttributeEditorBlock)
-        [m.loadSetData() for m in modelForms] #load data individually for each set
+        modelForm = self.window().findChild(FormModelRun)
+        modelForm.projectLoaded()
+
 
     def updateInputDataDependents(self, data = None):
         ''':return dictionary of values relevant to a setup file'''
@@ -564,9 +553,7 @@ class FormSetup(BaseForm):
         tab_count = self.tabs.count() +1
         widg = FileBlock(self, tab_count)
         self.tabs.addTab(widg, 'Input' + str(tab_count))
-        #if its not the default empty tab fill data into form slots
-        '''if i>0:
-            widg.fillData(self.model,i)'''
+
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):
         buttonFunction()
