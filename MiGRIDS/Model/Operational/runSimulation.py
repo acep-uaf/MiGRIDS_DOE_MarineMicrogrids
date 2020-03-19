@@ -12,6 +12,8 @@ import time
 
 import re
 import os
+
+from MiGRIDS.Model.Operational.SystemOperationA import SystemOperationsA
 from MiGRIDS.Model.Operational.SystemOperations import SystemOperations
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
 from MiGRIDS.Analyzer.DataWriters.writeNCFile import writeNCFile

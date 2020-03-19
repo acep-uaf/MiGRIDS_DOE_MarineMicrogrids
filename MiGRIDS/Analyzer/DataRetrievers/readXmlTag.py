@@ -40,10 +40,10 @@ def readXmlTag(fileName,tag,attr,fileDir='',returnDtype = ''):
 
     return tagValues
 
-def getReferencedValue(tag, runFolder):
+def getReferencedValue(tag, folder):
     '''looks for a file and tag within a specified folder. Returns the value of the tag if found
     tag uses the format [component].[tag].[attribute]'''
-    sourceFile = [os.path.join(*[runFolder,'Components', xml]) for xml in os.listdir(os.path.join(runFolder,'Components')) if tag.split(".")[0] in xml]
+    sourceFile = [os.path.join(*[folder,'Components', xml]) for xml in os.listdir(os.path.join(folder,'Components')) if tag.split(".")[0] in xml]
     if len(sourceFile) >= 1:
         sourceFile = sourceFile[0]
         t, a = splitAttribute(tag)
