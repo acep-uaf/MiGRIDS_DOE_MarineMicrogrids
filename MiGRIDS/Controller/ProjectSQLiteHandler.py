@@ -984,6 +984,7 @@ class ProjectSQLiteHandler:
                     if len(componentDict[k]) > 0:
                         return True
             return False
+        allComponentNames = setupDict[COMPONENTNAMES].split(' ')
 
         fileAttributes = [FILEDIR, FILETYPE, DATECHANNELFORMAT,
                           DATECHANNEL, TIMECHANNELFORMAT, TIMECHANNEL, TIMEZONE,
@@ -1013,11 +1014,14 @@ class ProjectSQLiteHandler:
                 filecomponents[COMPONENTID] = idlist
                 filecomponents[COMPONENTTYPE] = components[COMPONENTTYPE]
                 self.addComponentsToFileInputTable(filecomponents)
-        else:
-            #if there are no input files specified components from the componentsnamesvalue attribute will be used to populate component table
-            idlist = self.extractComponentNamesOnly(components, setupDict)
 
-            return fileAttributes + componentAttributes + componentFiles
+         #if there are no input files specified components from the componentsnamesvalue attribute will be used to populate component table
+        allComponentNames = [component for component in allComponentNames if component not in components['componentnamevalue']]
+        allComponents = {'componentnamevalue': allComponentNames,
+                         'componenttype': [self.inferComponentType(k) for k in allComponentNames]}
+        idlist = self.extractComponentNamesOnly(allComponents, setupDict)
+
+        return fileAttributes + componentAttributes + componentFiles
 
     def addComponentsToFileInputTable(self, filecomponents):
         '''
@@ -1032,7 +1036,7 @@ class ProjectSQLiteHandler:
     def extractComponentNamesOnly(self, components,setupDict):
         '''
         Insert component names from setuDict into the component table in project_manager
-        :param setID: integer the set that these components are associated with
+        :param components:
         :param setupDict: a dictionary of values read from a setup.xml file
         :return: list of integers associated with the id field in the component table
         '''
