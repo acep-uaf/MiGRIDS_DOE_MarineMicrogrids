@@ -3,6 +3,7 @@
 from PyQt5  import QtWidgets, QtSql, QtCore
 from enum import Enum
 
+from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import splitAttribute
 from MiGRIDS.Controller.Controller import Controller
 
 from MiGRIDS.UserInterface.Delegates import TextDelegate, ComboDelegate, RelationDelegate
@@ -64,7 +65,7 @@ class SetTableModel(QtSql.QSqlRelationalTableModel):
         self.hide_headers_mode = True
         self.header = ['ID','Set', 'Component', 'Tag', 'Value']
         self.setTable('set_components')
-
+        self.controller = Controller()
         #the set table gets filtered to only show records for that set
         self.setFilter("set_id = " + str(position + 1) + " and tag != 'None' ORDER BY _id")
         self.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
@@ -96,3 +97,15 @@ class SetTableModel(QtSql.QSqlRelationalTableModel):
             return self.header[section]
 
 
+    def submitTable(self):
+        for r in range(self.rowCount()):
+            if len(self.data(self.index(r,SetComponentFields.value.value)).split(',')) > 1:
+                lov = self.data(self.index(r,SetComponentFields.value.value)).split(',')
+            else:
+                lov = [self.data(self.index(r,SetComponentFields.value.value))]
+                t,a = splitAttribute(self.data(self.index(r,SetComponentFields.tag.value)))
+            self.controller.dbhandler.insertTagRecord(
+                (self.data(self.index(r,SetComponentFields.component_id.value)),
+                 t,a,
+                 lov),
+                self.data(self.index(r,SetComponentFields.set_id.value)))

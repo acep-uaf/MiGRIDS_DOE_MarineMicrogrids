@@ -22,7 +22,7 @@ class XMLEditorHolder(QtWidgets.QWidget):
         self.xmlDefaults = {} #the value combo boxes for file selectors are originally set to
         self.controller = Controller()
         self.makeWidget()
-
+        return
     def updateWidget(self):
         '''Update the selected xml files and their values'''
         #new defaults

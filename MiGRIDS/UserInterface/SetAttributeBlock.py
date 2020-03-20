@@ -109,8 +109,8 @@ class SetsAttributeEditorBlock(BaseEditorTab):
     def submitData(self):
         #result = self.setModel.submitAll()
         #print(self.setModel.lastError().text())
-        result = self.set_componentsModel.submitAll()
-        print(self.set_componentsModel.lastError().text())
+        result = self.set_componentsModel.submitTable()
+        #print(self.set_componentsModel.lastError().text())
     def updateComponentLineEdit(self,listNames):
         '''component line edit is unbound so it gets called manually to update'''
         lineedit = self.infoBox.findChild(ClickableLineEdit,'componentNames')
@@ -374,7 +374,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         #make sure all set attribute entries are entered
         result = self.set_model.submit()
         self.controller.dbhandler.getAllRecords('set_components')
-        result = self.set_componentsModel.submitAll()
+        self.set_componentsModel.submitTable()
         self.controller.dbhandler.getAllRecords('set_components')
         print(self.set_componentsModel.lastError().text())
         #self.setModel.submitAll()
@@ -405,7 +405,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         if not result:
             print(self.set_model.lastError().text())
         self.controller.dbhandler.getAllRecords(("set_components"))
-        result = self.set_componentsModel.submitAll()
+        self.set_componentsModel.submitTable()
 
         if not result:
             print(self.set_componentsModel.lastError().text())

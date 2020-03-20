@@ -409,7 +409,7 @@ class ProjectSQLiteHandler:
             setDict[ENDDATE] = values[4]
             start = asDatasetIndex(str(values[3]))
             if start != None:
-                setDict[RUNTIMESTEPS] = ",".join([str(asDatasetIndex(str(values[3]))),str(asDatasetIndex(str(values[4])))])
+                setDict[RUNTIMESTEPS] = " ".join([str(asDatasetIndex(str(values[3]))),str(asDatasetIndex(str(values[4])))])
             else:
                 setDict[RUNTIMESTEPS] = str(values[5])
             #as long as there was basic set up info look for component setup info
@@ -564,6 +564,7 @@ class ProjectSQLiteHandler:
         '''
         [self.insertTagRecord(t,self.getSetId(setName))for t in lot]
         return
+
     def insertTagRecord(self,record,setId):
         if isinstance(record[3],list):
             [self.insertRecord(SETCOMPONENTTABLE, [SETID, COMPONENTID, TAG, TAGVALUE],

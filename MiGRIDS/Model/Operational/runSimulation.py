@@ -26,7 +26,7 @@ class Simulation:
     def __init__(self,projectSetDir, projectSetupXML):
 
         self.projectSetDir = projectSetDir
-        self.projectSetupFile = projectSetupXML
+        self.projectSetSetupFile = projectSetupXML
         self.outputDataDir = None
         # get set number
         dir_path = os.path.basename(projectSetDir)
@@ -192,9 +192,9 @@ class Simulation:
         # timeseries directory
         self.timeSeriesDir = getFilePath('Processed', set=self.projectSetDir)
           # get the time step
-        self.timeStep = readXmlTag(self.projectSetupFile, 'timeStep', 'value', returnDtype='int')[0]
+        self.timeStep = readXmlTag(self.projectSetSetupFile, 'timeStep', 'value', returnDtype='int')[0]
         # get the time steps to run
-        runTimeSteps = readXmlTag(self.projectSetupFile, 'runTimeSteps', 'value')
+        runTimeSteps = readXmlTag(self.projectSetSetupFile, 'runTimeSteps', 'value')
         if len(runTimeSteps) == 1:  # if only one value, take out of list. this prevents failures further down.
             runTimeSteps = runTimeSteps[0]
             if (not runTimeSteps == 'all') & (not 'None' in runTimeSteps):
@@ -207,50 +207,47 @@ class Simulation:
             self.runTimeSteps = [int(x) for x in runTimeSteps] #TODO should be additional check for string date vs string int
         try:
             # get the load predicting function
-            self.predictLoadFile = readXmlTag(self.projectSetupFile, 'loadPredict', 'value')[0]
+            self.predictLoadFile = readXmlTag(self.projectSetSetupFile, 'loadPredict', 'value')[0]
             self.predictLoadInputsFile = getFile(self.predictLoadFile)
 
             # get the wind predicting function
-            self.predictWindFile = readXmlTag(self.projectSetupFile, 'windPredict', 'value')[0]
+            self.predictWindFile = readXmlTag(self.projectSetSetupFile, 'windPredict', 'value')[0]
             self.predictWindInputsFile = getFile(self.predictWindFile)
 
             # get the ees dispatch
-            self.eesDispatchFile = readXmlTag(self.projectSetupFile, 'eesDispatch', 'value')[0]
+            self.eesDispatchFile = readXmlTag(self.projectSetSetupFile, 'eesDispatch', 'value')[0]
             self.eesDispatchInputFile = getFile(self.eesDispatchFile)
 
             # get the tes dispatch
-            self.tesDispatchFile = readXmlTag(self.projectSetupFile, 'tesDispatch', 'value')[0]
+            self.tesDispatchFile = readXmlTag(self.projectSetSetupFile, 'tesDispatch', 'value')[0]
             self.tesDispatchInputFile = getFile(self.tesDispatchFile)
 
             # get the minimum required SRC calculation
-            self.getMinSrcFile = readXmlTag(self.projectSetupFile, 'getMinSrc', 'value')[0]
+            self.getMinSrcFile = readXmlTag(self.projectSetSetupFile, 'getMinSrc', 'value')[0]
 
             self.getMinSrcInputFile = getFile(self.getMinSrcFile)
 
             # get the components to run
-            self.componentNames = readXmlTag(self.projectSetupFile, 'componentNames', 'value')
+            self.componentNames = readXmlTag(self.projectSetSetupFile, 'componentNames', 'value')
 
             # get the load profile to run
-            loadProfileFile = readXmlTag(self.projectSetupFile, 'loadProfileFile', 'value')[0]
+            loadProfileFile = readXmlTag(self.projectSetSetupFile, 'loadProfileFile', 'value')[0]
             self.loadProfileFile = os.path.join(self.timeSeriesDir, loadProfileFile)
 
             # get the RE dispatch
-            self.reDispatchFile = readXmlTag(self.projectSetupFile, 'reDispatch', 'value')[0]
-
+            self.reDispatchFile = readXmlTag(self.projectSetSetupFile, 'reDispatch', 'value')[0]
             self.reDispatchInputFile = getFile(self.reDispatchFile)
 
             # get the gen dispatch
-            self.genDispatchFile = readXmlTag(self.projectSetupFile, 'genDispatch', 'value')[0]
-
+            self.genDispatchFile = readXmlTag(self.projectSetSetupFile, 'genDispatch', 'value')[0]
             self.genDispatchInputFile = getFile(self.genDispatchFile)
-            # get the gen schedule
-            self.genScheduleFile = readXmlTag(self.projectSetupFile, 'genSchedule', 'value')[0]
 
+            # get the gen schedule
+            self.genScheduleFile = readXmlTag(self.projectSetSetupFile, 'genSchedule', 'value')[0]
             self.genScheduleInputFile = getFile(self.genScheduleFile)
 
             # get the wtg dispatch
-            self.wtgDispatchFile = readXmlTag(self.projectSetupFile, 'wtgDispatch', 'value')[0]
-
+            self.wtgDispatchFile = readXmlTag(self.projectSetSetupFile, 'wtgDispatch', 'value')[0]
             self.wtgDispatchInputFile = getFile(self.wtgDispatchFile)
 
         except MissingInputFileException as e:

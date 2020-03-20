@@ -170,7 +170,7 @@ class RunHandler(UIHandler):
         def actualValue(tagv):
             if isTagReferenced(tagv):
                 t, a = splitAttribute(tagv)
-                temp = readXmlTag(os.path.basename(selectedXML), t, a, os.path.dirname(selectedXML))
+
                 return readXmlTag(os.path.basename(selectedXML), t, a, os.path.dirname(selectedXML))
             else:
                 return tagv
@@ -191,7 +191,7 @@ class RunHandler(UIHandler):
         compTag = readXmlTag(fileName, 'compTag', 'value', setDir)
 
         compAttr = readXmlTag(fileName, 'compAttr', 'value', setDir)
-        compValue = readXmlTag(fileName, 'compValue', 'value', setDir)
+        compValue = readXmlTag(fileName, 'compValue', 'value', setDir)#supports a comma seperated list
         compTuple = list(zip(compId,compTag,compAttr,compValue))
         self.dbhandler.insertSetComponentTags(setName,compTuple)
     def attributeToDictionary(self,fileName,setDir):
@@ -232,7 +232,7 @@ class RunHandler(UIHandler):
         # call to run models
         searchpath = os.path.join(*[setDir, 'Run*'])
         runCount = len(glob.glob(searchpath))
-        Sim = Simulation(setDir,self.dbhandler.getFieldValue("project","setupfile","_id",1))
+        Sim = Simulation(setDir,self.findSetupFile(currentSet))
         Sim.PrepareSimulationInput()
         while 1:
             # read the SQL table of runs in this set and look for the next run that has not been started yet.

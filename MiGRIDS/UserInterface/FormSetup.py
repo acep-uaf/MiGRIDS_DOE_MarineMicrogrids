@@ -521,7 +521,7 @@ class FormSetup(BaseForm):
         values['set_name'] = ['Set0']
         info = self.controller.dbhandler.getSetUpInfo()
         if info is None:
-            info = self.controller.dbhandler.getSetInfo
+            info = self.controller.dbhandler.getSetInfo()
         values['timestepvalue'] = [info['timeStep.value']]
         values['timestepunit'] = [info['timeStep.unit']]
         values['project_id'] = [1]  # always 1, only 1 project per database

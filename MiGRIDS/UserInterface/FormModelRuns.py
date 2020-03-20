@@ -1,26 +1,11 @@
 # Projet: MiGRIDS
 # Created by: T. Morgan# Created on: 11/8/2019
 
-from PyQt5 import QtWidgets, QtCore, QtSql
-from MiGRIDS.Controller.Controller import Controller
+from PyQt5 import QtWidgets, QtCore
 from MiGRIDS.UserInterface.BaseForm import BaseForm
-from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
-from MiGRIDS.UserInterface.ResultsModel import ResultsModel
 from MiGRIDS.UserInterface.SetAttributeBlock import SetsAttributeEditorBlock
-from MiGRIDS.UserInterface.XMLEditor import XMLEditor
-from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
-from MiGRIDS.UserInterface.getFilePaths import getFilePath
-from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
-from MiGRIDS.UserInterface.TableHandler import TableHandler
-from MiGRIDS.UserInterface.ModelSetTable import SetTableModel, SetTableView
-from MiGRIDS.UserInterface.ModelRunTable import RunTableModel, RunTableView
-from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
+from MiGRIDS.UserInterface.ModelRunTable import RunTableModel
 from MiGRIDS.UserInterface.Pages import Pages
-from MiGRIDS.UserInterface.DialogComponentList import ComponentSetListForm
-from MiGRIDS.UserInterface.qdateFromString import qdateFromString
-from MiGRIDS.InputHandler.InputFields import *
-import datetime
-import os
 
 class FormModelRun(BaseForm):
     #model run information and result metadata

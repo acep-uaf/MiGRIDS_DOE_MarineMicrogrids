@@ -49,12 +49,14 @@ def fillRunMetaData(projectSetDir, runs):
         runs = getAllRuns(projectSetDir)
 
     for runNum in runs:
-        eessOL, genOL, valuesDictionary = getRunMetadata(projectSetDir, runNum, setNum)
-        genOverLoading = genOverLoading + genOL
-        eessOverLoading = eessOverLoading + eessOL
+        try:
+            eessOL, genOL, valuesDictionary = getRunMetadata(projectSetDir, runNum, setNum)
+            genOverLoading = genOverLoading + genOL
+            eessOverLoading = eessOverLoading + eessOL
 
-        dbhandler.updateRunResult(setNum,runNum,valuesDictionary)
-
+            dbhandler.updateRunResult(setNum,runNum,valuesDictionary)
+        except:
+            pass
 
     return eessOverLoading,genOverLoading
 
@@ -75,122 +77,126 @@ def getRunMetadata(projectSetDir, runNum, setNum):
     # go to dir where output files are saved
     # os.chdir(os.path.join(projectRunDir, 'OutputData'))
     runOutputDir = os.path.join(projectRunDir, 'OutputData')
-    # load the total powerhouse output
-    genPStats, genP, ts = loadResults('powerhousePSet' + str(setNum) + 'Run' + str(runNum) + '.nc', runOutputDir)
-    # load the total powerhouse charging of eess
-    genPchStats, genPch, ts = loadResults('powerhousePchSet' + str(setNum) + 'Run' + str(runNum) + '.nc',
-                                          runOutputDir)
-    # get generator power available stats
-    genPAvailStats, genPAvail, tsGenPAvail = loadResults('genPAvailSet' + str(setNum) + 'Run' + str(runNum) + '.nc',
-                                                         runOutputDir)
-    # check to see if fuel consumption has been calculated
-    genFuelConsFileNames = glob.glob(os.path.join(runOutputDir, 'gen*FuelConsSet*Run*.nc'))
-    # if the fuel cons has not been calculated, calculate
-    if len(genFuelConsFileNames) == 0:
-        getRunFuelUse(projectSetDir, [runNum])
+    try:
+        # load the total powerhouse output
+        genPStats, genP, ts = loadResults('powerhousePSet' + str(setNum) + 'Run' + str(runNum) + '.nc', runOutputDir)
+        # load the total powerhouse charging of eess
+        genPchStats, genPch, ts = loadResults('powerhousePchSet' + str(setNum) + 'Run' + str(runNum) + '.nc',
+                                              runOutputDir)
+        # get generator power available stats
+        genPAvailStats, genPAvail, tsGenPAvail = loadResults('genPAvailSet' + str(setNum) + 'Run' + str(runNum) + '.nc',
+                                                             runOutputDir)
+        # check to see if fuel consumption has been calculated
         genFuelConsFileNames = glob.glob(os.path.join(runOutputDir, 'gen*FuelConsSet*Run*.nc'))
-    # iterate through all generators and sum their fuel consumption.
-    genFuelCons = 0
-    for genFuelConsFileName in genFuelConsFileNames:
-        genFuelConsStats0, genFuelCons0, ts = loadResults(genFuelConsFileName, runOutputDir)
-        # genFuelCons
-        genFuelCons = genFuelCons + genFuelConsStats0[4]
-    # calculate the average loading while online
-    idxOnline = [idx for idx, x in enumerate(genPAvail) if x > 0]  # the indices of when online
-    # the loading profile of when online
-    genLoading = [x / genPAvail[idxOnline[idx]] for idx, x in enumerate(genP[idxOnline])]
-    genLoadingMean = np.mean(genLoading)
-    genLoadingStd = np.std(genLoading)
-    genLoadingMax = np.max(genLoading)
-    genLoadingMin = np.min(genLoading)
-    # the online capacity of diesel generators
-    genCapacity = genPAvail[idxOnline]
-    genCapacityMean = np.mean(genCapacity)
-    # get overloading of diesel
-    # get indicies of when diesel generators online
-    idxGenOnline = genPAvail > 0
-    genOverLoadingTime = np.count_nonzero(genP[idxGenOnline] > genPAvail[idxGenOnline]) * ts / 3600
-    genLoadingDiff = genP[idxGenOnline] - genPAvail[idxGenOnline]
-    genOverLoading = [[x for x in genLoadingDiff if x > 0]]
-    genOverLoadingkWh = sum(genLoadingDiff[genLoadingDiff > 0]) * ts / 3600
-    # get overloading of the ESS. this is the power requested from the diesel generators when none are online.
-    # to avoid counting instances where there there is genP due to rounding error, only count if greater than 1
-    eessOverLoadingTime = sum([1 for x in genP[~idxGenOnline] if abs(x) > 1]) * ts / 3600
-    eessOverLoadingkWh = sum([abs(x) for x in genP[~idxGenOnline] if abs(x) > 1]) * ts / 3600
-    eessOverLoading = [[x for x in genP[~idxGenOnline] if abs(x) > 1]]
-    # get the total time spend in diesel-off
-    genTimeOff = np.count_nonzero(genPAvail == 0) * tsGenPAvail / 3600
-    # get the total diesel run time
-    genTimeRunTot = 0.
-    genRunTimeRunTotkWh = 0.
-    for genRunTimeFile in glob.glob(os.path.join(runOutputDir, 'gen*RunTime*.nc')):
-        genRunTimeStats, genRunTime, ts = loadResults(genRunTimeFile, runOutputDir)
-        genTimeRunTot += np.count_nonzero(genRunTime != 0) * ts / 3600
-        # get the capcity of this generator
-        # first get the gen ID
-        genID = re.search('gen(.*)RunTime', genRunTimeFile).group(1)
-        genPMax = readXmlTag("gen" + genID + "Set" + str(setNum) + "Run" + str(runNum) + "Descriptor.xml",
-                             "POutMaxPa",
-                             "value", fileDir=projectRunDir + "/Components", returnDtype='float')
-        genRunTimeRunTotkWh += (np.count_nonzero(genRunTime != 0) * ts / 3600) * genPMax[0]
-    # calculate total generator energy delivered in kWh
-    genPTot = (genPStats[4] - genPchStats[4]) / 3600
-    # calculate total generator energy delivered in kWh
-    genPch = (genPchStats[4]) / 3600
-    # calculate generator switching
-    genSw = np.count_nonzero(np.diff(genPAvail))
-    # load the wind data
-    wtgPImportStats, wtgPImport, ts = loadResults('wtgPImportSet' + str(setNum) + 'Run' + str(runNum) + '.nc',
-                                                  runOutputDir)
-    wtgPAvailStats, wtgPAvail, ts = loadResults('wtgPAvailSet' + str(setNum) + 'Run' + str(runNum) + '.nc',
-                                                runOutputDir)
-    wtgPchStats, wtgPch, ts = loadResults('wtgPchSet' + str(setNum) + 'Run' + str(runNum) + '.nc', runOutputDir)
-    # tes
-    # get tess power, if included in simulations
-    if len(glob.glob(os.path.join(runOutputDir, 'ees*SRC*.nc'))) > 0:
-        tessPStats, tessP, ts = loadResults('tesPSet' + str(setNum) + 'Run' + str(runNum) + '.nc', runOutputDir)
-        tessPTot = tessPStats[4] / 3600
-    else:
-        tessPStats = [0, 0, 0, 0, 0]
-    # spilled wind power in kWh
-    wtgPspillTot = (wtgPAvailStats[4] - wtgPImportStats[4] - wtgPchStats[4] - tessPStats[4]) / 3600
-    # imported wind power in kWh
-    wtgPImportTot = wtgPImportStats[4] / 3600
-    # windpower used to charge EESS in kWh
-    wtgPchTot = wtgPchStats[4] / 3600
-    # eess
-    # get eess power
-    eessPStats, eessP, ts = loadResults('eessPSet' + str(setNum) + 'Run' + str(runNum) + '.nc', runOutputDir)
-    # get the charging power
-    eessPch = [x for x in eessP if x < 0]
-    eessPchTot = -sum(eessPch) * ts / 3600  # total kWh charging of eess
-    # get the discharging power
-    eessPdis = [x for x in eessP if x > 0]
-    eessPdisTot = (sum(eessPdis) * ts) / 3600  # total kWh dischargning of eess
-    # get eess SRC
-    # get all ees used in kWh
-    eessSRCTot = 0
-    for eesFile in glob.glob(os.path.join(runOutputDir, 'ees*SRC*.nc')):
-        eesSRCStats, eesSRC, ts = loadResults(eesFile, runOutputDir)
-        eessSRCTot += eesSRCStats[4] / 3600
-    # TODO: add gen fuel consumption
-    # add row for this run
-    # df.loc[runNum] = [genPTot,genPch,genSw,genLoadingMean,genCapacityMean,genFuelCons,genTimeOff,genTimeRunTot,genRunTimeRunTotkWh,genOverLoadingTime,genOverLoadingkWh,wtgPImportTot,wtgPspillTot,wtgPchTot,eessPdisTot,eessPchTot,eessSRCTot,eessOverLoadingTime,eessOverLoadingkWh,tessPTot]
-    valuesDictionary = {'genPTot': genPTot, 'genPch': genPch, 'genSw': genSw,
-                        'genLoadingMean': genLoadingMean, 'genCapacityMean': genCapacityMean,
-                        'genFuelCons': genFuelCons,
-                        'genTimeOff': genTimeOff, 'genTimeRunTot': genTimeRunTot,
-                        'genRunTimeRunTotkWh': genRunTimeRunTotkWh,
-                        'genOverLoadingTime': genOverLoadingTime, 'genOverLoadingkWh': genOverLoadingkWh,
-                        'wtgPImportTot': wtgPImportTot,
-                        'wtgPspillTot': wtgPspillTot, 'wtgPchTot': wtgPchTot, 'eessPdisTot': eessPdisTot,
-                        'eessPchTot': eessPchTot,
-                        'eessSRCTot': eessSRCTot, 'eessOverLoadingTime': eessOverLoadingTime,
-                        'eessOverLoadingkWh': eessOverLoadingkWh,
-                        'tessPTot': tessPTot}
+        # if the fuel cons has not been calculated, calculate
+        if len(genFuelConsFileNames) == 0:
+            getRunFuelUse(projectSetDir, [runNum])
+            genFuelConsFileNames = glob.glob(os.path.join(runOutputDir, 'gen*FuelConsSet*Run*.nc'))
+        # iterate through all generators and sum their fuel consumption.
+        genFuelCons = 0
+        for genFuelConsFileName in genFuelConsFileNames:
+            genFuelConsStats0, genFuelCons0, ts = loadResults(genFuelConsFileName, runOutputDir)
+            # genFuelCons
+            genFuelCons = genFuelCons + genFuelConsStats0[4]
+        # calculate the average loading while online
+        idxOnline = [idx for idx, x in enumerate(genPAvail) if x > 0]  # the indices of when online
+        # the loading profile of when online
+        genLoading = [x / genPAvail[idxOnline[idx]] for idx, x in enumerate(genP[idxOnline])]
+        genLoadingMean = np.mean(genLoading)
+        genLoadingStd = np.std(genLoading)
+        genLoadingMax = np.max(genLoading)
+        genLoadingMin = np.min(genLoading)
+        # the online capacity of diesel generators
+        genCapacity = genPAvail[idxOnline]
+        genCapacityMean = np.mean(genCapacity)
+        # get overloading of diesel
+        # get indicies of when diesel generators online
+        idxGenOnline = genPAvail > 0
+        genOverLoadingTime = np.count_nonzero(genP[idxGenOnline] > genPAvail[idxGenOnline]) * ts / 3600
+        genLoadingDiff = genP[idxGenOnline] - genPAvail[idxGenOnline]
+        genOverLoading = [[x for x in genLoadingDiff if x > 0]]
+        genOverLoadingkWh = sum(genLoadingDiff[genLoadingDiff > 0]) * ts / 3600
+        # get overloading of the ESS. this is the power requested from the diesel generators when none are online.
+        # to avoid counting instances where there there is genP due to rounding error, only count if greater than 1
+        eessOverLoadingTime = sum([1 for x in genP[~idxGenOnline] if abs(x) > 1]) * ts / 3600
+        eessOverLoadingkWh = sum([abs(x) for x in genP[~idxGenOnline] if abs(x) > 1]) * ts / 3600
+        eessOverLoading = [[x for x in genP[~idxGenOnline] if abs(x) > 1]]
+        # get the total time spend in diesel-off
+        genTimeOff = np.count_nonzero(genPAvail == 0) * tsGenPAvail / 3600
+        # get the total diesel run time
+        genTimeRunTot = 0.
+        genRunTimeRunTotkWh = 0.
+        for genRunTimeFile in glob.glob(os.path.join(runOutputDir, 'gen*RunTime*.nc')):
+            genRunTimeStats, genRunTime, ts = loadResults(genRunTimeFile, runOutputDir)
+            genTimeRunTot += np.count_nonzero(genRunTime != 0) * ts / 3600
+            # get the capcity of this generator
+            # first get the gen ID
+            genID = re.search('gen(.*)RunTime', genRunTimeFile).group(1)
+            genPMax = readXmlTag("gen" + genID + "Set" + str(setNum) + "Run" + str(runNum) + "Descriptor.xml",
+                                 "POutMaxPa",
+                                 "value", fileDir=projectRunDir + "/Components", returnDtype='float')
+            genRunTimeRunTotkWh += (np.count_nonzero(genRunTime != 0) * ts / 3600) * genPMax[0]
+        # calculate total generator energy delivered in kWh
+        genPTot = (genPStats[4] - genPchStats[4]) / 3600
+        # calculate total generator energy delivered in kWh
+        genPch = (genPchStats[4]) / 3600
+        # calculate generator switching
+        genSw = np.count_nonzero(np.diff(genPAvail))
+        # load the wind data
+        wtgPImportStats, wtgPImport, ts = loadResults('wtgPImportSet' + str(setNum) + 'Run' + str(runNum) + '.nc',
+                                                      runOutputDir)
+        wtgPAvailStats, wtgPAvail, ts = loadResults('wtgPAvailSet' + str(setNum) + 'Run' + str(runNum) + '.nc',
+                                                    runOutputDir)
+        wtgPchStats, wtgPch, ts = loadResults('wtgPchSet' + str(setNum) + 'Run' + str(runNum) + '.nc', runOutputDir)
+        # tes
+        # get tess power, if included in simulations
+        if len(glob.glob(os.path.join(runOutputDir, 'ees*SRC*.nc'))) > 0:
+            tessPStats, tessP, ts = loadResults('tesPSet' + str(setNum) + 'Run' + str(runNum) + '.nc', runOutputDir)
+            tessPTot = tessPStats[4] / 3600
+        else:
+            tessPStats = [0, 0, 0, 0, 0]
+        # spilled wind power in kWh
+        wtgPspillTot = (wtgPAvailStats[4] - wtgPImportStats[4] - wtgPchStats[4] - tessPStats[4]) / 3600
+        # imported wind power in kWh
+        wtgPImportTot = wtgPImportStats[4] / 3600
+        # windpower used to charge EESS in kWh
+        wtgPchTot = wtgPchStats[4] / 3600
+        # eess
+        # get eess power
+        eessPStats, eessP, ts = loadResults('eessPSet' + str(setNum) + 'Run' + str(runNum) + '.nc', runOutputDir)
+        # get the charging power
+        eessPch = [x for x in eessP if x < 0]
+        eessPchTot = -sum(eessPch) * ts / 3600  # total kWh charging of eess
+        # get the discharging power
+        eessPdis = [x for x in eessP if x > 0]
+        eessPdisTot = (sum(eessPdis) * ts) / 3600  # total kWh dischargning of eess
+        # get eess SRC
+        # get all ees used in kWh
+        eessSRCTot = 0
+        for eesFile in glob.glob(os.path.join(runOutputDir, 'ees*SRC*.nc')):
+            eesSRCStats, eesSRC, ts = loadResults(eesFile, runOutputDir)
+            eessSRCTot += eesSRCStats[4] / 3600
+        # TODO: add gen fuel consumption
+        # add row for this run
+        # df.loc[runNum] = [genPTot,genPch,genSw,genLoadingMean,genCapacityMean,genFuelCons,genTimeOff,genTimeRunTot,genRunTimeRunTotkWh,genOverLoadingTime,genOverLoadingkWh,wtgPImportTot,wtgPspillTot,wtgPchTot,eessPdisTot,eessPchTot,eessSRCTot,eessOverLoadingTime,eessOverLoadingkWh,tessPTot]
+        valuesDictionary = {'genPTot': genPTot, 'genPch': genPch, 'genSw': genSw,
+                            'genLoadingMean': genLoadingMean, 'genCapacityMean': genCapacityMean,
+                            'genFuelCons': genFuelCons,
+                            'genTimeOff': genTimeOff, 'genTimeRunTot': genTimeRunTot,
+                            'genRunTimeRunTotkWh': genRunTimeRunTotkWh,
+                            'genOverLoadingTime': genOverLoadingTime, 'genOverLoadingkWh': genOverLoadingkWh,
+                            'wtgPImportTot': wtgPImportTot,
+                            'wtgPspillTot': wtgPspillTot, 'wtgPchTot': wtgPchTot, 'eessPdisTot': eessPdisTot,
+                            'eessPchTot': eessPchTot,
+                            'eessSRCTot': eessSRCTot, 'eessOverLoadingTime': eessOverLoadingTime,
+                            'eessOverLoadingkWh': eessOverLoadingkWh,
+                            'tessPTot': tessPTot}
 
-    return eessOverLoading, genOverLoading, valuesDictionary
-
+        return eessOverLoading, genOverLoading, valuesDictionary
+    except Exception as e:
+        print(e)
+        print ("metadata not generated yet")
+        return None
 def generateOverLoadResults(eessOverLoading, genOverLoading, runOutputDir):
     # make pdfs
     # generator overloading

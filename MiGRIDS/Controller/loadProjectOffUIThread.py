@@ -68,11 +68,20 @@ class ThreadedProjectLoad(QtCore.QThread):
             # by replacing the current pickle with the loaded one the user can manually edit the input and
             #  then return to working with the interface
             return self.setupHandler.loadInputData(os.path.dirname(setupFile))
+        def checkDatabase(project, projectFolder,setupFile):
+            if self.dbHandler.getFieldValue('project','project_name','project_name',project) != None:
+                self.dbHandler.clearTable('project')
+                self.dbHandler.clearTable('setup')
 
+            self.dbHandler.insertRecord('project', ['project_name', 'project_path', 'setupfile'],
+                                        [project, projectFolder, setupFile])
+            setupDictionary = self.setupHandler.readInSetupFile(setupFile)
+            self.dbHandler.updateSetupInfo(setupDictionary, setupFile)
         # different load pathways depending on whether or not a project database is found
         projectFolder = getFilePath('Project', setupFolder=os.path.dirname(setupFile))
         self.updateAttribute('Controller','setupFolder',os.path.dirname(setupFile))
         self.updateAttribute('Controller','projectFolder',getFilePath('Project', setupFolder=os.path.dirname(setupFile)))
+
         project = os.path.basename(projectFolder)
         self.updateAttribute('Controller', 'project',project)
             #self.controller.project = os.path.basename(controller.projectFolder)
@@ -83,6 +92,7 @@ class ThreadedProjectLoad(QtCore.QThread):
             print('An existing project database was found.')
 
             replaceDefaultDatabase(os.path.join(projectFolder, 'project_manager'))
+            checkDatabase(project,projectFolder,setupFile)
             self.updateAttribute('Controller','projectDatabase',True)
             #TODO verify validator called for controller attributes
 
@@ -92,8 +102,7 @@ class ThreadedProjectLoad(QtCore.QThread):
             setupDictionary = self.setupHandler.readInSetupFile(setupFile)
             if self.validator.validate(ValidatorTypes.SetupXML,setupDictionary):
                 self.updateAttribute('Controller','setupValid',True)
-                self.dbHandler.insertRecord('project', ['project_name', 'project_path', 'setupfile'],
-                                   [project, projectFolder, setupFile])
+                checkDatabase(project,projectFolder,setupFile)
                 self.dbHandler.updateSetupInfo(setupDictionary, setupFile)
 
             self.updateProgress(1, 'Loading Set Results')
@@ -104,7 +113,15 @@ class ThreadedProjectLoad(QtCore.QThread):
         self.updateProgress(3, 'Validating Data')
 
        # get input data object
-        data= findDataObject()
+        try:
+            data= findDataObject()
+            # validate data object
+            if self.validator.validate(ValidatorTypes.DataObject, data):
+                self.updateAttribute('Controller', 'dataObjectValid', True)
+                self.updateAttribute('Controller', 'inputData', data)  # send the object to the controller
+        except ModuleNotFoundError as m:
+            pass
+            print("Data object was not readable")
         #validate setup file
         setupDictionary = self.setupHandler.readInSetupFile(setupFile)
         if self.validator.validate(ValidatorTypes.SetupXML, setupDictionary):
@@ -113,10 +130,7 @@ class ThreadedProjectLoad(QtCore.QThread):
         #validate input data files
         if self.validator.validate(ValidatorTypes.InputData):
             self.updateAttribute('Controller', 'inputDataValid', True)
-        #validate data object
-        if self.validator.validate(ValidatorTypes.DataObject, data):
-            self.updateAttribute('Controller','dataObjectValid',True)
-            self.updateAttribute('Controller', 'inputData', data)  # send the object to the controller
+
         self.updateProgress(3, 'Loading NetCDFs')
         # get model input netcdfs
         netcdfs = listNetCDFs()
@@ -125,6 +139,7 @@ class ThreadedProjectLoad(QtCore.QThread):
             self.updateAttribute('Controller','netcdfsValid',True)
             self.updateAttribute('Controller', 'netcdfs', netcdfs)  # send the object to the controller
         self.updateProgress(10,'Complete')
+        self.dbHandler.closeDatabase()
         del self.dbHandler
         del self.runHandler
         return

@@ -39,7 +39,8 @@ def fixDataInterval(data, interval, **kwargs):
     try:
         data.fixed = [fixDataFrameInterval(x, interval,fixColumns, data.loads, data.powerComponents) for x in data.fixed]
 
-    except:
+    except Exception as e:
+        print(e)
         print("could not resample dataframe")
     print(data.fixed[0].head())
 
@@ -186,7 +187,8 @@ def matchToOriginal(originalSeries,simulatedSeries, interval):
     except:
         pass
     # join the simulated values to the upsampled dataframe by timestamp
-    newDF = pd.DataFrame({originalSeries.name:originalSeries,'value':simulatedSeries.values},index = originalSeries.index)
+    newDF = pd.DataFrame(index=originalSeries.index)
+    newDF = newDF.join(simulatedSeries, how='inner')
 
     # fill na's for column with simulated values
     newDF.loc[pd.isnull(newDF[originalSeries.name]), originalSeries.name] = newDF['value']
