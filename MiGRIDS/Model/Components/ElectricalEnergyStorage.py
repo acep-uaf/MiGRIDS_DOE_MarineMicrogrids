@@ -58,9 +58,11 @@ class ElectricalEnergyStorage:
         self.eesPinAvail_1 = 0
         self.eesPsrcAvail = 0
         self.eesPsrcAvailMax = 0
-        self.eesQinAvail = self.eesQInMax
+        #TODO commented out because tag not in xml
+        #self.eesQinAvail = self.eesQInMax
         self.eesPoutAvail = 0
-        self.eesQoutAvail = self.eesQOutMax
+        #TODO commented out because tag not in xml
+        #self.eesQoutAvail = self.eesQOutMax
         self.underSRC = 0
         self.prevUnderSrc = [0]*timeSeriesLength
         self.outOfBoundsReal = 0
@@ -91,8 +93,9 @@ class ElectricalEnergyStorage:
         self.eesName = eesSoup.component.get('name')
         self.eesPOutMax = float(eesSoup.POutMaxPa.get('value'))  # max discharging power
         self.eesPInMax = float(eesSoup.PInMaxPa.get('value'))  # max charging power
-        self.eesQOutMax = float(eesSoup.QOutMaxPa.get('value'))  # max discharging power reactive
-        self.eesQInMax = float(eesSoup.QInMaxPa.get('value'))  # max charging power reactive
+        #TODO commented out because does not exist in xml
+        #self.eesQOutMax = float(eesSoup.QOutMaxPa.get('value'))  # max discharging power reactive
+        #self.eesQInMax = float(eesSoup.QInMaxPa.get('value'))  # max charging power reactive
         # FUTUREFEATURE: add the effect of charge/discharge rate on capacity. Possibly add something similar to the LossMap
         self.eesEMax = float(eesSoup.ratedDuration.get('value'))*self.eesPOutMax # the maximum energy capacity of the EES in kWs
         # check if EMax is zero, this is likely because it is a zero EES condition. Set it to 1 kWs in order not to crash the
@@ -112,7 +115,8 @@ class ElectricalEnergyStorage:
         self.eesDispatchTime = float(eesSoup.eesDispatchTime.get('value'))
         # 'eesDispatchMinSoc' is the minimum SOC of the ESS in order to be considered as an active discharge option in
         # the diesel schedule. Units are in pu of full energy capacity.
-        self.eesDispatchMinSoc = float(eesSoup.eesDispatchMinSoc.get('value'))
+        #TODO commmented out because tag not in xml
+        #self.eesDispatchMinSoc = float(eesSoup.eesDispatchMinSoc.get('value'))
         # In order to use the consider the equivalent fuel efficiency of dishcarging the ESS to allow running a smaller
         # diesel generator, an equivalent fuel consumption of the ESS must be calculated in kg/kWh. This is done by calculating
         # how much diesel fuel went into charging the ESS to it's current level. Divide the number of kg by the state of
@@ -228,10 +232,11 @@ class ElectricalEnergyStorage:
                 self.outOfBoundsReal = True
             else:
                 self.outOfBoundsReal = False
-            if (self.eesQ > self.eesQoutAvail) | (self.eesQ < -self.eesQinAvail):
-                self.outOfBoundsReactive = True
-            else:
-                self.outOfBoundsReactive = False
+            #TODO commmented out because tags not in xml
+            # if (self.eesQ > self.eesQoutAvail) | (self.eesQ < -self.eesQinAvail):
+            #     self.outOfBoundsReactive = True
+            # else:
+            #     self.outOfBoundsReactive = False
 
             self.eesRunTimeAct += self.timeStep
             self.eesRunTimeTot += self.timeStep

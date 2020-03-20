@@ -40,7 +40,8 @@ class Generator:
         # Dig through the tree for the required data
         self.genName = genSoup.component.get('name')
         self.genPMax = float(genSoup.POutMaxPa.get('value')) # nameplate capacity
-        self.genQMax = float(genSoup.QOutMaxPa.get('value'))  # nameplate capacity kvar
+        #TODO commented out because doesn't exist in xml
+        #self.genQMax = float(genSoup.QOutMaxPa.get('value'))  # nameplate capacity kvar
         self.genMol = float(genSoup.mol.get('value')) * self.genPMax # the MOL, normal operation stay above this
         self.underMolLimit = float(genSoup.molLimit.get('value'))*self.genPMax # the maximum energy allowed below MOL in checkLoadingTime period
         self.genMel = float(genSoup.mel.get('value')) * self.genPMax  # the MEL, efficient operation is above this
@@ -118,7 +119,8 @@ class Generator:
         # update genMolAvail, genPAvail and genQAvail depending on Gstate
         if genState == 2:
             self.genPAvail = self.genPMax # P available is the how much power is avialable online. P max if online, 0 otherwise
-            self.genQAvail = self.genQMax
+            #TODO commented out because tag does not exist in xml file
+            #self.genQAvail = self.genQMax
             self.genMolAvail = self.genMol # the lowest loading it can run at
             self.genMelAvail = self.genMel
         else:

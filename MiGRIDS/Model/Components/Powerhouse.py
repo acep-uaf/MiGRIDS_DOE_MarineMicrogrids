@@ -76,11 +76,13 @@ class Powerhouse:
 
             # Initial value for genP, genQ, genPAvail and genQAvail can be handled while were in this loop
             self.genPMax = self.genPMax + self.generators[idx].genPMax
-            self.genQMax = self.genQMax + self.generators[idx].genQMax
+            #TODO commented out because tag not in descriptor xml
+            #self.genQMax = self.genQMax + self.generators[idx].genQMax
             self.genP += [self.generators[idx].genP]
             self.genQ += [self.generators[idx].genQ]
             self.genPAvail += [self.generators[idx].genPAvail]
-            self.genQAvail += [self.generators[idx].genQAvail]
+            # TODO commented out because tag not in descriptor xml
+            #self.genQAvail += [self.generators[idx].genQAvail]
             self.genMolAvail += [self.generators[idx].genMolAvail]
             self.genMelAvail += [self.generators[idx].genMelAvail]
             self.genFuelCons += [self.generators[idx].genFuelCons]

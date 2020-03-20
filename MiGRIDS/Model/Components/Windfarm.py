@@ -68,7 +68,8 @@ class Windfarm:
 
             # Initial value for wtgP, wtgQ, wtgPAvail and wtgQAvail can be handled while were in this loop
             self.wtgPMax = self.wtgPMax + self.windTurbines[idx].wtgPMax
-            self.wtgQMax = self.wtgQMax + self.windTurbines[idx].wtgQMax
+            #TODO commented out because tag does not exist in xml
+            #self.wtgQMax = self.wtgQMax + self.windTurbines[idx].wtgQMax
             self.wtgP += [self.windTurbines[idx].wtgP]
             self.wtgQ += [self.windTurbines[idx].wtgQ]
             self.wtgPAvail += [self.windTurbines[idx].wtgPAvail]

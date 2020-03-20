@@ -78,9 +78,11 @@ class ElectricalEnergyStorageSystem:
 
             # Initial operating values
             self.eesPinAvail.append(self.electricalEnergyStorageUnits[idx].eesPinAvail)
-            self.eesQinAvail.append(self.electricalEnergyStorageUnits[idx].eesQinAvail)
+            #TODO tag not in xml
+            #self.eesQinAvail.append(self.electricalEnergyStorageUnits[idx].eesQinAvail)
             self.eesPoutAvail.append(self.electricalEnergyStorageUnits[idx].eesPoutAvail)
-            self.eesQoutAvail.append(self.electricalEnergyStorageUnits[idx].eesQoutAvail)
+            #TODO tag not in xml
+            #self.eesQoutAvail.append(self.electricalEnergyStorageUnits[idx].eesQoutAvail)
             self.eesPsrcAvail.append(self.electricalEnergyStorageUnits[idx].eesPsrcAvail)
             self.eesPloss.append(self.electricalEnergyStorageUnits[idx].eesPloss)
             self.eesPinAvail_1.append(self.electricalEnergyStorageUnits[idx].eesPinAvail)
@@ -97,9 +99,9 @@ class ElectricalEnergyStorageSystem:
 
             # total power and energy capacities
             self.eesPInMax += self.electricalEnergyStorageUnits[idx].eesPInMax
-            self.eesQInMax += self.electricalEnergyStorageUnits[idx].eesQInMax
+            #self.eesQInMax += self.electricalEnergyStorageUnits[idx].eesQInMax
             self.eesPOutMax += self.electricalEnergyStorageUnits[idx].eesPOutMax
-            self.eesQOutMax += self.electricalEnergyStorageUnits[idx].eesQOutMax
+            #self.eesQOutMax += self.electricalEnergyStorageUnits[idx].eesQOutMax
             self.eesEMax += self.electricalEnergyStorageUnits[idx].eesEMax
 
     # this runs the ees dispatch schedule
