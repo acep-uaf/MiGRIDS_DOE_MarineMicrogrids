@@ -102,7 +102,8 @@ class WindTurbine:
         # Dig through the tree for the required data
         self.wtgName = wtgSoup.component.get('name')
         self.wtgPMax = float(wtgSoup.POutMaxPa.get('value')) # Nameplate capacity [kW]
-        self.wtgQMax = float(wtgSoup.QOutMaxPa.get('value'))  # Nameplate capacity [kvar]
+        #TODO check if QOutMaxPa should be included in descriptor xml for wtg
+        #self.wtgQMax = float(wtgSoup.QOutMaxPa.get('value'))  # Nameplate capacity [kvar]
         self.wtgCheckWindTime = float(wtgSoup.checkWindTime.get('value'))  # time to check spilled wind power over
         self.cumSpilledWindWindow = int(self.wtgCheckWindTime/self.timeStep) # helper to avoid repeated calculation
         self.wtgSpilledWindLimit = float(

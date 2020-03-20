@@ -419,16 +419,16 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         #post a progress dialog box
         pbox = CustomProgressBar("Running Simulations")
         self.controller.runHandler.sender.notifyProgress.connect(pbox.onProgress)
-        try:#starts running models based on xml files that were genereted in a set directory
-            self.controller.runHandler.runModels(self.setName)
-            self.updateDependents() #update the plot to show results
-        except OSError as e:
-            print(e)
-            print("Could not complete model simulations")
-        except Exception as e:
-            print("Could not complete model simulations")
-        finally:
-            self.controller.runHandler.sender.update(10, "complete")
+        #try:#starts running models based on xml files that were genereted in a set directory
+        self.controller.runHandler.runModels(self.setName)
+        self.updateDependents() #update the plot to show results
+        # except OSError as e:
+        #     print(e)
+        #     print("Could not complete model simulations")
+        # except Exception as e:
+        #     print("Could not complete model simulations")
+        # finally:
+        self.controller.runHandler.sender.update(10, "complete")
         return
     def updateDependents(self):
         self.refreshDataPlot()
