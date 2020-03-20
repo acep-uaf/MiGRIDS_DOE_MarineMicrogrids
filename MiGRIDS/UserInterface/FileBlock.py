@@ -1,5 +1,6 @@
 # Projet: MiGRIDS
 # Created by: T. Morgan# Created on: 11/8/2019
+import os
 
 import MiGRIDS.UserInterface.ModelComponentTable as T
 import MiGRIDS.UserInterface.ModelFileInfoTable as F
@@ -447,11 +448,20 @@ class FileBlock(BaseEditorTab):
         j = self.mapper.submit() #boolean true if values submitted
 
         f = self.fileBlockModel.data(self.fileBlockModel.index(row, F.InputFileFields.inputfiledirvalue.value))
-        self.mapper.setCurrentIndex(row) #this is where data becomes availabe in the model but still not in database
+        self.mapper.setCurrentIndex(row) #this is where data becomes available in the model but still not in database
+        self.checkPath(f) #make sure relative and absolute paths that point to the same location are seen as the same
         m = self.fileBlockModel.submitAll()
         self.setValid(self.validate())
         return
 
+    def checkPath(self, filePath):
+        '''converts the selected path to an existing path if it matches'''
+        currentPaths = self.controller.dbhandler.getAllRecords('input_files')
+        for cpath in currentPaths:
+            if os.path.abspath(filePath) == os.path.abspath(cpath[4]):
+                filePath = cpath
+                return filePath
+        return filePath
     def setValid(self,valid):
         '''
         Adjusts the FileBlock form to reflect whether or not the inputs are valid

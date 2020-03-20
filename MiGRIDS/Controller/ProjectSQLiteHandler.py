@@ -255,6 +255,7 @@ class ProjectSQLiteHandler:
                 usedstvalue text,
                 flexibleyearvalue text,
                 inpututcoffsetvalue integer,
+                UNIQUE(inputfiledirvalue),
                 FOREIGN KEY (timechannelformat) REFERENCES ref_time_format(code),
                 FOREIGN KEY (datechannelformat) REFERENCES ref_date_format(code));""")
 
@@ -797,11 +798,11 @@ class ProjectSQLiteHandler:
             try:
                 self.cursor.execute('INSERT INTO ' + tablename + ' (' + keys + ') VALUES (' + question_marks + ')',v ) #if insertion fails the last id gets re-appended to the list
                 self.connection.commit()
+                ids.append(self.cursor.lastrowid)
             except Exception as e:
                 print(e)
 
-            finally:
-                ids.append(self.cursor.lastrowid)
+
         if ml > len(ids):
             print ('Information was missing for some input files')
         return ids
@@ -988,7 +989,7 @@ class ProjectSQLiteHandler:
 
         fileAttributes = [FILEDIR, FILETYPE, DATECHANNELFORMAT,
                           DATECHANNEL, TIMECHANNELFORMAT, TIMECHANNEL, TIMEZONE,
-                          FLEXIBLEYEAR, INPUTTIMESTEP, UTCOFFSET]
+                          INPUTTIMESTEP, UTCOFFSET]
         componentFiles = [HEADERNAME, COMPONENTATTRIBUTEUNIT,
                                COMPONENTATTRIBUTE]  # plus file id and component id
         componentAttributes = [COMPONENTNAME]
@@ -996,7 +997,7 @@ class ProjectSQLiteHandler:
                  key in fileAttributes}
         #sometimes setup files only contain the relative path to input files from the project directory
 
-        files[self.dbName(FILEDIR)] = [self.makePath(k) for k in files[self.dbName(FILEDIR)]] #we need to convert the list filepath to a system filepath as a string
+        files[self.dbName(FILEDIR)] = [self.checkPath(self.makePath(k)) for k in files[self.dbName(FILEDIR)]] #we need to convert the list filepath to a system filepath as a string
         components = {self.dbName(key): xmlToString(value.split(' ')) for key, value in setupDict.items() if
                       key in componentAttributes}
         filecomponents = {self.dbName(key): value.split(' ') for key, value in setupDict.items() if
@@ -1006,6 +1007,7 @@ class ProjectSQLiteHandler:
 
         # insert the pieces
         if (files[self.dbName(FILEDIR)]!=[""]) & (files[self.dbName(FILEDIR)] != ['None']):
+
             idlist = self.insertDictionaryRow('input_files', files)
             filecomponents['inputfile_id'] = idlist
             idlist = self.extractComponentNamesOnly(components, setupDict)
@@ -1068,6 +1070,7 @@ class ProjectSQLiteHandler:
                 aslist.remove("")
             if len(aslist) <= 0:
                 return None
+        aslist = [a.replace(" ","_") for a in aslist]
         if aslist[0] == self.getProject(): #if the path specification starts with the project folder, make it a complete path by adding the path to the project folder
             return os.path.join(self.getProjectPath(),*aslist[1:])
         else:
@@ -1295,3 +1298,12 @@ class ProjectSQLiteHandler:
             csvFile.write("/n")
             for r in records:
                 csvFile.write(r)
+
+    def checkPath(self, filePath):
+        '''converts the selected path to an existing path if it matches'''
+        currentPaths = self.getAllRecords('input_files')
+        for cpath in currentPaths:
+            if os.path.abspath(filePath) == os.path.abspath(cpath[4]):
+                filePath = cpath
+                return filePath
+        return filePath
