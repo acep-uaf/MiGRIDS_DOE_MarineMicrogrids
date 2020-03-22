@@ -800,11 +800,11 @@ class ProjectSQLiteHandler:
                 self.connection.commit()
                 ids.append(self.cursor.lastrowid)
             except Exception as e:
-                print(e)
+                pass
 
 
-        if ml > len(ids):
-            print ('Information was missing for some input files')
+        if ml > len(self.getAllRecords(tablename)):
+            print ('Information was missing for some records')
         return ids
 
     def updateComponent(self, dict):
@@ -1304,6 +1304,6 @@ class ProjectSQLiteHandler:
         currentPaths = self.getAllRecords('input_files')
         for cpath in currentPaths:
             if os.path.abspath(filePath) == os.path.abspath(cpath[4]):
-                filePath = cpath
+                filePath = cpath[4]
                 return filePath
         return filePath
