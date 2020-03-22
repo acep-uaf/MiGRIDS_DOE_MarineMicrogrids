@@ -332,7 +332,8 @@ class FileBlock(BaseEditorTab):
             record.setValue('original_field_name', fieldName)
 
             #make a default descriptor xml file
-            self.controller.setupHandler.copyDescriptor(descriptorFile[0], self.model.componentFolder)
+            self.controller.setupHandler.copyDescriptor(descriptorFile[0],
+                                                        getFilePath('Component', projectFolder=self.controller.dbhandler.getProjectPath()))
 
             # add a row into the database
             model.insertRowIntoTable(record)

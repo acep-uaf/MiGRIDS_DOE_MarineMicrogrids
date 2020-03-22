@@ -1066,10 +1066,12 @@ class ProjectSQLiteHandler:
         aslist = stringlistpath.split(',')
         if len(aslist) <= 1:
             aslist = stringlistpath.split("/")
+            if len(aslist) <=0:
+                aslist = stringlistpath.split(""""\"""")
             if "" in aslist:
                 aslist.remove("")
             if len(aslist) <= 0:
-                return None
+                 return None
         aslist = [a.replace(" ","_") for a in aslist]
         if aslist[0] == self.getProject(): #if the path specification starts with the project folder, make it a complete path by adding the path to the project folder
             return os.path.join(self.getProjectPath(),*aslist[1:])
