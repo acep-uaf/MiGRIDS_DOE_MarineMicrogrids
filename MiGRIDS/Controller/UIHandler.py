@@ -42,14 +42,13 @@ class UIHandler():
 
                 directories.append(file)
         return directories
-    def copyDescriptor(self,descriptorFile, componentDir, sqlRecord):
+    def copyDescriptor(self,descriptorFile, componentDir, ):
         '''
-        Copy an existing xml template in the resource folder to the project directory and write contents to component table in projet_manager
+        Copy an existing xml to the project directory and write contents to component table in projet_manager
          database
         :param descriptorFile: [String] the name of the descriptor xml file to write
         :param componentDir: [String] the file path to the project component directory
-        :param sqlRecord: The table record to write values to
-        :return: sqlRecord
+         :return: sqlRecord
         '''
         import shutil
 

@@ -2,6 +2,9 @@
 # Created by: # Created on: 11/8/2019
 #creates a dynamic form based on the information in xml files
 from PyQt5 import QtWidgets, QtCore
+
+from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
+from MiGRIDS.Controller.SetupHandler import SetupHandler
 from MiGRIDS.Controller.UIHandler import UIHandler
 
 class componentFormFromXML(QtWidgets.QDialog):
@@ -173,8 +176,11 @@ class componentFormFromXML(QtWidgets.QDialog):
         self.update()
         #write the xml
         if self.write:
-            handler = UIHandler()
+            dbHandler = ProjectSQLiteHandler()
+            handler = SetupHandler(dbHandler)
             handler.writeComponentSoup(self.componentDictionary['componentnamevalue'], self.soup)
+
+            del handler
         else:
             #If write is false then a list of changes gets printed to the console
             print(self.changes)

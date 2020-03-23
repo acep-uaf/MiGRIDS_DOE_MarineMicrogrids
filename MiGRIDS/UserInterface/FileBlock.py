@@ -329,18 +329,28 @@ class FileBlock(BaseEditorTab):
         # if a field was entered add it to the table model and database
         if ok:
             record = model.record()
-            record.setValue('original_field_name', fieldName)
+            record.setValue(T.ComponentFields.headernamevalue.value, fieldName)
 
             #make a default descriptor xml file
+            record.setValue(T.ComponentFields.componenttype.value,
+                            self.controller.dbhandler.inferComponentType(self.getComponentNameFromDescriptor(descriptorFile[0])))
+
+            filedir = self.FileBlock.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
+
+            id = self.controller.dbhandler.getId('input_files', ['inputfiledirvalue'], [filedir])
+            record.setValue(T.ComponentFields.inputfile_id.value,id)
+            #copy the file
             self.controller.setupHandler.copyDescriptor(descriptorFile[0],
-                                                        getFilePath('Component', projectFolder=self.controller.dbhandler.getProjectPath()))
+                                                        getFilePath('Components', projectFolder=self.controller.dbhandler.getProjectPath()))
 
             # add a row into the database
-            model.insertRowIntoTable(record)
+            model.insertRecord(model.rowCount(), record)
             # refresh the table
             model.select()
         return
-
+    def getComponentNameFromDescriptor(self,descriptorFilePath):
+        fileName = os.path.basename(descriptorFilePath)
+        return fileName.replace('Descriptor.xml','')
     def functionForNewRecord(self, table):
         # add an empty record to the table
         tableHandler = TableHandler(self)

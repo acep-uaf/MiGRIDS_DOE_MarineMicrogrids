@@ -17,6 +17,8 @@ def getFilePath(designator,**kwargs):
         setupFolder = os.path.realpath(os.path.join(kwargs.get('set'), 'Setup'))
         if designator == 'Processed':
             return os.path.realpath(os.path.join(setupFolder,*['..','..','..','InputData','TimeSeriesData','ProcessedData']))
+        elif designator == 'Components':
+            return os.path.realpath(os.path.join(setupFolder, *['..', 'Components']))
         if designator == 'TimeSeriesData':
             return os.path.realpath(os.path.join(setupFolder,*['..','..','..','InputData','TimeSeriesData']))
         elif designator == 'OutputData':

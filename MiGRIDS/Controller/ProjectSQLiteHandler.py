@@ -995,6 +995,7 @@ class ProjectSQLiteHandler:
         componentAttributes = [COMPONENTNAME]
         files = {self.dbName(key): xmlToString(value.split(' ')) for key, value in setupDict.items() if
                  key in fileAttributes}
+
         #sometimes setup files only contain the relative path to input files from the project directory
 
         files[self.dbName(FILEDIR)] = [self.checkPath(self.makePath(k)) for k in files[self.dbName(FILEDIR)]] #we need to convert the list filepath to a system filepath as a string
