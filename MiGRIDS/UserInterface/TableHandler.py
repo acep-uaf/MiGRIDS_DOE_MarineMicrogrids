@@ -56,7 +56,9 @@ class TableHandler():
                 if isinstance(lm,MiGRIDS.UserInterface.Delegates.RefTableModel):
                     lm.updateModel(loi)
                 else:
-                    lm.setStringList(loi)
+
+                    #cbs.addItems(["", "index"] + list(loi))
+                    lm.setStringList([''] + list(loi))
 
     #removes selected records from the table and its underlying sql table
     #String -> None

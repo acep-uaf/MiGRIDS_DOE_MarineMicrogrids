@@ -201,7 +201,7 @@ class ProjectSQLiteHandler:
         self.cursor.execute("DROP TABLE IF EXISTS component_files")
         self.cursor.executescript("""CREATE TABLE component_files
          (_id integer primary key,
-         inputfile_id integer,
+         inputfile_id text,
          headernamevalue text,
          componenttype text,
          component_id integer,

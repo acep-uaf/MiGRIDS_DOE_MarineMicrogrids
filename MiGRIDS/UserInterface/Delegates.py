@@ -30,6 +30,7 @@ class ComboDelegate(QtWidgets.QItemDelegate):
         #set the combo to the selected index
         if isinstance(index.model().data(index),str):
             editor.setCurrentText(index.model().data(index))
+
         elif isinstance(index.model().data(index),int):
              editor.setCurrentIndex(index.model().data(index))
         else:
@@ -42,10 +43,64 @@ class ComboDelegate(QtWidgets.QItemDelegate):
          if isinstance(self.values,RefTableModel):
              model.setData(index, editor.currentIndex())
          #model is the table storing the combo
-         model.setData(index, editor.itemText(editor.currentIndex()))
+         else:
+            model.setData(index, editor.itemText(editor.currentIndex()))
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
+        self.commitData.emit(self.sender())
+        #if its the sets table then the attribute list needs to be updated
+        return
+class ComboRelationDelegate(QtWidgets.QItemDelegate):
+
+    def __init__(self,parent,tableName, keyColumn, displayColumn, name=None):
+        QtWidgets.QItemDelegate.__init__(self,parent)
+        sqlmodel = QtSql.QSqlQueryModel()
+        sqlmodel.setQuery("SELECT " + keyColumn +", " + displayColumn + " FROM " + tableName + "  UNION SELECT -1, 'None' FROM " + tableName)
+        sqlmodel.query()
+        self.items = sqlmodel
+        self.name = name
+        self.displayColumn = displayColumn
+
+    def createEditor(self,parent, option, index):
+        combo = QtWidgets.QComboBox(parent)
+        combo.setObjectName(self.name)
+        combo.setModel(self.items)
+
+        combo.setModelColumn(1) #This makes the display column visible in the drop down
+        #combo.currentIndexChanged.connect(self.currentIndexChanged)
+        combo.activated.connect(self.currentIndexChanged)
+        #editor.currentIndexChanged.connect(self.currentIndexChanged)
+        return combo
+
+
+    def setEditorData(self, editor, index):
+        #this is what is displayed in drop down
+        editor.blockSignals(True)
+        value = index.data(QtCore.Qt.DisplayRole)
+
+        #num = self.items.index(value)
+        editor.setCurrentIndex(editor.findText(str(value)))
+        #set the combo to the selected index
+        print("setEditor",value)
+        #print(num)
+        editor.blockSignals(False)
+
+    #write model data
+    def setModelData(self,editor, model, index):
+        #value = editor.itemText(editor.currentIndex())
+        if 0 in self.items.itemData(self.items.index(editor.currentIndex(),0)).keys():
+            value = self.items.itemData(self.items.index(editor.currentIndex(),0))[0]
+            print("setModel", value)
+            print(self.items.itemData(self.items.index(editor.currentIndex(),0)))
+            #c = self.items.itemData(index)[value]
+
+            model.setData(index,QtCore.QVariant(value), QtCore.Qt.EditRole)
+
+
+    @QtCore.pyqtSlot()
+    def currentIndexChanged(self):
+
         self.commitData.emit(self.sender())
         #if its the sets table then the attribute list needs to be updated
         return
@@ -96,6 +151,7 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
         #make a combo box if there is a valid relation
         if index.model().relation(index.column()).isValid:
             editor = QtWidgets.QComboBox(parent)
+
             editor.currentIndexChanged.connect(self.currentIndexChanged)
             #editor.activated.connect(self.currentIndexChanged)
             return editor
@@ -103,18 +159,21 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
             return QtWidgets.QStyledItemDelegate(parent).createEditor(parent,option,index)
 
     def setEditorData(self, editor, index):
-        m = index.model()
+        m = index.model() #m is the data in the model that is displayed in the table view, not the combo
+        #index is the row and column from the tableView
         relation = m.relation(index.column())
 
         if relation.isValid():
             pmodel = QtSql.QSqlTableModel()
 
             pmodel.setTable(relation.tableName())
-
             pmodel.select()
+            #pmodel.insertRow(0)
+
             editor.setModel(pmodel)
 
             editor.setModelColumn(pmodel.fieldIndex(relation.displayColumn()))
+
             editor.setCurrentIndex(editor.findText(str(m.data(index))))
         return
     def setModelData(self,editor, model, index):
@@ -130,6 +189,7 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
 
             self.componentNameChanged.emit(currentSelected)
         return
+
 
 #QLineEdit that when clicked performs an action
 class ClickableLineEdit(QtWidgets.QLineEdit):
@@ -167,19 +227,32 @@ class RefTableModel(QtCore.QAbstractTableModel):
     def __init__(self, dataIn, parent=None, *args, **kwargs):
         QtCore.QAbstractTableModel.__init__(self, parent, *args)
         self.arraydata = dataIn
+        if isinstance(self.arraydata,QtSql.QSqlTableModel):
+            self.arraydata.insertRow(0)
 
-    def rowCount(self, parent):
-        return len(self.arraydata)
+        return
 
-    def columnCount(self, parent):
-        if(len(self.arraydata)>0):
-            return len(self.arraydata[0])
+    def rowCount(self,parent):
+        if isinstance(self.arraydata,QtSql.QSqlTableModel):
+            return self.arraydata.rowCount()
+        else:
+            return len(self.arraydata)
+
+    def columnCount(self,parent):
+        if(self.rowCount(self.parent())>0):
+            if isinstance(self.arraydata,QtSql.QSqlTableModel):
+                return self.arraydata.columnCount()
+            else:
+                return len(self.arraydata[0])
         else:
             return 0
+
 
     def data(self, index, role):
         if not index.isValid():
             return QtCore.QVariant()
+        if isinstance(self.arraydata,QtSql.QSqlTableModel):
+            return self.arraydata.data(index,role)
         elif role == QtCore.Qt.DisplayRole:
           return QtCore.QVariant(self.arraydata[index.row()][1]) #column 1 is display data
         else:
@@ -187,6 +260,8 @@ class RefTableModel(QtCore.QAbstractTableModel):
 
     def updateModel(self, newArray):
         self.arraydata = newArray
+
+
 class QueryCheckBoxDelegate(QtWidgets.QStyledItemDelegate):
     updateQuery= QtCore.pyqtSignal(str,int,bool,str)
     def __init__(self,parent,columnToUpdate,table):

@@ -31,14 +31,16 @@ class ComponentTableView(QtWidgets.QTableView):
     def __init__(self, *args, **kwargs):
         #super(ComponentTableView, self).__init__()
         # column 1 gets autfilled with filedir
-        self.tabPosition = kwargs.get('position')
+        #self.tabPosition = kwargs.get('position')
         QtWidgets.QTableView.__init__(self, *args)
         self.dbhandler = ProjectSQLiteHandler()
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
         self.resizeColumnsToContents()
 
         fields = []
+
         #combo columns
+        self.setItemDelegateForColumn(ComponentFields.inputfile_id.value,ComboRelationDelegate(self,'input_files','_id','inputfiledirvalue'))
         self.setItemDelegateForColumn(ComponentFields.headernamevalue.value,ComboDelegate(self,QtCore.QStringListModel(fields),'headernamevalue'))
         self.setItemDelegateForColumn(ComponentFields.component_id.value, RelationDelegate(self, 'componentnamevalue'))
         self.setItemDelegateForColumn(ComponentFields.componenttype.value, RelationDelegate(self, 'componenttype'))
@@ -61,7 +63,7 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         #set the dropdowns
 
         self.setRelation(ComponentFields.component_id.value,QtSql.QSqlRelation('component','_id','componentnamevalue'))
-        #self.setRelation(ComponentFields.inputfile_id.value, QtSql.QSqlRelation('input_file','_id','inputfiledirvalue'))
+        #self.setRelation(ComponentFields.inputfile_id.value, QtSql.QSqlRelation('input_files','_id','inputfiledirvalue'))
         self.setRelation(ComponentFields.componenttype.value,QtSql.QSqlRelation('ref_component_type','code','code'))
         self.setRelation(ComponentFields.componentattributevalue.value, QtSql.QSqlRelation('ref_attributes','code','code'))
         self.setRelation(ComponentFields.componentattributeunit.value, QtSql.QSqlRelation('ref_units', 'code', 'code'))
@@ -78,4 +80,7 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return QtCore.QVariant(self.header[section])
         return QtCore.QVariant()
+
+    # def setData(self, index: QtCore.QModelIndex, value: typing.Any, role: int = ...):
+    #     return super(ComponentTableModel,self).setData(index,value,role)
 
