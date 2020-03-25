@@ -79,12 +79,8 @@ class ComboRelationDelegate(QtWidgets.QItemDelegate):
         #this is what is displayed in drop down
         editor.blockSignals(True)
         value = index.data(QtCore.Qt.DisplayRole)
-
-        #num = self.items.index(value)
         editor.setCurrentIndex(editor.findText(str(value)))
-        #set the combo to the selected index
-        print("setEditor",value)
-        #print(num)
+
         editor.blockSignals(False)
 
     #write model data
@@ -92,10 +88,6 @@ class ComboRelationDelegate(QtWidgets.QItemDelegate):
         #value = editor.itemText(editor.currentIndex())
         if 0 in self.items.itemData(self.items.index(editor.currentIndex(),0)).keys():
             value = self.items.itemData(self.items.index(editor.currentIndex(),0))[0]
-            print("setModel", value)
-
-            #c = self.items.itemData(index)[value]
-
             success = model.setData(index,QtCore.QVariant(value), QtCore.Qt.EditRole)
 
     @QtCore.pyqtSlot()
