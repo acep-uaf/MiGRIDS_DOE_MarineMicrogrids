@@ -97,11 +97,15 @@ class ProjectSQLiteHandler:
     def makeComponents(self):
         '''Uses the information in the project_manager database to make a list of Component Objects
         :return List of component objects'''
-        loi = self.cursor.execute("SELECT componentnamevalue,component.componenttype,componentattributevalue,componentattributeunit from component_files join component on component_files.component_id = component._id group by componentnamevalue, component.componenttype, componentattributevalue")
+        loi = self.cursor.execute("SELECT componentnamevalue,component.componenttype,componentattributevalue,componentattributeunit from component_files join component on component_files.component_id = component._id where inputfile_id != -1 group by componentnamevalue, component.componenttype, componentattributevalue")
         loc = []
         for t in loi:
-            c = Component(component_name=t[0],type=t[1],attribute=t[2],units=t[3],column_name=t[0]+t[2],scale=1,offset=0)
-            loc.append(c)
+            try:
+                c = Component(component_name=t[0],type=t[1],attribute=t[2],units=t[3],column_name=t[0]+t[2],scale=1,offset=0)
+                loc.append(c)
+            except TypeError as e:
+                print("you must fill in all fiels to generate component netcdf files")
+
         return loc
     #makes the default database associated with every new project.
     def makeDatabase(self):
