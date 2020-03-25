@@ -103,7 +103,7 @@ class ThreadedProjectLoad(QtCore.QThread):
             if self.validator.validate(ValidatorTypes.SetupXML,setupDictionary):
                 self.updateAttribute('Controller','setupValid',True)
                 checkDatabase(project,projectFolder,setupFile)
-                self.dbHandler.updateSetupInfo(setupDictionary, setupFile)
+                #self.dbHandler.updateSetupInfo(setupDictionary, setupFile)
 
             self.updateProgress(1, 'Loading Set Results')
             # load Sets - this loads attribute xmls, set setups, set descriptors, setmodel selectors and run result metadata

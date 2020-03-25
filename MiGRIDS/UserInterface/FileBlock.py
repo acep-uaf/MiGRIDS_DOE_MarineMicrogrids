@@ -190,8 +190,8 @@ class FileBlock(BaseEditorTab):
 
 
         #fileBlockModel.select();
-
-        #fileBlockModel.setFilter('input_files._id = ' + str(self.tabPosition))
+        file_id = self.controller.dbhandler.getIDByPosition('input_files',self.tabPosition-1)
+        fileBlockModel.setFilter('input_files._id = ' + str(file_id))
         fileBlockModel.select()
 
         fileBlockModel.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)

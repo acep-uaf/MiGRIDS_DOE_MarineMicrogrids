@@ -213,6 +213,7 @@ class ProjectSQLiteHandler:
          componentattributevalue text,
          componentscale double,
          componentoffset double,
+         UNIQUE (inputfile_id,component_id),
          FOREIGN KEY (componentattributeunit) REFERENCES ref_universal_units(code),
          FOREIGN KEY (componentattributevalue) REFERENCES ref_attributes(code)
          );""")
@@ -803,6 +804,8 @@ class ProjectSQLiteHandler:
                 self.cursor.execute('INSERT INTO ' + tablename + ' (' + keys + ') VALUES (' + question_marks + ')',v ) #if insertion fails the last id gets re-appended to the list
                 self.connection.commit()
                 ids.append(self.cursor.lastrowid)
+            except lite.IntegrityError as e:
+                ids.append(self.getId(tablename,keys.split(','),list(v)))
             except Exception as e:
                 pass
 
@@ -918,6 +921,12 @@ class ProjectSQLiteHandler:
         self.parseInputHandlerAttributes(setupDict)
 
         return
+
+    def getIDByPosition(self, tablename, position):
+        try:
+            return self.cursor.execute("SELECT _id FROM " + tablename + " ORDER by _id").fetchall()[position][0]
+        except IndexError as e:
+            return None
     def getInputPath(self, pathNum):
         '''returns the file folder for the given input file number (corrasponds to fileblock in setup page)'''
         path = self.cursor.execute("select inputfiledirvalue from input_files where _id = " + pathNum).fetchone()
@@ -1027,11 +1036,13 @@ class ProjectSQLiteHandler:
         allComponentNames = [component for component in allComponentNames if component not in components['componentnamevalue']]
         allComponents = {'componentnamevalue': allComponentNames,
                          'componenttype': [self.inferComponentType(k) for k in allComponentNames]}
-        idlist = self.extractComponentNamesOnly(allComponents, setupDict) #this puts them in the component table
-        allComponents[COMPONENTID] = idlist
-        del allComponents['componentnamevalue']
-        allComponents['inputfile_id'] = [-1] * len(allComponents[COMPONENTID])
-        self.addComponentsToFileInputTable(allComponents)
+        otherids = self.extractComponentNamesOnly(allComponents, setupDict) #this puts them in the component table
+        otherids = [o for o in otherids if o not in idlist]
+        if len(otherids) > 0:
+            allComponents[COMPONENTID] = otherids
+            del allComponents['componentnamevalue']
+            allComponents['inputfile_id'] = [-1] * len(allComponents[COMPONENTID])
+            self.addComponentsToFileInputTable(allComponents)
         return fileAttributes + componentAttributes + componentFiles
 
     def addComponentsToFileInputTable(self, filecomponents):
