@@ -187,7 +187,7 @@ def matchToOriginal(originalSeries,simulatedSeries, interval):
     except:
         pass
     # join the simulated values to the upsampled dataframe by timestamp
-    newDF = pd.DataFrame(index=originalSeries.index)
+    newDF = pd.DataFrame(originalSeries, index=originalSeries.index)
     newDF = newDF.join(simulatedSeries, how='inner')
 
     # fill na's for column with simulated values
