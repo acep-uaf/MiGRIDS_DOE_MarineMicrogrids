@@ -36,7 +36,9 @@ class TableHandler():
             for i,n in enumerate(fields):
                 tableView.model().setData(model.index(model.rowCount()-1, n), values[i])
 
-
+        result = model.submitAll()
+        if result == False:
+            print(model.lastError.text())
     # update the component drop down in the set table to include the selected or default components
     def updateComponentDelegate(self, loi,tv,cmbName):
         '''

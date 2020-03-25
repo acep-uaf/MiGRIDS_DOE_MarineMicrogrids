@@ -11,7 +11,6 @@ from MiGRIDS.UserInterface.BaseForm import BaseForm
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.gridLayoutSetup import setupGrid
-from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.Controller.Exceptions.NoValidFilesError import NoValidFilesError
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.TableHandler import TableHandler
@@ -49,7 +48,7 @@ class FileBlock(BaseEditorTab):
         '''method called if the input type is changed. Changes the possible preview based on input type changes'''
         if not self.BLOCKED:
             self.saveInput()
-            self.filterTables()
+            #self.filterTables()
 
             try:
                 self.createPreview(self.FileBlock.findChild(ClickableLineEdit,F.InputFileFields.inputfiledirvalue.name).text(),
@@ -63,7 +62,7 @@ class FileBlock(BaseEditorTab):
         if not self.BLOCKED:
             print("Input folder %s is %s" %(self.tabPosition,selectedFolder))
             self.saveInput()
-            self.filterTables()
+            #self.filterTables()
 
             try:
                 self.createPreview(
@@ -145,8 +144,8 @@ class FileBlock(BaseEditorTab):
             BaseForm.reconnect(wid.currentIndexChanged, self.saveInput, None)
 
         # show fields in date and time field selectors and set current position to most likely candidate
-        for name in [F.InputFileFields.datechannelvalue.name,F.InputFileFields.timechannelvalue.name,
-                     F.InputFileFields.datechannelformat.name,F.InputFileFields.timechannelformat.name]:
+        for name in [F.InputFileFields.datechannelvalue.name, F.InputFileFields.timechannelvalue.name,
+                     F.InputFileFields.datechannelformat.name, F.InputFileFields.timechannelformat.name]:
             try:
                 setBox(name)
             except AttributeError as e:
@@ -190,9 +189,9 @@ class FileBlock(BaseEditorTab):
         fileBlockModel.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
 
 
-        fileBlockModel.select();
+        #fileBlockModel.select();
 
-        fileBlockModel.setFilter('input_files._id = ' + str(self.tabPosition))
+        #fileBlockModel.setFilter('input_files._id = ' + str(self.tabPosition))
         fileBlockModel.select()
 
         fileBlockModel.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
@@ -303,22 +302,19 @@ class FileBlock(BaseEditorTab):
                 pass
 
 
-        self.filterTables()
+        # self.filterTables()
         gb.setLayout(tableGroup)
         gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         fn(gb)
         return
 
-    def functionForLoadDescriptor(self):
+    def functionForLoadDescriptor(self,table):
         '''load a descriptor file for a component and populate the project_manager database with its values
         '''
         msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, 'Load Descriptor',
                                     'If the component descriptor file you are loading has the same name as an existing component it will not load')
         msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
         msg.exec()
-
-        tableView = self.findChild((QtWidgets.QTableView), 'components')
-        model = tableView.model()
         # identify the xml
         descriptorFile = QtWidgets.QFileDialog.getOpenFileName(self, "Select a descriptor file", None, "*xml")
         if (descriptorFile == ('', '')) | (descriptorFile is None):
@@ -328,25 +324,23 @@ class FileBlock(BaseEditorTab):
                                                        'Enter the name of the channel that contains data for this component.')
         # if a field was entered add it to the table model and database
         if ok:
-            record = model.record()
-            record.setValue(T.ComponentFields.headernamevalue.value, fieldName)
-
-            #make a default descriptor xml file
-            record.setValue(T.ComponentFields.componenttype.value,
-                            self.controller.dbhandler.inferComponentType(self.getComponentNameFromDescriptor(descriptorFile[0])))
-
+            tableHandler = TableHandler(self)
             filedir = self.FileBlock.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
-
+            self.saveInput()
             id = self.controller.dbhandler.getId('input_files', ['inputfiledirvalue'], [filedir])
-            record.setValue(T.ComponentFields.inputfile_id.value,id)
+            tableHandler.functionForNewRecord(table, fields=[1,
+                                                             T.ComponentFields.headernamevalue.value,
+                                                             T.ComponentFields.componenttype.value,
+                                                             T.ComponentFields.component_id.value],
+                                              values=[id,
+                                                      fieldName,
+                                                      self.controller.dbhandler.inferComponentType(self.getComponentNameFromDescriptor(descriptorFile[0])),
+                                                      self.controller.dbhandler.getId('component',['componentnamevalue'],[self.getComponentNameFromDescriptor(descriptorFile[0])])])
             #copy the file
             self.controller.setupHandler.copyDescriptor(descriptorFile[0],
                                                         getFilePath('Components', projectFolder=self.controller.dbhandler.getProjectPath()))
 
-            # add a row into the database
-            model.insertRecord(model.rowCount(), record)
-            # refresh the table
-            model.select()
+
         return
     def getComponentNameFromDescriptor(self,descriptorFilePath):
         fileName = os.path.basename(descriptorFilePath)
@@ -407,7 +401,7 @@ class FileBlock(BaseEditorTab):
         buttonRow = QtWidgets.QHBoxLayout()
 
         if table == 'components':
-            buttonRow.addWidget(makeButtonBlock(self, self.functionForLoadDescriptor,
+            buttonRow.addWidget(makeButtonBlock(self, lambda: self.functionForLoadDescriptor(table),
                                                 None, 'SP_DialogOpenButton',
                                                 'Load a previously created component xml file.'))
 
@@ -536,15 +530,15 @@ class FileBlock(BaseEditorTab):
             self.validated = False
             return False
 
-    def filterTables(self):
-        '''filter tables to only show values associated with specific input directories'''
-        tables = self.findChildren(QtWidgets.QTableView)
-        filedir = self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).text()
-        id = self.controller.dbhandler.getId("input_files",['inputfiledirvalue'],[filedir])
-        self.filter = filedir
-        for t in tables:
-            m = t.model()
-            m.setFilter("inputfile_id" + " = " + str(id) + "")
+    # def filterTables(self):
+    #     '''filter tables to only show values associated with specific input directories'''
+    #     tables = self.findChildren(QtWidgets.QTableView)
+    #     filedir = self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).text()
+    #     id = self.controller.dbhandler.getId("input_files",['inputfiledirvalue'],[filedir])
+    #     #self.filter = filedir
+    #     #for t in tables:
+    #         #m = t.model()
+    #         #m.setFilter("inputfile_id" + " = " + str(id) + "")
 
     def saveTables(self):
         '''get data from component and environment tables and update the setupInformation model

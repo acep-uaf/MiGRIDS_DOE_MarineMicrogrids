@@ -1018,12 +1018,16 @@ class ProjectSQLiteHandler:
                 filecomponents[COMPONENTTYPE] = components[COMPONENTTYPE]
                 self.addComponentsToFileInputTable(filecomponents)
 
+
          #if there are no input files specified components from the componentsnamesvalue attribute will be used to populate component table
         allComponentNames = [component for component in allComponentNames if component not in components['componentnamevalue']]
         allComponents = {'componentnamevalue': allComponentNames,
                          'componenttype': [self.inferComponentType(k) for k in allComponentNames]}
-        idlist = self.extractComponentNamesOnly(allComponents, setupDict)
-
+        idlist = self.extractComponentNamesOnly(allComponents, setupDict) #this puts them in the component table
+        allComponents[COMPONENTID] = idlist
+        del allComponents['componentnamevalue']
+        allComponents['inputfile_id'] = [-1] * len(allComponents[COMPONENTID])
+        self.addComponentsToFileInputTable(allComponents)
         return fileAttributes + componentAttributes + componentFiles
 
     def addComponentsToFileInputTable(self, filecomponents):

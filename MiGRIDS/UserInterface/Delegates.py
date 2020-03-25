@@ -227,32 +227,19 @@ class RefTableModel(QtCore.QAbstractTableModel):
     def __init__(self, dataIn, parent=None, *args, **kwargs):
         QtCore.QAbstractTableModel.__init__(self, parent, *args)
         self.arraydata = dataIn
-        if isinstance(self.arraydata,QtSql.QSqlTableModel):
-            self.arraydata.insertRow(0)
 
-        return
+    def rowCount(self, parent):
+        return len(self.arraydata)
 
-    def rowCount(self,parent):
-        if isinstance(self.arraydata,QtSql.QSqlTableModel):
-            return self.arraydata.rowCount()
-        else:
-            return len(self.arraydata)
-
-    def columnCount(self,parent):
-        if(self.rowCount(self.parent())>0):
-            if isinstance(self.arraydata,QtSql.QSqlTableModel):
-                return self.arraydata.columnCount()
-            else:
-                return len(self.arraydata[0])
+    def columnCount(self, parent):
+        if(len(self.arraydata)>0):
+            return len(self.arraydata[0])
         else:
             return 0
-
 
     def data(self, index, role):
         if not index.isValid():
             return QtCore.QVariant()
-        if isinstance(self.arraydata,QtSql.QSqlTableModel):
-            return self.arraydata.data(index,role)
         elif role == QtCore.Qt.DisplayRole:
           return QtCore.QVariant(self.arraydata[index.row()][1]) #column 1 is display data
         else:
@@ -260,7 +247,6 @@ class RefTableModel(QtCore.QAbstractTableModel):
 
     def updateModel(self, newArray):
         self.arraydata = newArray
-
 
 class QueryCheckBoxDelegate(QtWidgets.QStyledItemDelegate):
     updateQuery= QtCore.pyqtSignal(str,int,bool,str)

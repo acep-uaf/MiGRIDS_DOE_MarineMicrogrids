@@ -34,6 +34,6 @@ def callUIForm():
     try:
         sys.exit(app.exec_())
 
-    except:
+    except Exception as e:
         print('exiting')
 
