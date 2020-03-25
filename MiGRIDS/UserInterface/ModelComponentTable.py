@@ -63,7 +63,7 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         #set the dropdowns
 
         self.setRelation(ComponentFields.component_id.value,QtSql.QSqlRelation('component','_id','componentnamevalue'))
-        #self.setRelation(ComponentFields.inputfile_id.value, QtSql.QSqlRelation('input_files','_id','inputfiledirvalue'))
+        self.setRelation(ComponentFields.inputfile_id.value, QtSql.QSqlRelation('input_files','_id','inputfiledirvalue'))
         self.setRelation(ComponentFields.componenttype.value,QtSql.QSqlRelation('ref_component_type','code','code'))
         self.setRelation(ComponentFields.componentattributevalue.value, QtSql.QSqlRelation('ref_attributes','code','code'))
         self.setRelation(ComponentFields.componentattributeunit.value, QtSql.QSqlRelation('ref_units', 'code', 'code'))
@@ -81,6 +81,13 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
             return QtCore.QVariant(self.header[section])
         return QtCore.QVariant()
 
-    # def setData(self, index: QtCore.QModelIndex, value: typing.Any, role: int = ...):
-    #     return super(ComponentTableModel,self).setData(index,value,role)
+    def setData(self, index,value,role):
+
+        if index.column() ==ComponentFields.inputfile_id.value:
+            self.setRelation(ComponentFields.inputfile_id.value,QtSql.QSqlRelation())
+        success = super(ComponentTableModel, self).setData(index, value, role)
+        self.setRelation(ComponentFields.inputfile_id.value,
+                         QtSql.QSqlRelation('input_files', '_id', 'inputfiledirvalue'))
+
+        return success
 

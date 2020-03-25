@@ -68,6 +68,7 @@ class ComboRelationDelegate(QtWidgets.QItemDelegate):
         combo.setModel(self.items)
 
         combo.setModelColumn(1) #This makes the display column visible in the drop down
+
         #combo.currentIndexChanged.connect(self.currentIndexChanged)
         combo.activated.connect(self.currentIndexChanged)
         #editor.currentIndexChanged.connect(self.currentIndexChanged)
@@ -92,11 +93,10 @@ class ComboRelationDelegate(QtWidgets.QItemDelegate):
         if 0 in self.items.itemData(self.items.index(editor.currentIndex(),0)).keys():
             value = self.items.itemData(self.items.index(editor.currentIndex(),0))[0]
             print("setModel", value)
-            print(self.items.itemData(self.items.index(editor.currentIndex(),0)))
+
             #c = self.items.itemData(index)[value]
 
-            model.setData(index,QtCore.QVariant(value), QtCore.Qt.EditRole)
-
+            success = model.setData(index,QtCore.QVariant(value), QtCore.Qt.EditRole)
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
