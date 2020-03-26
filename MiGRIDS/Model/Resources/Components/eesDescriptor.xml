@@ -30,11 +30,14 @@
      <eesDispatchTime value="18000" unit="s"><!-- 'eesDispatchTime' is the minimum amount of time that the ESS must be able to supply the load for in order to
     be considered as an active discharge option in the diesel schedule. Units are in seconds. Default is 18000 s (5 hours).   -->
      </eesDispatchTime>
-        <prevEesTime value="86400" unit="s"><!-- 'prevEesTime' is how far back that is used to assess what percentage of the current ESS charge came from
+    <eesDispatchMinSoc value="0.9" unit="pu">
+    <!-- 'eesDispatchMinSoc' is the minimum SOC of the ESS in order to be considered as an active discharge option in
+    the diesel schedule. Units are in pu of full energy capacity. Default is 0.9.   -->
+    </eesDispatchMinSoc>
+    <prevEesTime value="86400" unit="s"><!-- 'prevEesTime' is how far back that is used to assess what percentage of the current ESS charge came from
     the diesel generator. This is used in the dispatch schedule to determine the cost of discharging the ESS to supply
      the load for peak shaving or load leveling purposes. Units are seconds. Default is 86400 s (24 hr). -->
-        </prevEesTime>
-
+    </prevEesTime>
     <eesCost value="0" unit="kg/kWh"><!-- 'eesCost' is the cost of discharging the ESS that is above the fuel cost that went into charging it. It is
     stated as a fuel consumption per kWh, kg/kWh. It is added to the effective fuel consumption of discharging the
      ESS resulting from chargning it with the diesel generators. The cost is used to account for non-fuel costs of
