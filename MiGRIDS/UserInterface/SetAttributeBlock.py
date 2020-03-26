@@ -79,8 +79,8 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         self.setLayout(tableGroup)
 
         # make the run result table
-        tableGroup.addWidget(self.createRunTable(str(self.setId)), 11, 0, 10,
-                             10)  # Set Id will be negative 1 at creation
+        # tableGroup.addWidget(self.createRunTable(str(self.setId)), 11, 0, 10,
+        #                      10)  # Set Id will be negative 1 at creation
         # self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         # self.fillSetInfo(str(self.tabPosition))
 
@@ -99,7 +99,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         self.set_componentsModel.select()
 
         self.xmlEditor.updateWidget() #this relies on xml files, not the database
-        self.run_Model.refresh(self.setId)
+        #self.run_Model.refresh(self.setId)
         #self.rehide(self.findChild(QtWidgets.QTableView,'runs'),[0,1,26])
         self.rehide(self.findChild(QtWidgets.QTableView,'sets'), [0,1])
         self.updateDependents()
@@ -156,7 +156,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
     def updateModel(self):
         self.set_model.select()
         self.set_model.setFilter('set_._id = ' + str(self.setId))
-        self.runModel.query()
+        # self.runModel.query()
     def makeSetLayout(self):
         infoBox = QtWidgets.QGroupBox()
         infoRow = QtWidgets.QHBoxLayout()
@@ -432,37 +432,37 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         return
     def updateDependents(self):
         self.refreshDataPlot()
-    def createRunTable(self,setId):
-        '''Show table of run information'''
-        gb = QtWidgets.QGroupBox('Runs')
-
-        tableGroup = QtWidgets.QVBoxLayout()
-
-        tv = RunTableView(self)
-        tv.setObjectName('runs')
-        self.run_Model = RunTableModel(self,setId)
-
-        # hide the id columns
-        #tv.hiddenColumns = [0,1,4,5,26]
-        self.run_Model.query()
-        tv.setModel(self.run_Model)
-        tv.updateRunBaseCase.connect(self.receiveUpdateRunBaseCase)
-        tv.reFormat()
-        tableGroup.addWidget(tv, 1)
-        gb.setLayout(tableGroup)
-        #gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        #gb.setSizePolicy((QtWidgets.QSizePolicy.Fixed,QtWidgets.QSizePolicy.Fixed))
-
-        return gb
+    # def createRunTable(self,setId):
+    #     '''Show table of run information'''
+    #     gb = QtWidgets.QGroupBox('Runs')
+    #
+    #     tableGroup = QtWidgets.QVBoxLayout()
+    #
+    #     tv = RunTableView(self)
+    #     tv.setObjectName('runs')
+    #     self.run_Model = RunTableModel(self,setId)
+    #
+    #     # hide the id columns
+    #     #tv.hiddenColumns = [0,1,4,5,26]
+    #     self.run_Model.query()
+    #     tv.setModel(self.run_Model)
+    #     tv.updateRunBaseCase.connect(self.receiveUpdateRunBaseCase)
+    #     tv.reFormat()
+    #     tableGroup.addWidget(tv, 1)
+    #     gb.setLayout(tableGroup)
+    #     #gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+    #     #gb.setSizePolicy((QtWidgets.QSizePolicy.Fixed,QtWidgets.QSizePolicy.Fixed))
+    #
+    #     return gb
     def refreshDataPlot(self):
         '''finds the plot object and calls its default method'''
         resultDisplay = self.window().findChild(ResultsModel)
         resultDisplay.makePlotArea()
         resultDisplay.showPlot()
-    def receiveUpdateRunBaseCase(self,id, checked):
-         self.controller.dbhandler.updateBaseCase(self.setId, id, checked)
-         self.run_Model.refresh()
-         self.refreshDataPlot()
+    # def receiveUpdateRunBaseCase(self,id, checked):
+    #      self.controller.dbhandler.updateBaseCase(self.setId, id, checked)
+    #      self.run_Model.refresh()
+    #      self.refreshDataPlot()
 
     def closeForm(self):
          self.submitData()

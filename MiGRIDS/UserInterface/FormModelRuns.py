@@ -4,7 +4,7 @@
 from PyQt5 import QtWidgets, QtCore
 from MiGRIDS.UserInterface.BaseForm import BaseForm
 from MiGRIDS.UserInterface.SetAttributeBlock import SetsAttributeEditorBlock
-from MiGRIDS.UserInterface.ModelRunTable import RunTableModel
+from MiGRIDS.UserInterface.ModelRunTable import RunTableModel, RunTableView
 from MiGRIDS.UserInterface.Pages import Pages
 
 class FormModelRun(BaseForm):
@@ -32,6 +32,7 @@ class FormModelRun(BaseForm):
 
         #set table goes below the new tab button
         self.layout.addWidget(self.tabs)
+        self.layout.addWidget(self.createRunTable())#, 11, 0, 10, 10)  # Set Id will be negative 1 at creation
 
         self.setLayout(self.layout)
         self.showMaximized()
@@ -72,3 +73,34 @@ class FormModelRun(BaseForm):
         self.displayTabbedData(tab_count,0)  #0 based tabs
         modelForms = self.window().findChildren(SetsAttributeEditorBlock)
         [m.loadSetData() for m in modelForms]  # load data individually for each set
+        self.updateForm()
+
+    def createRunTable(self):
+        '''Show table of run information'''
+        gb = QtWidgets.QGroupBox('Runs')
+
+        tableGroup = QtWidgets.QVBoxLayout()
+
+        tv = RunTableView(self)
+        tv.setObjectName('runs')
+        self.run_Model = RunTableModel(self)
+
+        # hide the id columns
+        #tv.hiddenColumns = [0,1,4,5,26]
+        self.run_Model.query()
+        tv.setModel(self.run_Model)
+        tv.updateRunBaseCase.connect(self.receiveUpdateRunBaseCase)
+        tv.reFormat()
+        tableGroup.addWidget(tv, 1)
+        gb.setLayout(tableGroup)
+        #gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        #gb.setSizePolicy((QtWidgets.QSizePolicy.Fixed,QtWidgets.QSizePolicy.Fixed))
+
+        return gb
+    def updateForm(self):#TODO call
+        self.run_Model.refresh()
+        return
+    def receiveUpdateRunBaseCase(self, id, checked):
+        self.controller.dbhandler.updateBaseCase(self.setId, id, checked)
+        self.run_Model.refresh()
+        self.refreshDataPlot()

@@ -72,6 +72,7 @@ class RunTableView(customTableView):
         d = QueryCheckBoxDelegate(self,'base_case','run')
         d.updateQuery.connect(self.notifyUpdateRun)
         self.setItemDelegateForColumn(RunFields.base_case.value + 3, d)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
     def reFormat(self):
         super().reFormat()
         self.horizontalHeader().setFixedHeight(100)
@@ -81,7 +82,7 @@ class RunTableView(customTableView):
             self.updateRunBaseCase.emit(id,value)
 
 class RunTableModel(QtSql.QSqlQueryModel):
-    def __init__(self, parent,setId):
+    def __init__(self, parent):
         super(RunTableModel, self).__init__(parent)
 
         def getFancyName(n):
@@ -90,7 +91,6 @@ class RunTableModel(QtSql.QSqlQueryModel):
                 return nkey[0]
             return n
 
-        self.setId = setId
         self.header = ['Set','Run ID','Component Tag Values'] + [getFancyName(name) for name, member in RunFields.__members__.items()]
         self.hide_headers_mode = True
         self.refresh()
