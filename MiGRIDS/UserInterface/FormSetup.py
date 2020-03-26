@@ -12,7 +12,7 @@ on each wtg components descriptor file.'''
 import os
 from PyQt5 import QtWidgets, QtCore
 from glob2 import glob
-
+import MiGRIDS.UserInterface.ModelComponentTable as T
 from MiGRIDS.UserInterface.FormModelRuns import FormModelRun
 from MiGRIDS.UserInterface.BaseForm import BaseForm
 from MiGRIDS.UserInterface.FileBlock import FileBlock
@@ -20,10 +20,10 @@ from MiGRIDS.UserInterface.Pages import Pages
 from MiGRIDS.Controller.loadProjectOffUIThread import ThreadedProjectLoad
 from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
 from MiGRIDS.UserInterface.DetailsWidget import DetailsWidget
+from MiGRIDS.UserInterface.TableHandler import TableHandler
 from MiGRIDS.UserInterface.WizardPages import WizardPage, TextWithDropDown, ComponentSelect, TwoDatesDialog
 from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
 from MiGRIDS.UserInterface.ResultsSetup import  ResultsSetup
-from MiGRIDS.UserInterface.FormModelRuns import SetsAttributeEditorBlock
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.Resources.SetupWizardDictionary import *
 import pandas as pd
@@ -52,7 +52,9 @@ class FormSetup(BaseForm):
         self.createTopButtonBlock()
         windowLayout.addWidget(self.ButtonBlock)
         self.makeTabs(windowLayout)
-
+        self.connectDelegateUpdateSignal()
+        self.makeTableBlock('Components', 'components', self.assignComponentBlock)
+        windowLayout.addWidget(self.componentBlock)
         #list of dictionaries containing information for wizard
         #this is the information that is not input file specific.
         self.WizardTree = self.buildWizardTree(dlist)
@@ -67,6 +69,32 @@ class FormSetup(BaseForm):
         self.grantPermissions()
         #show the form
         self.showMaximized()
+    def makeTableBlock(self,title,table,fn):
+        gb = QtWidgets.QGroupBox(title)
+
+        tableGroup = QtWidgets.QVBoxLayout()
+        tableGroup.addWidget(self.dataButtons(table))
+        if table == 'components':
+
+            self.ComponentTable = T.ComponentTableView(self)
+            self.ComponentTable.setObjectName('components')
+            m = T.ComponentTableModel(self)
+            self.ComponentTable.hideColumn(1)
+            self.ComponentTable.setModel(m)
+            self.ComponentTable.hideColumn(0)
+            self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+            tableGroup.addWidget(self.ComponentTable, 1)
+            tableHandler = TableHandler(self)
+            try:
+                self.updateComponentDelegate(self.preview, tableHandler)
+            except AttributeError as a:
+                pass
+
+        # self.filterTables()
+        gb.setLayout(tableGroup)
+        gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        fn(gb)
+        return
 
     def makeTabs(self, windowLayout):
         # each tab is for an individual input file.
@@ -81,6 +109,11 @@ class FormSetup(BaseForm):
         windowLayout.addWidget(newTabButton)
         windowLayout.addWidget(self.tabs, 3)
 
+
+    def connectDelegateUpdateSignal(self):
+        loFileBlock = self.findChildren(FileBlock)
+        for f in loFileBlock:
+            f.updateComponentDelegates.connect(self.updateComponentDelegates)
     def clearInput(self):
         loFileBlock = self.findChildren(FileBlock)
         for f in loFileBlock:
@@ -317,7 +350,6 @@ class FormSetup(BaseForm):
             print(e)
 
     def onProjectLoaded(self):
-    #TODO this is time consuming - should happen on background thread - check progress bar status
         try:
             setupFolder = getFilePath("Setup", projectFolder=self.controller.dbhandler.getProjectPath())
             setupXML = os.path.join(setupFolder, self.controller.project + 'Setup.xml')
@@ -356,7 +388,6 @@ class FormSetup(BaseForm):
         '''Gets a list of all components in the component table'''
         loc = self.controller.dbhandler.makeComponents()
         return loc
-
 
     def buildWizardTree(self, dlist):
         '''
@@ -436,11 +467,10 @@ class FormSetup(BaseForm):
             print(e)
 
         return
-
     def updateFormProjectDataStatus(self):
         '''updates the setup form to reflect project data (DataClass object, Component info, netcdfs)status
         '''
-
+        self.refreshTable()
         try:
            # update the Model tab with set information
             self.updateDependents(self.controller.inputData) #make sure there is data here
@@ -459,10 +489,8 @@ class FormSetup(BaseForm):
 
         except Exception as e:
             print(e)
-
     def setResultForm(self):
         self.resultObject = ResultsSetup
-
     def updateDependents(self, data = None):
         '''
         updates the default component list, time range and time step values in the setup table in the project database
@@ -474,8 +502,6 @@ class FormSetup(BaseForm):
 
         values = self.updateInputDataDependents(data)
         self.updateModelInputDependents(values)
-
-
     def updateModelInputDependents(self, values):
         if len(self.controller.sets)<=0:
             self.controller.dbhandler.insertFirstSet(values)
@@ -483,8 +509,6 @@ class FormSetup(BaseForm):
         # Deliver appropriate info to the ModelForm
         modelForm = self.window().findChild(FormModelRun)
         modelForm.projectLoaded()
-
-
     def updateInputDataDependents(self, data = None):
         ''':return dictionary of values relevant to a setup file'''
 
@@ -547,7 +571,6 @@ class FormSetup(BaseForm):
         for i in range(self.tabs.count()):
             page = self.tabs.widget(i)
             page.close()
-
     def newTab(self,i=0):
         # get the set count
         tab_count = self.tabs.count() +1
@@ -566,7 +589,6 @@ class FormSetup(BaseForm):
         button.setText("Generate netCDF inputs")
         button.clicked.connect(self.generateModelInput)
         return button
-
     def generateModelInput(self):
         '''Checks if setup of file is valid, looks for existing model netcdf files, and dataclass objects
         if no netcdf files are found attempts to create them from dataclass object
@@ -586,10 +608,156 @@ class FormSetup(BaseForm):
         else:
             self.fixSetup()
             self.generateModelInput()
-
     def fixSetup(self):
         '''warns the user the setup file is not valid and re-opens the setup wizard so inputs can be corrected.'''
         self.showAlert("Setup file invalid","Please correct your setup input")
         self.prePopulateSetupWizard()
+    def refreshTable(self):
+        self.ComponentTable.model().select()
+        return
+    def functionForLoadDescriptor(self, table):
+        '''load a descriptor file for a component and populate the project_manager database with its values
+        '''
+        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, 'Load Descriptor',
+                                    'If the component descriptor file you are loading has the same name as an existing component it will not load')
+        msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        msg.exec()
+        # identify the xml
+        descriptorFile = QtWidgets.QFileDialog.getOpenFileName(self, "Select a descriptor file", None, "*xml")
+        if (descriptorFile == ('', '')) | (descriptorFile is None):
+            return
+
+        fieldName, ok = QtWidgets.QInputDialog.getText(self, 'Field Name',
+                                                       'Enter the name of the channel that contains data for this component.')
+        # if a field was entered add it to the table model and database
+        if ok:
+            tableHandler = TableHandler(self)
+            filedir = self.FileBlock.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
+            self.saveInput()
+            id = self.controller.dbhandler.getId('input_files', ['inputfiledirvalue'], [filedir])
+            tableHandler.functionForNewRecord(table, fields=[1,
+                                                             T.ComponentFields.headernamevalue.value,
+                                                             T.ComponentFields.componenttype.value,
+                                                             T.ComponentFields.component_id.value],
+                                              values=[id,
+                                                      fieldName,
+                                                      self.controller.dbhandler.inferComponentType(
+                                                          self.getComponentNameFromDescriptor(descriptorFile[0])),
+                                                      self.controller.dbhandler.getId('component',
+                                                                                      ['componentnamevalue'], [
+                                                                                          self.getComponentNameFromDescriptor(
+                                                                                              descriptorFile[0])])])
+            # copy the file
+            self.controller.setupHandler.copyDescriptor(descriptorFile[0],
+                                                        getFilePath('Components',
+                                                                    projectFolder=self.controller.dbhandler.getProjectPath()))
+
+        return
+
+    def getComponentNameFromDescriptor(self, descriptorFilePath):
+        fileName = os.path.basename(descriptorFilePath)
+        return fileName.replace('Descriptor.xml', '')
+
+    def functionForNewRecord(self, table):
+        # add an empty record to the table
+        tableHandler = TableHandler(self)
+        filedir = self.FileBlock.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
+        self.saveInput()
+        id = self.controller.dbhandler.getId('input_files', ['inputfiledirvalue'], [filedir])
+        tableHandler.functionForNewRecord(table, fields=[1], values=[id])
+
+    def functionForDeleteRecord(self, table):
+        '''Deletes a selected record'''
+        # get selected rows
+        tableView = self.findChild((QtWidgets.QTableView), table)
+        model = tableView.model()
+        # selected is the indices of the selected rows
+        selected = tableView.selectionModel().selection().indexes()
+        if len(selected) == 0:
+            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, 'Select Rows',
+                                        'Select rows before attempting to delete')
+            msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+            msg.exec()
+        else:
+            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, 'Confirm Delete',
+                                        'Are you sure you want to delete the selected records?')
+            msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+
+            result = msg.exec()
+
+            if result == QtWidgets.QMessageBox.Ok:
+
+                removedRows = []
+                for r in selected:
+                    if r.row() not in removedRows:
+                        if table == 'components':
+                            # remove the xml files too
+                            componentFolder = getFilePath('Components',
+                                                          projectFolder=self.controller.dbhandler.getProjectPath())
+                            self.controller.setupHandler.removeDescriptor(model.data(model.index(r.row(), 3)),
+                                                                          componentFolder)
+                        removedRows.append(r.row())
+                        self.controller.dbhandler.closeDatabase()
+                        model.removeRows(r.row(), 1)
+                        self.controller.createDatabaseConnection()
+                # Delete the record from the database and refresh the tableview
+                model.submitAll()
+                print(model.lastError().text())
+                model.select()
+
+    def dataButtons(self, table):
+        '''
+        creates buttons associated with table behavior
+        :param table: String the name of the table buttons actions are for
+        :return: QHBoxLayout
+        '''
+        self.ComponentButtonBox = QtWidgets.QGroupBox()
+        buttonRow = QtWidgets.QHBoxLayout()
+
+        if table == 'components':
+            buttonRow.addWidget(makeButtonBlock(self, lambda: self.functionForLoadDescriptor(table),
+                                                None, 'SP_DialogOpenButton',
+                                                'Load a previously created component xml file.'))
+
+        buttonRow.addWidget(makeButtonBlock(self, lambda: self.functionForNewRecord(table),
+                                            '+', None,
+                                            'Add a component', 'newComponent'))
+        buttonRow.addWidget(makeButtonBlock(self, lambda: self.functionForDeleteRecord(table),
+                                            None, 'SP_TrashIcon',
+                                            'Delete a component', 'deleteComponent'))
+        buttonRow.addStretch(3)
+        self.ComponentButtonBox.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.ComponentButtonBox.setLayout(buttonRow)
+        # when created buttons are not enabled
+        self.ComponentButtonBox.setEnabled(True)
+        return self.ComponentButtonBox
+
+    def assignComponentBlock(self, value):
+        self.componentBlock = value
+    def saveTables(self):
+        '''get data from component and environment tables and update the setupInformation model
+        components within a single directory are seperated with commas
+        component info comes from the database not the tableview
+        component names, units, scale, offset, attribute, fieldname get saved'''
+
+        self.ComponentTable.model.submitAll()
+        print(self.ComponentTable.model.lastError().text())
+
+        #loC = [makeNewComponent(df['component_name'],x['original_field_name'],
+        #                             x['units'],x['attribute'],x['component_type']) for i,x in df.iterrows()]
+        return #loC
 
 
+    def updateComponentDelegates(self, preview):
+        self.updateComponentHeaders(preview)
+        self.updateComponentNameList()
+
+
+    def updateComponentHeaders(self, preview):
+        tableHandler = TableHandler(self)
+        tableHandler.updateComponentDelegate(preview.header, self.ComponentTable, 'headernamevalue')
+
+    def updateComponentNameList(self):
+        tableHandler = TableHandler(self)
+        tableHandler.updateComponentDelegate(self.controller.dbhandler.getAsRefTable('component', '_id', 'componentnamevalue'),
+                                             self.ComponentTable, 'componentnamevalue')
