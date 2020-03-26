@@ -41,10 +41,10 @@ class ComboDelegate(QtWidgets.QItemDelegate):
     def setModelData(self,editor, model, index):
 
          if isinstance(self.values,RefTableModel):
-             model.setData(index, editor.currentIndex())
+             model.setData(index, editor.currentIndex(),QtCore.Qt.EditRole)
          #model is the table storing the combo
          else:
-            model.setData(index, editor.itemText(editor.currentIndex()))
+            model.setData(index, editor.itemText(editor.currentIndex()),QtCore.Qt.EditRole)
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
@@ -123,7 +123,7 @@ class TextDelegate(QtWidgets.QItemDelegate):
 
     def setModelData(self, editor, model, index):
 
-        model.setData(index, editor.text())
+        model.setData(index, editor.text(),QtCore.Qt.EditRole)
 
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):

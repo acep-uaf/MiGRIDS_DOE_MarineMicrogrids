@@ -68,7 +68,7 @@ class ThreadedProjectLoad(QtCore.QThread):
             # by replacing the current pickle with the loaded one the user can manually edit the input and
             #  then return to working with the interface
             return self.setupHandler.loadInputData(os.path.dirname(setupFile))
-        def checkDatabase(project, projectFolder,setupFile):
+        def checkDatabase(project, projectFolder,setupFile): #TODO update to only overwrite when necessary
             if self.dbHandler.getFieldValue('project','project_name','project_name',project) != None:
                 self.dbHandler.clearTable('project')
                 self.dbHandler.clearTable('setup')
@@ -94,6 +94,7 @@ class ThreadedProjectLoad(QtCore.QThread):
             replaceDefaultDatabase(os.path.join(projectFolder, 'project_manager'))
             checkDatabase(project,projectFolder,setupFile)
             self.updateAttribute('Controller','projectDatabase',True)
+
             #TODO verify validator called for controller attributes
 
         else:
@@ -107,9 +108,9 @@ class ThreadedProjectLoad(QtCore.QThread):
 
             self.updateProgress(1, 'Loading Set Results')
             # load Sets - this loads attribute xmls, set setups, set descriptors, setmodel selectors and run result metadata
-            sets = getAllSets(getFilePath('OutputData', setupFolder=os.path.dirname(setupFile)))
-            self.updateAttribute('Controller','sets',sets)
-            [self.runHandler.loadExistingProjectSet(os.path.dirname(s).split('\\')[-1]) for s in sets]
+        sets = getAllSets(getFilePath('OutputData', setupFolder=os.path.dirname(setupFile)))
+        self.updateAttribute('Controller','sets',sets)
+        [self.runHandler.loadExistingProjectSet(os.path.dirname(s).split('\\')[-1],self.dbHandler) for s in sets]
         self.updateProgress(3, 'Validating Data')
 
        # get input data object

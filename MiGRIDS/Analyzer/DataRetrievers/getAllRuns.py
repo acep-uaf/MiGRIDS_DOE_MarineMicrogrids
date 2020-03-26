@@ -19,6 +19,11 @@ def getAllRuns(projectSetDir):
     return runs
 
 def getAllSets(projectDir):
+    '''
+    Returns a list of directories titled Set... within a project output folder
+    :param projectDir:
+    :return: List of set directories
+    '''
    # os.chdir(projectSetDir)
     setsDirs = glob.glob(os.path.join(projectDir, 'Set*/'))
 

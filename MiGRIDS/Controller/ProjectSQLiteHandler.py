@@ -793,6 +793,12 @@ class ProjectSQLiteHandler:
                         m = len(dict[k])
             return m
 
+        def replaceNone(val):
+            if len(val) <= 0:
+                return 'None'
+            else:
+                return val
+
         ml = maxLength(dict)
         keys = ','.join(dict.keys())
         question_marks = ','.join(list('?' * len(dict.keys())))
@@ -805,7 +811,10 @@ class ProjectSQLiteHandler:
                 self.connection.commit()
                 ids.append(self.cursor.lastrowid)
             except lite.IntegrityError as e:
-                ids.append(self.getId(tablename,keys.split(','),list(v)))
+                oldid = self.getId(tablename,keys.split(','),list(v))
+                if oldid == -1:
+                    oldid = self.getId(tablename,keys.split(','),[replaceNone(val) for val in list(v)])
+                ids.append(oldid)
             except Exception as e:
                 pass
 
@@ -1018,16 +1027,16 @@ class ProjectSQLiteHandler:
                       key in componentFiles}
 
         components[COMPONENTTYPE] = [self.inferComponentType(k) for k in components[self.dbName(COMPONENTNAME)]]
-
+        compIds = []
         # insert the pieces
         if (files[self.dbName(FILEDIR)]!=[""]) & (files[self.dbName(FILEDIR)] != ['None']):
 
             idlist = self.insertDictionaryRow('input_files', files)
             filecomponents['inputfile_id'] = idlist
-            idlist = self.extractComponentNamesOnly(components, setupDict)
+            compIds = self.extractComponentNamesOnly(components, setupDict)
 
             if hasComponentData(filecomponents):
-                filecomponents[COMPONENTID] = idlist
+                filecomponents[COMPONENTID] = compIds
                 filecomponents[COMPONENTTYPE] = components[COMPONENTTYPE]
                 self.addComponentsToFileInputTable(filecomponents)
 
@@ -1036,10 +1045,10 @@ class ProjectSQLiteHandler:
         allComponentNames = [component for component in allComponentNames if component not in components['componentnamevalue']]
         allComponents = {'componentnamevalue': allComponentNames,
                          'componenttype': [self.inferComponentType(k) for k in allComponentNames]}
-        otherids = self.extractComponentNamesOnly(allComponents, setupDict) #this puts them in the component table
-        otherids = [o for o in otherids if o not in idlist]
-        if len(otherids) > 0:
-            allComponents[COMPONENTID] = otherids
+        non_data_components = self.extractComponentNamesOnly(allComponents, setupDict) #this puts them in the component table
+        non_data_components = [o for o in non_data_components if o not in compIds]
+        if len(non_data_components) > 0:
+            allComponents[COMPONENTID] = non_data_components
             del allComponents['componentnamevalue']
             allComponents['inputfile_id'] = [-1] * len(allComponents[COMPONENTID])
             self.addComponentsToFileInputTable(allComponents)

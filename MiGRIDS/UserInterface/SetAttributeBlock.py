@@ -34,7 +34,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         self.defaultComponents = []
         self.setName = "Set" + str(tabPosition) #set name is a string with a prefix
         self.tabName = "Set " + str(tabPosition)
-        self.setId = self.controller.dbhandler.getSetId(str(tabPosition))
+        self.setId = self.controller.dbhandler.getIDByPosition('set_',tabPosition)
         if (self.setId == -1) & (self.controller.dbhandler.getProject() != None):
             self.setId = self.controller.dbhandler.insertRecord('set_',['set_name','project_id'],[self.setName,1])
             #update components to the default list

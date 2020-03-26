@@ -92,18 +92,19 @@ class RunHandler(UIHandler):
         return
 
 
-    def loadExistingProjectSet(self,setName):
+    def loadExistingProjectSet(self,setName,dbhandler):
         #New handler because this function is called from thread
+
        #get a setup dictionary - None if setup file not found
        setSetup = self.readInSetupFile(self.findSetupFile(setName))
 
        if setSetup != None:
            #update the database based on info in the set setup file, this includes adding components to set_components if not already there
-           self.dbhandler.updateSetSetup(setName, setSetup)
+           dbhandler.updateSetSetup(setName, setSetup) #TODO this should not happen if runs are completed
            #get the list of components associated with this project
            compList = setSetup['componentNames.value'].split(" ")
            #add components to the set_component table (base case, tag set to None)
-           self.dbhandler.updateSetComponents(setName, compList)
+           dbhandler.updateSetComponents(setName, compList)
 
         #look for existing runs and update the database
 
@@ -112,29 +113,30 @@ class RunHandler(UIHandler):
            self.updateFromAttributeXML(setName)
        except FileNotFoundError as e:
            return
-       self.loadExistingRuns(setName)
+       self.loadExistingRuns(setName,dbhandler)
        return
 
-    def loadExistingRuns(self,setName):
+    def loadExistingRuns(self,setName,dbhandler):
         '''fill in the project database with information found in the set folder'''
-        projectDir = self.dbhandler.getProjectPath()
+        projectDir = dbhandler.getProjectPath()
         projectSetDir = getFilePath(setName,projectFolder = projectDir)
         runs = getAllRuns(projectSetDir)
 
-        setId = self.dbhandler.getSetId(setName)
-          # fills in metadata results
-        [self.updateRunStartFinishMeta(projectSetDir,setId,r) for r in runs]
-        fillRunMetaData(projectSetDir, []) #fills in metadata for all runs
+        setId = dbhandler.getSetId(setName)
+          # fills in metadata results - TODO remove.
+        #[self.updateRunStartFinishMeta(projectSetDir,setId,r) for r in runs if self.dbhandler.getFieldValue('run','started','run_num',str(r)) is None]
+        #fillRunMetaData(projectSetDir, []) #fills in metadata for all runs
         return
 
-    def updateRunStartFinishMeta(self,setDir,setId,runNum):
-        #get the metadata for all existing runs
-        runPath = getFilePath('Run' + str(runNum), set=setDir)
-
-        if self.hasOutPutData(runPath):
-            self.dbhandler.insertCompletedRun(setId, runNum) #puts minimal info in database
-            runId = self.dbhandler.getId('run', ['run_num', 'set_id'], [runNum, setId])
-            self.setRunComponentsFromFolder(setId,runPath,runId) #fill in the run_attribute table
+    # def updateRunStartFinishMeta(self,setDir,setId,runNum):
+    #     #get the metadata for all existing runs
+    #     runPath = getFilePath('Run' + str(runNum), set=setDir)
+    #     #only load data from run folder if it hasn't been run yet - otherwise it is locked.
+    #
+    #         if self.hasOutPutData(runPath):
+    #             self.dbhandler.insertCompletedRun(setId, runNum) #puts minimal info in database
+    #             runId = self.dbhandler.getId('run', ['run_num', 'set_id'], [runNum, setId])
+    #             self.setRunComponentsFromFolder(setId,runPath,runId) #fill in the run_attribute table
 
 
     def hasOutPutData(self,runPath):
