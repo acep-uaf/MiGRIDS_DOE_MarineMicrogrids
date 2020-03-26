@@ -776,6 +776,7 @@ class ProjectSQLiteHandler:
 
             return False
         return
+
     def insertDictionaryRow(self,tablename, dict):
         '''
         Inserts a dictionary of values into a project_manager table.
@@ -822,7 +823,50 @@ class ProjectSQLiteHandler:
         if ml > len(self.getAllRecords(tablename)):
             print ('Information was missing for some records')
         return ids
+    def insertFileDictionaryRow(self,tablename, dict):
+        '''
+        Inserts a dictionary of values into a project_manager table.
+        Dictionary is assumed to have keys that match column names and hold orderd lists of values corresponding to each row to be inserted
+        :param tablename: String name of the table to insert records into
+        :param dict: a dictionary of colums and values as lists
+        :return:
+        '''
 
+        def maxLength(dict):
+            m = 0
+            for k in dict.keys():
+                if isinstance(dict[k],list):
+                    if len(dict[k]) > m:
+                        m = len(dict[k])
+            return m
+
+        def replaceNone(val):
+            if len(val) <= 0:
+                return 'None'
+            else:
+                return val
+
+        ml = maxLength(dict)
+        keys = ','.join(dict.keys())
+        question_marks = ','.join(list('?' * len(dict.keys())))
+
+        values = list(tuple(zip(*dict.values())))
+        ids = []
+        for v in values: #need to loop so we get ids for every value
+            try:
+                self.cursor.execute('INSERT INTO ' + tablename + ' (' + keys + ') VALUES (' + question_marks + ')',v ) #if insertion fails the last id gets re-appended to the list
+                self.connection.commit()
+                ids.append(self.cursor.lastrowid)
+            except lite.IntegrityError as e:
+                oldid = self.getId(tablename,['inputfiledirvalue'],[v[0]])
+                ids.append(oldid)
+            except Exception as e:
+                pass
+
+
+        if ml > len(self.getAllRecords(tablename)):
+            print ('Information was missing for some records')
+        return ids
     def updateComponent(self, dict):
         ''' updates a component record with values in the dictionary
         :param dict: a dictionary containing at least the attribute 'component_name' and one other attribute that matches a field name in the component table'''
@@ -1031,7 +1075,7 @@ class ProjectSQLiteHandler:
         # insert the pieces
         if (files[self.dbName(FILEDIR)]!=[""]) & (files[self.dbName(FILEDIR)] != ['None']):
 
-            idlist = self.insertDictionaryRow('input_files', files)
+            idlist = self.insertFileDictionaryRow('input_files', files)
             filecomponents['inputfile_id'] = idlist
             compIds = self.extractComponentNamesOnly(components, setupDict)
 
