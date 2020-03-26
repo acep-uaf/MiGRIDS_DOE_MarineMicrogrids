@@ -208,10 +208,11 @@ class MainForm(QtWidgets.QMainWindow):
              saveProject(pathToSaveTo)
 
         else:
+            # if a project was never set then just close
             dbhandler.closeDatabase()
             del dbhandler
-            # if a project was never set then just close and remove the default database
-            os.remove('project_manager')
+
+
 
     #page block contains all the forms
     def createPageBlock(self):
@@ -240,9 +241,9 @@ class PageBlock(QtWidgets.QTabWidget):
         from MiGRIDS.UserInterface.FormSetup import FormSetup
         from MiGRIDS.UserInterface.ResultsSetup import ResultsSetup
         from MiGRIDS.UserInterface.FormModelRuns import FormModelRun
-        from MiGRIDS.UserInterface.FormOptimize import FormOptimize
+
         from MiGRIDS.UserInterface.ResultsModel import ResultsModel
-        from MiGRIDS.UserInterface.ResultsOptimize import ResultsOptimize
+
         from MiGRIDS.UserInterface.FormContainer import FormContainer
 
         self.addTab(FormContainer(self,[FormSetup(self), ResultsSetup(self,'setupResult')],'Setup',screen=self.screen), 'Setup')

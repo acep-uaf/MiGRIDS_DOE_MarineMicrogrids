@@ -10,7 +10,7 @@ from MiGRIDS.UserInterface.Delegates import QueryCheckBoxDelegate
 
 
 class RunFields(Enum):
-    _id=0
+    _id= 0
     set_id =1
     run_num = 2
     base_case = 3
@@ -41,11 +41,12 @@ class customTableView(QtWidgets.QTableView):
     def __init__(self, *args, **kwargs):
         QtWidgets.QTableView.__init__(self, *args, **kwargs)
         self.resizeColumnsToContents()
-        self.hiddenColumns = [0]
+        self.hiddenColumns = [1,3,4,7,8]
         self.columns = []
+        self.header = HeaderViewWithWordWrap()
 
     def reFormat(self):
-        self.setHorizontalHeader(HeaderViewWithWordWrap())
+        self.setHorizontalHeader(self.header)
         self.horizontalHeader().setFixedHeight(50)
         self.unhideColumns()
         self.hideColumns()
@@ -70,7 +71,7 @@ class RunTableView(customTableView):
 
         d = QueryCheckBoxDelegate(self,'base_case','run')
         d.updateQuery.connect(self.notifyUpdateRun)
-        self.setItemDelegateForColumn(RunFields.base_case.value, d)
+        self.setItemDelegateForColumn(RunFields.base_case.value + 3, d)
     def reFormat(self):
         super().reFormat()
         self.horizontalHeader().setFixedHeight(100)
@@ -90,9 +91,7 @@ class RunTableModel(QtSql.QSqlQueryModel):
             return n
 
         self.setId = setId
-        self.header = [getFancyName(name) for name, member in RunFields.__members__.items()]
-        self.header.append("run_id")
-        self.header.append("Component Tag Values")
+        self.header = ['Set','Run ID','Component Tag Values'] + [getFancyName(name) for name, member in RunFields.__members__.items()]
         self.hide_headers_mode = True
         self.refresh()
 
@@ -106,13 +105,15 @@ class RunTableModel(QtSql.QSqlQueryModel):
     def refresh(self, setId = None):
         if setId is not None:
             self.setId = setId
-        self.strsql = "SELECT * FROM run LEFT JOIN (SELECT run_id, " \
+
+
+        self.strsql = "SELECT * FROM (SELECT set_name, run_id, " \
                       "group_concat(componentnamevalue ||'.' || tag || ' = ' || tag_value) from run_attributes " \
                       "JOIN set_components ON set_components._id = run_attributes.set_component_id " \
-                      "JOIN component on set_components.component_id = component._id WHERE " \
-                      "set_components.set_id = " + str(self.setId) + " GROUP BY run_attributes.run_id) as ra ON run._id = ra.run_id " \
-                      "GROUP BY run_id"
-
+                      "JOIN component on set_components.component_id = component._id  " \
+                      " JOIN (SELECT _id, set_name from set_) as set_ on set_components.set_id = set_._id" \
+                       " GROUP BY run_attributes.run_id) as ra JOIN run ON run._id = ra.run_id " \
+                          "GROUP BY set_name, run_id ORDER BY set_name, run_num"
         self.setQuery(self.strsql)
         self.query()
 
@@ -140,8 +141,8 @@ class HeaderViewWithWordWrap(QtWidgets.QHeaderView):
         QtWidgets.QHeaderView.__init__(self, QtCore.Qt.Horizontal)
         self.setStyleState()
 
-        self.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
-
+        #self.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        self.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
     def sectionSizeFromContents(self, logicalIndex):
         if self.model():
@@ -151,8 +152,9 @@ class HeaderViewWithWordWrap(QtWidgets.QHeaderView):
             options = self.viewOptions()
             metrics = QtGui.QFontMetrics(options.font)
             maxWidth = self.sectionSize(logicalIndex)
-
-            rect = metrics.boundingRect(QtCore.QRect(0, 0, maxWidth, 50000),
+            minWidth = 100
+            rect = QtCore.QRect(0, 0, minWidth, 50000)
+            rectbox = metrics.boundingRect(rect,
                                         QtCore.Qt.AlignCenter | QtCore.Qt.TextWordWrap | QtCore.Qt.TextExpandTabs,
                                         headerText, 4)
 

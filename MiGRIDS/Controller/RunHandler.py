@@ -93,50 +93,52 @@ class RunHandler(UIHandler):
 
 
     def loadExistingProjectSet(self,setName,dbhandler):
-        #New handler because this function is called from thread
+        '''populates the project database with set information extracted from a set folder
+        if the set does not already exist within the database
+        :param setName: string name of the set and setfolder
+        :param dbhandler a connection to the database
+        New handler because this function is called from thread'''
 
-       #get a setup dictionary - None if setup file not found
-       setSetup = self.readInSetupFile(self.findSetupFile(setName))
+        #get a setup dictionary - None if setup file not found
+        setSetup = self.readInSetupFile(self.findSetupFile(setName))
+        #if a set folder exists but set setup info is not in the database populate the datebase with the set xml files
+        if (setSetup != None) & (dbhandler.getSetId(setName) == -1):
+            #update the database based on info in the set setup file, this includes adding components to set_components if not already there
+            dbhandler.updateSetSetup(setName, setSetup)
+            #get the list of components associated with this project
+            compList = setSetup['componentNames.value'].split(" ")
+            #add components to the set_component table (base case, tag set to None)
+            dbhandler.updateSetComponents(setName, compList)
 
-       if setSetup != None:
-           #update the database based on info in the set setup file, this includes adding components to set_components if not already there
-           dbhandler.updateSetSetup(setName, setSetup) #TODO this should not happen if runs are completed
-           #get the list of components associated with this project
-           compList = setSetup['componentNames.value'].split(" ")
-           #add components to the set_component table (base case, tag set to None)
-           dbhandler.updateSetComponents(setName, compList)
-
-        #look for existing runs and update the database
-
-       #read attribute xml and put new tags in set_component table
-       try:
-           self.updateFromAttributeXML(setName)
-       except FileNotFoundError as e:
-           return
-       self.loadExistingRuns(setName,dbhandler)
-       return
+            #look for existing runs and update the database
+            #read attribute xml and put new tags in set_component table
+            try:
+                self.updateFromAttributeXML(setName)
+            except FileNotFoundError as e:
+                return
+            self.loadExistingRuns(setName,dbhandler)
+            return
 
     def loadExistingRuns(self,setName,dbhandler):
-        '''fill in the project database with information found in the set folder'''
+        '''fill in the project database with information found in the set folder.
+        Assumes there is not information already in the database for each run'''
         projectDir = dbhandler.getProjectPath()
         projectSetDir = getFilePath(setName,projectFolder = projectDir)
         runs = getAllRuns(projectSetDir)
 
         setId = dbhandler.getSetId(setName)
           # fills in metadata results - TODO remove.
-        #[self.updateRunStartFinishMeta(projectSetDir,setId,r) for r in runs if self.dbhandler.getFieldValue('run','started','run_num',str(r)) is None]
-        #fillRunMetaData(projectSetDir, []) #fills in metadata for all runs
+        [self.updateRunStartFinishMeta(projectSetDir,setId,r,dbhandler) for r in runs if self.dbhandler.getFieldValue('run','started','run_num',str(r)) is None]
+        fillRunMetaData(projectSetDir, []) #fills in metadata for all runs
         return
 
-    # def updateRunStartFinishMeta(self,setDir,setId,runNum):
-    #     #get the metadata for all existing runs
-    #     runPath = getFilePath('Run' + str(runNum), set=setDir)
-    #     #only load data from run folder if it hasn't been run yet - otherwise it is locked.
-    #
-    #         if self.hasOutPutData(runPath):
-    #             self.dbhandler.insertCompletedRun(setId, runNum) #puts minimal info in database
-    #             runId = self.dbhandler.getId('run', ['run_num', 'set_id'], [runNum, setId])
-    #             self.setRunComponentsFromFolder(setId,runPath,runId) #fill in the run_attribute table
+    def updateRunStartFinishMeta(self,setDir,setId,runNum,dbhandler):
+        #get the metadata for all existing runs
+        runPath = getFilePath('Run' + str(runNum), set=setDir)
+        if self.hasOutPutData(runPath):
+            dbhandler.insertCompletedRun(setId, runNum) #puts minimal info in database
+            runId = self.dbhandler.getId('run', ['run_num', 'set_id'], [runNum, setId])
+            self.setRunComponentsFromFolder(setId,runPath,runId,dbhandler) #fill in the run_attribute table
 
 
     def hasOutPutData(self,runPath):
@@ -150,15 +152,15 @@ class RunHandler(UIHandler):
         else:
             return False
 
-    def setRunComponentsFromFolder(self,setId,runPath,runId):
+    def setRunComponentsFromFolder(self,setId,runPath,runId,dbhandler):
         def setComponentName(d):
             d['component_name'] = self.dbhandler.getFieldValue('component','componentnamevalue','_id',d['component_id'])
             return d
-        possibleComponentAttributesDict = self.dbhandler.getSetComponentTags(setId)
+        possibleComponentAttributesDict = dbhandler.getSetComponentTags(setId)
         possibleComponentAttributesDict =[setComponentName(p) for p in possibleComponentAttributesDict]
-        [self.addToRunAttribute(t,runId,runPath) for t in possibleComponentAttributesDict]
+        [self.addToRunAttribute(t,runId,runPath,dbhandler) for t in possibleComponentAttributesDict]
 
-    def addToRunAttribute(self,d,runId,runPath):
+    def addToRunAttribute(self,d,runId,runPath,dbhandler):
         import re
         def xmlMatched(xmlName,componentName):
             filename = os.path.basename(xmlName)
@@ -181,7 +183,7 @@ class RunHandler(UIHandler):
                 ((not isinstance(xmlValue,list)) & (actualValue(d['tag_value']) == xmlValue)) | \
                 ((isinstance(xmlValue, list)) & (actualValue(d['tag_value']) == xmlValue)):
            # put the record into the run_attribute table
-            self.dbhandler.insertRunComponent(runId, d['_id'])
+            dbhandler.insertRunComponent(runId, d['_id'])
             return
 
     def updateFromAttributeXML(self,setName):

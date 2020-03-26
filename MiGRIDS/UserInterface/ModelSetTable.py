@@ -33,7 +33,7 @@ class SetTableView(customTableView):
         super(SetTableView, self).__init__()
         self.tabPosition = kwargs.get('position')
         self.controller = Controller()
-
+        self.header.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         attributes = QtCore.QStringListModel([])
         self.setItemDelegateForColumn(1, TextDelegate(self))
         # needs to be called componentname for delegate signal

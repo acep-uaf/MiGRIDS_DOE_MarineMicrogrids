@@ -100,7 +100,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
 
         self.xmlEditor.updateWidget() #this relies on xml files, not the database
         self.run_Model.refresh(self.setId)
-        self.rehide(self.findChild(QtWidgets.QTableView,'runs'),[0,1,26])
+        #self.rehide(self.findChild(QtWidgets.QTableView,'runs'),[0,1,26])
         self.rehide(self.findChild(QtWidgets.QTableView,'sets'), [0,1])
         self.updateDependents()
     def rehide(self,tview,loc):
@@ -443,7 +443,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         self.run_Model = RunTableModel(self,setId)
 
         # hide the id columns
-        tv.hiddenColumns = [0,1,4,5,26]
+        #tv.hiddenColumns = [0,1,4,5,26]
         self.run_Model.query()
         tv.setModel(self.run_Model)
         tv.updateRunBaseCase.connect(self.receiveUpdateRunBaseCase)
