@@ -140,12 +140,12 @@ class HeaderViewWithWordWrap(QtWidgets.QHeaderView):
     def __init__(self):
         QtWidgets.QHeaderView.__init__(self, QtCore.Qt.Horizontal)
         self.setStyleState()
-
         #self.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         self.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
     def sectionSizeFromContents(self, logicalIndex):
         if self.model():
+            self.setSectionResizeMode(logicalIndex,QtWidgets.QHeaderView.Interactive)
             headerText = self.model().headerData(logicalIndex,
                                                  self.orientation(),
                                                  QtCore.Qt.DisplayRole)
