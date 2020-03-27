@@ -13,13 +13,10 @@ import time
 import re
 import os
 
-from MiGRIDS.Model.Operational.SystemOperationA import SystemOperationsA
 from MiGRIDS.Model.Operational.SystemOperations import SystemOperations
 from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import readXmlTag
 from MiGRIDS.Analyzer.DataWriters.writeNCFile import writeNCFile
-from MiGRIDS.Model.Exceptions.NoDirectoryException import NoDirectoryException
 from MiGRIDS.Model.Exceptions.MissingInputFile import MissingInputFileException
-from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 class Simulation:

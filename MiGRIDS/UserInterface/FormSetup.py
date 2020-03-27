@@ -54,7 +54,7 @@ class FormSetup(BaseForm):
         self.makeTabs(windowLayout)
         self.connectDelegateUpdateSignal()
         self.makeTableBlock('Components', 'components', self.assignComponentBlock)
-        windowLayout.addWidget(self.componentBlock)
+        windowLayout.addWidget(self.componentBlock,stretch=6)
         #list of dictionaries containing information for wizard
         #this is the information that is not input file specific.
         self.WizardTree = self.buildWizardTree(dlist)
@@ -82,7 +82,8 @@ class FormSetup(BaseForm):
             self.ComponentTable.hideColumn(1)
             self.ComponentTable.setModel(m)
             self.ComponentTable.hideColumn(0)
-            self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+            self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
+            #self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
             tableGroup.addWidget(self.ComponentTable, 1)
             tableHandler = TableHandler(self)
             try:
@@ -107,7 +108,7 @@ class FormSetup(BaseForm):
         newTabButton.clicked.connect(self.newTab)
 
         windowLayout.addWidget(newTabButton)
-        windowLayout.addWidget(self.tabs, 3)
+        windowLayout.addWidget(self.tabs, stretch = 1)
 
 
     def connectDelegateUpdateSignal(self):
@@ -441,7 +442,7 @@ class FormSetup(BaseForm):
                     if comp_id != -1:
                         loFileBlock = self.findChildren(FileBlock)
                         for f in loFileBlock:
-                           f.updateComponentNameList()
+                           self.updateComponentNameList()
 
             self.WizardTree.close()
             self.controller.newProject()
@@ -632,7 +633,7 @@ class FormSetup(BaseForm):
         # if a field was entered add it to the table model and database
         if ok:
             tableHandler = TableHandler(self)
-            filedir = self.FileBlock.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
+            filedir = self.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
             self.saveInput()
             id = self.controller.dbhandler.getId('input_files', ['inputfiledirvalue'], [filedir])
             tableHandler.functionForNewRecord(table, fields=[1,
@@ -661,7 +662,7 @@ class FormSetup(BaseForm):
     def functionForNewRecord(self, table):
         # add an empty record to the table
         tableHandler = TableHandler(self)
-        filedir = self.FileBlock.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
+        filedir = self.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
         self.saveInput()
         id = self.controller.dbhandler.getId('input_files', ['inputfiledirvalue'], [filedir])
         tableHandler.functionForNewRecord(table, fields=[1], values=[id])
