@@ -52,7 +52,6 @@ class FormSetup(BaseForm):
         self.createTopButtonBlock()
         windowLayout.addWidget(self.ButtonBlock)
         self.makeTabs(windowLayout)
-        self.connectDelegateUpdateSignal()
         self.makeTableBlock('Components', 'components', self.assignComponentBlock)
         windowLayout.addWidget(self.componentBlock,stretch=6)
         #list of dictionaries containing information for wizard
@@ -109,6 +108,7 @@ class FormSetup(BaseForm):
 
         windowLayout.addWidget(newTabButton)
         windowLayout.addWidget(self.tabs, stretch = 1)
+        self.connectDelegateUpdateSignal()
 
 
     def connectDelegateUpdateSignal(self):
@@ -577,6 +577,7 @@ class FormSetup(BaseForm):
         tab_count = self.tabs.count() +1
         widg = FileBlock(self, tab_count)
         self.tabs.addTab(widg, 'Input' + str(tab_count))
+        self.connectDelegateUpdateSignal()
 
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):
@@ -662,7 +663,8 @@ class FormSetup(BaseForm):
     def functionForNewRecord(self, table):
         # add an empty record to the table
         tableHandler = TableHandler(self)
-        filedir = self.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
+
+        filedir = self.tabs.currentWidget().findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
         self.saveInput()
         id = self.controller.dbhandler.getId('input_files', ['inputfiledirvalue'], [filedir])
         tableHandler.functionForNewRecord(table, fields=[1], values=[id])
@@ -750,10 +752,15 @@ class FormSetup(BaseForm):
 
 
     def updateComponentDelegates(self, preview):
-        self.updateComponentHeaders(preview)
+        self.updateComponentHeaders(preview) #TODO this will need to add not replace
+        self.updateComponentFiles()
         self.updateComponentNameList()
 
+    def updateComponentFiles(self):
 
+        tableHandler = TableHandler(self)
+        tableHandler.updateComponentDelegate(None, self.ComponentTable, 'inputfiledirvalue')
+        return
     def updateComponentHeaders(self, preview):
         tableHandler = TableHandler(self)
         tableHandler.updateComponentDelegate(preview.header, self.ComponentTable, 'headernamevalue')

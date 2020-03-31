@@ -40,7 +40,7 @@ class ComponentTableView(QtWidgets.QTableView):
         fields = []
 
         #combo columns
-        self.setItemDelegateForColumn(ComponentFields.inputfile_id.value,ComboRelationDelegate(self,'input_files','_id','inputfiledirvalue'))
+        self.setItemDelegateForColumn(ComponentFields.inputfile_id.value,ComboRelationDelegate(self,'input_files','_id','inputfiledirvalue','inputfiledirvalue'))
         self.setItemDelegateForColumn(ComponentFields.headernamevalue.value,ComboDelegate(self,QtCore.QStringListModel(fields),'headernamevalue'))
         self.setItemDelegateForColumn(ComponentFields.component_id.value, RelationDelegate(self, 'componentnamevalue'))
         self.setItemDelegateForColumn(ComponentFields.componenttype.value, RelationDelegate(self, 'componenttype'))

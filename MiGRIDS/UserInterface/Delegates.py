@@ -12,13 +12,13 @@ class ComboDelegate(QtWidgets.QItemDelegate):
 
     def __init__(self,parent,values, name=None):
         QtWidgets.QItemDelegate.__init__(self,parent)
-        self.values = values
+        self.items = values
         self.name = name
 
     def createEditor(self,parent, option, index):
         combo = QtWidgets.QComboBox(parent)
         combo.setObjectName(self.name)
-        combo.setModel(self.values)
+        combo.setModel(self.items)
         #combo.currentIndexChanged.connect(self.currentIndexChanged)
         combo.activated.connect(self.currentIndexChanged)
         return combo
@@ -40,7 +40,7 @@ class ComboDelegate(QtWidgets.QItemDelegate):
     #write model data
     def setModelData(self,editor, model, index):
 
-         if isinstance(self.values,RefTableModel):
+         if isinstance(self.items,RefTableModel):
              model.setData(index, editor.currentIndex(),QtCore.Qt.EditRole)
          #model is the table storing the combo
          else:
@@ -58,10 +58,15 @@ class ComboRelationDelegate(QtWidgets.QItemDelegate):
         sqlmodel = QtSql.QSqlQueryModel()
         sqlmodel.setQuery("SELECT " + keyColumn +", " + displayColumn + " FROM " + tableName + "  UNION SELECT -1, 'None' FROM " + tableName)
         sqlmodel.query()
+        self.tableName = tableName
         self.items = sqlmodel
         self.name = name
+        self.keyColumn = keyColumn
         self.displayColumn = displayColumn
-
+    def updateContent(self):
+        self.items.setQuery(
+            "SELECT " + self.keyColumn + ", " + self.displayColumn + " FROM " + self.tableName + "  UNION SELECT -1, 'None' FROM " + self.tableName)
+        self.items.query()
     def createEditor(self,parent, option, index):
         combo = QtWidgets.QComboBox(parent)
         combo.setObjectName(self.name)
@@ -137,6 +142,7 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
         QtSql.QSqlRelationalDelegate.__init__(self,parent)
         self.parent = parent
         self.name=name
+        self.items=QtSql.QSqlTableModel()
         self.filter = kwargs.get("filter")
 
     def createEditor(self, parent, option, index):
@@ -160,6 +166,8 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
 
             pmodel.setTable(relation.tableName())
             pmodel.select()
+            self.items = pmodel
+
             #pmodel.insertRow(0)
 
             editor.setModel(pmodel)
@@ -171,7 +179,8 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
     def setModelData(self,editor, model, index):
 
          return super(RelationDelegate, self).setModelData(editor,model,index)
-
+    def updateContent(self):
+        return
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
         #i = index
@@ -198,6 +207,7 @@ class ComponentFormOpenerDelegate(QtWidgets.QItemDelegate):
     def __init__(self,parent,text):
         QtWidgets.QItemDelegate.__init__(self,parent)
         self.text = text
+        self.name = None
     def paint(self, painter, option, index):
 
         if not self.parent().indexWidget(index):

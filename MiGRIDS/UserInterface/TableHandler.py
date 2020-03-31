@@ -1,11 +1,14 @@
 # Projet: MiGRIDS
 # Created by: T. Morgan # Created on: 11/1/2019
 
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtSql
 from qtpy import QtCore
 
 import MiGRIDS
 from MiGRIDS.Controller.UIHandler import UIHandler
+from MiGRIDS.UserInterface.Delegates import ComboRelationDelegate
+
+
 class TableHandler():
 
     def __init__(self, parent):
@@ -20,7 +23,7 @@ class TableHandler():
         tableView = self.parent.findChild((QtWidgets.QTableView), table)
         model = tableView.model()
         model.submitAll()
-        debugvar = model.rowCount()
+
         # insert an empty row as the last record
         model.insertRows(model.rowCount(), 1)
         #model.setData(model.index(model.rowCount() -1,0), None) #id field nees to remain empty until data is inserted
@@ -50,17 +53,18 @@ class TableHandler():
         '''
         from MiGRIDS.UserInterface.Delegates import ComboDelegate, ComponentFormOpenerDelegate
         # find the appropriate drop down and replace the list of values
-        cbs = tv.findChildren(ComboDelegate)
+        cbs = [c for c in tv.findChildren(QtWidgets.QItemDelegate) if c.name == cmbName]
         for c in cbs:
-            if c.name == cmbName:
-                lm = c.values
 
-                if isinstance(lm,MiGRIDS.UserInterface.Delegates.RefTableModel):
-                    lm.updateModel(loi)
-                else:
+            lm = c.items
+            if isinstance(lm, QtSql.QSqlQueryModel):
+                c.updateContent()
+            elif isinstance(lm,MiGRIDS.UserInterface.Delegates.RefTableModel):
+                lm.updateModel(loi)
+            else:
 
-                    #cbs.addItems(["", "index"] + list(loi))
-                    lm.setStringList([''] + list(loi))
+                #cbs.addItems(["", "index"] + list(loi))
+                lm.setStringList([''] + list(loi))
 
     #removes selected records from the table and its underlying sql table
     #String -> None

@@ -1133,23 +1133,34 @@ class ProjectSQLiteHandler:
     def makePath(self,stringlistpath):
         '''
 
-        :param stringlistpath: a path that is a list written as a comma seperated string (as is found in setup xml
+        :param stringlistpath: a path that is a list written as a comma, backslash, double backslash or forward slash seperated string (as is found in setup xml
         :return:
         '''
-        aslist = stringlistpath.split(',')
-        if len(aslist) <= 1:
-            aslist = stringlistpath.split("/")
-            if len(aslist) <=0:
-                aslist = stringlistpath.split(""""\"""")
-            if "" in aslist:
-                aslist.remove("")
-            if len(aslist) <= 0:
-                 return None
-        aslist = [a.replace(" ","_") for a in aslist]
-        if aslist[0] == self.getProject(): #if the path specification starts with the project folder, make it a complete path by adding the path to the project folder
-            return os.path.join(self.getProjectPath(),*aslist[1:])
+        aslist = self.splitToList(stringlistpath)
+        return os.path.join(*aslist)
+
+    def splitToList(self,stringPath, splitters = [',',r'\\',r"\"","/"]):
+        if (len(splitters) <=0) :
+            return None
         else:
-            return os.path.join(*aslist)
+            stringPath = rf"{re.escape(stringPath)}".replace(":", '')
+            aslist = rf"{re.escape(stringPath)}".replace(splitters[0], ',')
+            aslist = aslist.split(",")
+            if len(aslist) <= 0:
+                splitters.pop(0)
+                return self.splitToList(stringPath,splitters)
+            else:
+                while "" in aslist:
+                    aslist.remove("")
+
+                while '\\' in aslist:
+                    aslist.remove('\\')
+                if aslist[0] == self.getProject():  # if the path specification starts with the project folder, make it a complete path by adding the path to the project folder
+                    return os.path.join(self.getProjectPath(), *aslist[1:])
+                else:
+                    return aslist
+
+
     def inferComponentType(self,componentname):
         '''returns the string value of the component type extracted from the comonent name
         i.e wtg, ees'''
