@@ -567,7 +567,7 @@ class FormSetup(BaseForm):
 
         return values
     # close event is triggered when the form is closed
-    #TODO never called
+    #called by FormContainer
     def closeEvent(self, event):
         #save xmls
         if 'projectFolder' in self.__dict__.keys():

@@ -12,7 +12,8 @@ from MiGRIDS.UserInterface.FormModelRuns import FormModelRun
 
 from MiGRIDS.UserInterface.FormSetup import FormSetup
 from MiGRIDS.UserInterface.switchProject import saveProject
-
+import os
+import shutil
 class MainForm(QtWidgets.QMainWindow):
     resized = QtCore.pyqtSignal()
 
@@ -278,11 +279,10 @@ class PageBlock(QtWidgets.QTabWidget):
 
     #if the tab block is closed make sure all the data is written to xml files
     def closeEvent(self):
-        import os
-        import shutil
+
         setupForm = self.findChild(QtWidgets.QWidget,'setupDialog')
-
-
+        for t in self.pageBlock.findChildren(FormContainer):
+            t.close()
         # move the default database to the project folder and save xmls
         if 'projectFolder' in setupForm.model.__dict__.keys():
             path = os.path.dirname(__file__)

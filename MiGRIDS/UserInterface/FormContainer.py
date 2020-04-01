@@ -80,4 +80,6 @@ class FormContainer(BaseForm):
             self.correctLayout(self.screen)
 
 
-
+    def closeEvent(self, event):
+        for child in self.findChild(BaseForm):
+            child.close()
