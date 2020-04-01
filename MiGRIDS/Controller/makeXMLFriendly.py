@@ -6,7 +6,7 @@ def stringToXML(myString, i = 0):
     def singleString(thisString):
         if isinstance(thisString,str):
             if ' ' in thisString:
-                return '"%s"' % thisString
+                return "'%s'" % thisString
         return thisString
 
 
@@ -26,7 +26,7 @@ def xmlToString(myString,i = 0):
     '''xml files for this project use space delimited lists so whitespace strings need to have quotes removed
      to match actual file values'''
     def singleString(thisString):
-        thisString = thisString.strip('\"')
+        thisString = thisString.strip('\'')
         return thisString
 
     # If myString is a list alter all strings in the list

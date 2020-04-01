@@ -40,7 +40,7 @@ class SetupHandler(UIHandler):
         '''
         Create a component xml file based on the provided component soup object
         :param component: String name of the component
-        :param soup: Beautiful soup object of tags and values to wriete
+        :param soup: Beautiful soup object of tags and values to write
         :return: None
         '''
 

@@ -51,7 +51,7 @@ def fillProjectDataFromDb():
         if (generalSetupInfo['componentNames.value'] is not None) &(generalSetupInfo['componentNames.value'] != 'None'):
             #use as list not string
             if isinstance(generalSetupInfo['componentNames.value'],str):
-                generalSetupInfo['componentNames.value'] = generalSetupInfo['componentNames.value'].split(" ") #this should make it a list
+                generalSetupInfo['componentNames.value'] = shlex.split(generalSetupInfo['componentNames.value'])#this should make it a list
             if isinstance(generalSetupInfo['componentNames.value'],list):
                 for component in generalSetupInfo['componentNames.value']: # for each component
 

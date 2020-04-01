@@ -9,7 +9,7 @@ from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.qdateFromString import asDate
 from MiGRIDS.InputHandler.InputFields import *
 import pandas as pd
-
+import shlex
 # field and table constants
 # fields
 PROJECTNAME = "project_name"
@@ -452,16 +452,26 @@ class ProjectSQLiteHandler:
             #componentChannels has ordered lists for directories and the components they contain. A component can have data in more than one directory and file type, in which case it would
             #be listed more than once in componentChannels
             #We use a left join for input files to components so the input file directories will still get listed even if no components have been added
+            # values = self.cursor.execute(
+            # "select group_concat(COALESCE(REPLACE(inputfiledirvalue,' ','_'),'None'),' '), group_concat(COALESCE(REPLACE(inputfiletypevalue,' ','_'),'None'),' '),group_concat(componentnamevalue,' '),"
+            # "group_concat(REPLACE(headernamevalue,' ','_'),' '),group_concat(REPLACE(componentattributevalue,' ',' '), ' '), group_concat(REPLACE(componentattributeunit,' ',' '), ' '),group_concat(COALESCE(REPLACE(datechannelvalue,' ','_'),'None'), ' '),group_concat(COALESCE(REPLACE(timechannelvalue,' ','_'),'None'),' '),"
+            # "group_concat(COALESCE(REPLACE(datechannelformat,' ','_'),'None'), ' '),group_concat(COALESCE(REPLACE(timechannelformat,' ','_'),'None'), ' '), "
+            # "group_concat(COALESCE(REPLACE(timezonevalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(usedstvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(inpututcoffsetvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(flexibleyearvalue,' ','_'),'None'), ' ') "
+            # "from input_files Left JOIN "
+            # "(select component._id as component_id, inputfile_id, COALESCE(REPLACE(componentnamevalue,' ','_'),'None') as componentnamevalue, COALESCE(REPLACE(headernamevalue,' ',' '),'None') as headernamevalue, COALESCE(REPLACE(componentattributevalue,' ','_'),'None') as componentattributevalue, COALESCE(componentattributeunit,'None') as componentattributeunit from component_files "
+            # "LEFT JOIN component on component._id = component_files.component_id ORDER BY component_id ) as components"
+            # " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
+            # #These are the input file specific info - should be none if data not entered
             values = self.cursor.execute(
-            "select group_concat(COALESCE(REPLACE(inputfiledirvalue,' ','_'),'None'),' '), group_concat(COALESCE(REPLACE(inputfiletypevalue,' ','_'),'None'),' '),group_concat(componentnamevalue,' '),"
-            "group_concat(REPLACE(headernamevalue,' ','_'),' '),group_concat(REPLACE(componentattributevalue,' ',' '), ' '), group_concat(REPLACE(componentattributeunit,' ',' '), ' '),group_concat(COALESCE(REPLACE(datechannelvalue,' ','_'),'None'), ' '),group_concat(COALESCE(REPLACE(timechannelvalue,' ','_'),'None'),' '),"
-            "group_concat(COALESCE(REPLACE(datechannelformat,' ','_'),'None'), ' '),group_concat(COALESCE(REPLACE(timechannelformat,' ','_'),'None'), ' '), "
-            "group_concat(COALESCE(REPLACE(timezonevalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(usedstvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(inpututcoffsetvalue,' ','_'),'None'), ' '), group_concat(COALESCE(REPLACE(flexibleyearvalue,' ','_'),'None'), ' ') "
+            "select group_concat(COALESCE(inputfiledirvalue,'None'),' '), group_concat(COALESCE(inputfiletypevalue,'None'),' '),group_concat(componentnamevalue,' '),"
+            "group_concat(headernamevalue,' '),group_concat(componentattributevalue, ' '), group_concat(componentattributeunit, ' '),group_concat(COALESCE(datechannelvalue,'None'), ' '),group_concat(COALESCE(timechannelvalue,'None'),' '),"
+            "group_concat(COALESCE(datechannelformat,'None'), ' '),group_concat(COALESCE(timechannelformat,'None'), ' '), "
+            "group_concat(COALESCE(timezonevalue,'None'), ' '), group_concat(COALESCE(usedstvalue,'None'), ' '), group_concat(COALESCE(inpututcoffsetvalue,'None'), ' '), group_concat(COALESCE(flexibleyearvalue,'None'), ' ') "
             "from input_files Left JOIN "
-            "(select component._id as component_id, inputfile_id, COALESCE(REPLACE(componentnamevalue,' ','_'),'None') as componentnamevalue, COALESCE(REPLACE(headernamevalue,' ',' '),'None') as headernamevalue, COALESCE(REPLACE(componentattributevalue,' ','_'),'None') as componentattributevalue, COALESCE(componentattributeunit,'None') as componentattributeunit from component_files "
+            "(select component._id as component_id, inputfile_id, COALESCE(componentnamevalue,'None') as componentnamevalue, COALESCE(headernamevalue,'None') as headernamevalue, COALESCE(componentattributevalue,'None') as componentattributevalue, COALESCE(componentattributeunit,'None') as componentattributeunit from component_files "
             "LEFT JOIN component on component._id = component_files.component_id ORDER BY component_id ) as components"
             " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
-            #These are the input file specific info - should be none if data not entered
+
             if values is not None:
                 setDict[FILEDIR] = values[0]
                 setDict[FILETYPE] = values[1]
@@ -1051,7 +1061,7 @@ class ProjectSQLiteHandler:
                     if len(componentDict[k]) > 0:
                         return True
             return False
-        allComponentNames = setupDict[COMPONENTNAMES].split(' ')
+        allComponentNames = shlex.split(setupDict[COMPONENTNAMES])
 
         fileAttributes = [FILEDIR, FILETYPE, DATECHANNELFORMAT,
                           DATECHANNEL, TIMECHANNELFORMAT, TIMECHANNEL, TIMEZONE,
@@ -1059,21 +1069,26 @@ class ProjectSQLiteHandler:
         componentFiles = [HEADERNAME, COMPONENTATTRIBUTEUNIT,
                                COMPONENTATTRIBUTE]  # plus file id and component id
         componentAttributes = [COMPONENTNAME]
-        files = {self.dbName(key): xmlToString(value.split(' ')) for key, value in setupDict.items() if
+        files = {self.dbName(key): shlex.split(value) for key, value in setupDict.items() if
                  key in fileAttributes}
 
         #sometimes setup files only contain the relative path to input files from the project directory
 
         files[self.dbName(FILEDIR)] = [self.checkPath(self.makePath(k)) for k in files[self.dbName(FILEDIR)]] #we need to convert the list filepath to a system filepath as a string
-        components = {self.dbName(key): xmlToString(value.split(' ')) for key, value in setupDict.items() if
+        components = {self.dbName(key): shlex.split(value) for key, value in setupDict.items() if
                       key in componentAttributes}
-        filecomponents = {self.dbName(key): value.split(' ') for key, value in setupDict.items() if
+        filecomponents = {self.dbName(key): shlex.split(value) for key, value in setupDict.items() if
                       key in componentFiles}
 
         components[COMPONENTTYPE] = [self.inferComponentType(k) for k in components[self.dbName(COMPONENTNAME)]]
         compIds = []
         # insert the pieces
         if (files[self.dbName(FILEDIR)]!=[""]) & (files[self.dbName(FILEDIR)] != ['None']):
+            #special accomodations taken for time channel which is frequently left empty.
+            if len(files[self.dbName(TIMECHANNEL)]) <= 0:
+                files[self.dbName(TIMECHANNEL)] = files[self.dbName(DATECHANNEL)]
+            if len(files[self.dbName(TIMECHANNELFORMAT)]) <= 0:
+                files[self.dbName(TIMECHANNELFORMAT)] = ['None'] * len(files[self.dbName(TIMECHANNEL)])
 
             idlist = self.insertFileDictionaryRow('input_files', files)
             filecomponents['inputfile_id'] = idlist
