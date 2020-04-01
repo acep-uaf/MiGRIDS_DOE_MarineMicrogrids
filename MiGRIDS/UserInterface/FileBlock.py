@@ -23,7 +23,9 @@ class FileBlock(BaseEditorTab):
     # creates a single form for entering individual file type information
     def init(self, tabPosition):
         self.tabName = "Input " + str(self.tabPosition)
+        self.preview = None
         self.makeForm()
+
 
     def createFileTab(self):
 

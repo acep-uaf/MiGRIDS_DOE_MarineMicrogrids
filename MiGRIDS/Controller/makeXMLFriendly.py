@@ -1,13 +1,14 @@
 def stringToXML(myString, i = 0):
-    '''xml files for this project use space delimited lists so spaces withing a single value get replaced with underscore
+    '''xml files for this project use space delimited lists so spaces withing a single value quotes
     :param myString: a string or list of strings to replace white space
-    :return: String value of myString with white space filled with underscore'''
+    :return: String value of myString with white space string surrounded with quotes'''
 
     def singleString(thisString):
         if isinstance(thisString,str):
-           return thisString.replace('\s+','_')
-        else:
-            return thisString
+            if ' ' in thisString:
+                return '"%s"' % thisString
+        return thisString
+
 
     # If myString is a list alter all strings in the list
     if isinstance(myString, list):
@@ -22,11 +23,10 @@ def stringToXML(myString, i = 0):
 
 
 def xmlToString(myString,i = 0):
-    '''xml files for this project use space delimited lists so underscores need to be replaced with whitespace
+    '''xml files for this project use space delimited lists so whitespace strings need to have quotes removed
      to match actual file values'''
     def singleString(thisString):
-        thisString = thisString.replace('_', ' ')
-
+        thisString = thisString.strip('\"')
         return thisString
 
     # If myString is a list alter all strings in the list

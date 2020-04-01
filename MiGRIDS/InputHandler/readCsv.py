@@ -35,7 +35,8 @@ def readCsv(inputDict):
     # check and see if the df column names match the input specification.
     # TODO: throw a catch in here in case it does not find the headers
     gotHeader = False
-    columnNamesFromCSV = stringToXML(df.columns)
+    #columnNamesFromCSV = stringToXML(df.columns)
+    columnNamesFromCSV = df.columns
     if inputDict['componentChannels.headerName.value'][0] not in columnNamesFromCSV:
         # if the first row is not the header, look for it further down in the file
         for col in df.columns:

@@ -53,7 +53,8 @@ class TableHandler():
         '''
         from MiGRIDS.UserInterface.Delegates import ComboDelegate, ComponentFormOpenerDelegate
         # find the appropriate drop down and replace the list of values
-        cbs = [c for c in tv.findChildren(QtWidgets.QItemDelegate) if c.name == cmbName]
+        cbs =[c for c in tv.findChildren(QtWidgets.QItemDelegate) if 'name' in c.__dict__.keys()]
+        cbs = [c for c in cbs if c.name == cmbName]
         for c in cbs:
 
             lm = c.items

@@ -95,7 +95,12 @@ class FormSetup(BaseForm):
         gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         fn(gb)
         return
-
+    def tabChanged(self,index):
+        if self.tabs.currentWidget() != None:
+            preview = self.tabs.currentWidget().preview
+            if preview != None:
+                self.updateComponentHeaders(preview)
+        return
     def makeTabs(self, windowLayout):
         # each tab is for an individual input file.
         self.tabs = Pages(self, 1, FileBlock)
@@ -109,6 +114,8 @@ class FormSetup(BaseForm):
         windowLayout.addWidget(newTabButton)
         windowLayout.addWidget(self.tabs, stretch = 1)
         self.connectDelegateUpdateSignal()
+        #tab switch signal
+        self.tabs.currentChanged.connect(self.tabChanged)
 
 
     def connectDelegateUpdateSignal(self):
