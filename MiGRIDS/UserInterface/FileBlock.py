@@ -568,6 +568,5 @@ class FileBlock(BaseEditorTab):
                 self.controller.dbhandler.updateRecord('input_files', ['_id'], [setupFields[0]],
                                        setupFields[1:],
                                        setupValues[1:])
-            #self.saveTables()
-            # on leave save the xml files
-            self.controller.setupHandler.makeSetup()
+
+

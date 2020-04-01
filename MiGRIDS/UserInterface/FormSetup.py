@@ -569,16 +569,19 @@ class FormSetup(BaseForm):
     # close event is triggered when the form is closed
     #called by FormContainer
     def closeEvent(self, event):
-        #save xmls
-        if 'projectFolder' in self.__dict__.keys():
-            #self.sendSetupInputToModel()
-            # on close save the xml files
-            self.controller.setupHandler.makeSetup() #The setup form always contains information for set0
-            self.controller.dbhandler.closeDatabase()
-        #close the fileblocks
-        for i in range(self.tabs.count()):
-            page = self.tabs.widget(i)
-            page.close()
+        if self.controller.projectFolder != None:
+            # close the fileblocks
+            #make sure database is up to date with fileblock data
+            for i in range(self.tabs.count()):
+                page = self.tabs.widget(i)
+                page.close()
+            #make sure database is up to date with component table data
+            self.ComponentTable.model().submit()
+            #Write the setup file - don't overwrite descriptors
+            self.controller.setupHandler.makeSetup(self.controller.project, self.controller.setupFolder) #The setup form always contains information for set0
+            #self.controller.dbhandler.closeDatabase()
+
+
     def newTab(self,i=0):
         # get the set count
         tab_count = self.tabs.count() +1
