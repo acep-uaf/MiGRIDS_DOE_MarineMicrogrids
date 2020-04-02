@@ -38,7 +38,7 @@ class Simulation:
             print(type(stitched))
             for idx, c in enumerate(zip(*stitched)):  # for each object
                 writeNCFile(dim, c, 1, 0, self.getStandardUnit(var),
-                            self.ncOutFileName(str(SO.getId(var, idx)) + str(var.replace('List', ''))))
+                            self.ncOutFileName(str(SO.getId(var, idx)) + str(var.replace('List', '')),runNum))
             stitched = None
 
         def stitchAndWrite(prefix):
@@ -47,7 +47,7 @@ class Simulation:
             print(type(stitched))
             # scale is always 1, offset is always 0
             writeNCFile(SO.DM.realTime, stitched, 1, 0, self.getStandardUnit(prefix),
-                        self.ncOutFileName(prefix.replace('wf', 'wtg')))
+                        self.ncOutFileName(prefix.replace('wf', 'wtg'),runNum))
             stitched = None
             return
 
