@@ -483,6 +483,19 @@ class SystemOperations:
         # Last step in the regular for-loop [this is reset if the data is being saved - see below]
         self.idx = self.idx + 1
 
+    def getId(self,var,idx):
+        '''gets the id to use in writing a TSVar netcdf file
+        :param: var is a string name of the file to write
+        :idx is a integer index assocaited with the simulation count'''
+        if var == 'gen':
+            return self.PH.genIDS[idx]
+        elif (var== 'ees') | (var == 'eess'):
+            return self.EESS.eesIDs[idx]
+        elif var == 'wtg':
+            return self.WF.wtgIDS[idx]
+        elif var == 'futureWind':
+            return self.WF.wtgIDS[idx]
+
 class TSVar:
     '''
     Class for holding timeseries variables and the name of the variable

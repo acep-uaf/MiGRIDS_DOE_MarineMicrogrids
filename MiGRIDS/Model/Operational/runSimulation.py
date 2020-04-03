@@ -37,9 +37,12 @@ class Simulation:
             # print(len(stitched))
             # print(type(stitched))
             for idx, c in enumerate(zip(*stitched)):  # for each object
+                varType = var.replace(''.join(re.findall('[A-Z][^A-Z]*', var)), '')
+                if varType == 'eess':
+                    varType = 'ees'
                 writeNCFile(dim, c, 1, 0, self.getStandardUnit(var),
-                            self.ncOutFileName(str(SO.getId(var, idx)) + str(var.replace('List', '')),runNum))
-            stitched = None
+                            self.ncOutFileName(varType + str(SO.getId(varType, idx)) + (''.join(re.findall('[A-Z][^A-Z]*', var)).replace('List', '')),runNum))
+            return
 
         def stitchAndWrite(prefix):
             stitched = SO.stitchVariable(prefix)
