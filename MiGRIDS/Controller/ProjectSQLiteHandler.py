@@ -429,6 +429,12 @@ class ProjectSQLiteHandler:
             return None
 
         return setDict
+    def encloseSpaces(thisString):
+        if isinstance(thisString,str):
+            if ' ' in thisString:
+                return "'%s'" % thisString
+        return thisString
+
     def getSetUpInfo(self):
         '''
         Creates a dictionary of setup information, default is set 0 which is the base case
@@ -463,31 +469,31 @@ class ProjectSQLiteHandler:
             # " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
             # #These are the input file specific info - should be none if data not entered
             values = self.cursor.execute(
-            "select group_concat(COALESCE(inputfiledirvalue,'None'),' '), group_concat(COALESCE(inputfiletypevalue,'None'),' '),group_concat(componentnamevalue,' '),"
-            "group_concat(headernamevalue,' '),group_concat(componentattributevalue, ' '), group_concat(componentattributeunit, ' '),group_concat(COALESCE(datechannelvalue,'None'), ' '),group_concat(COALESCE(timechannelvalue,'None'),' '),"
-            "group_concat(COALESCE(datechannelformat,'None'), ' '),group_concat(COALESCE(timechannelformat,'None'), ' '), "
-            "group_concat(COALESCE(timezonevalue,'None'), ' '), group_concat(COALESCE(usedstvalue,'None'), ' '), group_concat(COALESCE(inpututcoffsetvalue,'None'), ' '), group_concat(COALESCE(flexibleyearvalue,'None'), ' ') "
+            "select group_concat(COALESCE(inputfiledirvalue,'None'),';'), group_concat(COALESCE(inputfiletypevalue,'None'),';'),group_concat(componentnamevalue,';'),"
+            "group_concat(headernamevalue,';'),group_concat(componentattributevalue, ';'), group_concat(componentattributeunit, ';'),group_concat(COALESCE(datechannelvalue,'None'), ';'),group_concat(COALESCE(timechannelvalue,'None'),';'),"
+            "group_concat(COALESCE(datechannelformat,'None'), ';'),group_concat(COALESCE(timechannelformat,'None'), ';'), "
+            "group_concat(COALESCE(timezonevalue,'None'), ';'), group_concat(COALESCE(usedstvalue,'None'), ';'), group_concat(COALESCE(inpututcoffsetvalue,'None'), ';'), group_concat(COALESCE(flexibleyearvalue,'None'), ';') "
             "from input_files Left JOIN "
             "(select component._id as component_id, inputfile_id, COALESCE(componentnamevalue,'None') as componentnamevalue, COALESCE(headernamevalue,'None') as headernamevalue, COALESCE(componentattributevalue,'None') as componentattributevalue, COALESCE(componentattributeunit,'None') as componentattributeunit from component_files "
             "LEFT JOIN component on component._id = component_files.component_id ORDER BY component_id ) as components"
             " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
-
+            #values are ';' seperated at this point and need to be parsed to xml format
             if values is not None:
-                setDict[FILEDIR] = values[0]
-                setDict[FILETYPE] = values[1]
-                setDict['componentChannels.' + COMPONENTNAME]= values[2]
-                setDict['componentChannels.' + HEADERNAME] = values[3]
-                setDict['componentChannels.' + COMPONENTATTRIBUTE] = values[4]
-                setDict['componentChannels.' + COMPONENTATTRIBUTEUNIT] = values[5]
-                setDict[DATECHANNEL]=values[6]
-                setDict[DATECHANNELFORMAT] = values[8]
-                setDict[TIMECHANNEL] = values[7]
-                setDict[TIMECHANNELFORMAT] = values[9]
-                setDict[TIMEZONE] =  values[10]
-                setDict[DST] = values[11]
+                setDict[FILEDIR] = stringToXML(values[0].split(';'))
+                setDict[FILETYPE] = stringToXML(values[1].split(';'))
+                setDict['componentChannels.' + COMPONENTNAME]= stringToXML(values[2].split(';'))
+                setDict['componentChannels.' + HEADERNAME] = stringToXML(values[3].split(';'))
+                setDict['componentChannels.' + COMPONENTATTRIBUTE] = stringToXML(values[4].split(';'))
+                setDict['componentChannels.' + COMPONENTATTRIBUTEUNIT] = stringToXML(values[5].split(';'))
+                setDict[DATECHANNEL]=stringToXML(values[6].split(';'))
+                setDict[DATECHANNELFORMAT] = stringToXML(values[8].split(';'))
+                setDict[TIMECHANNEL] = stringToXML(values[7].split(';'))
+                setDict[TIMECHANNELFORMAT] = stringToXML(values[9].split(';'))
+                setDict[TIMEZONE] =  stringToXML(values[10].split(';'))
+                setDict[DST] = stringToXML(values[11].split(';'))
                 setDict[UTCUNIT]  ='hr'
-                setDict[UTCOFFSET]=values[12]
-                setDict[FLEXIBLEYEAR]=values[13]
+                setDict[UTCOFFSET]=stringToXML(values[12].split(';'))
+                setDict[FLEXIBLEYEAR]=stringToXML(values[13].split(';'))
 
         else:
             return None

@@ -9,8 +9,7 @@ def stringToXML(myString, i = 0):
                 return "'%s'" % thisString
         return thisString
 
-
-    # If myString is a list alter all strings in the list
+        # If myString is a list alter all strings in the list
     if isinstance(myString, list):
         if i == len(myString):
             return " ".join(myString)

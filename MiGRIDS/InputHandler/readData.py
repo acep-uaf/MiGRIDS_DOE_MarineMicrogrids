@@ -1,6 +1,7 @@
 # Projet: MiGRIDS
 # Created by: # Created on: 12/19/2019
 # Purpose :  readData
+import shlex
 
 import pandas as pd
 import os
@@ -41,7 +42,10 @@ def readInputData_mp(inputDict, **kwargs):
 
     completeDFList = []
     completeComponentList = []
-    for position, directory in enumerate(inputDict[FILEDIR].split(' ')): #lists are space delimited
+    v = shlex.shlex(inputDict[FILEDIR])
+    v.whitespace_split = True
+
+    for position, directory in enumerate(list(v)): #lists are space delimited
         print("Reading files from: ",directory)
         dirDict = singleLocation(inputDict, position) #all values are as lists
 
@@ -137,16 +141,19 @@ def singleLocation(dict, position):
         if isinstance(val,list):
             singleValueDict[key] = val
         else:
+            v = shlex.shlex(str(val))
+            v.whitespace_split = True
+            val = list(v)
             if 'componentChannels' in key: #only component attributes can have a list of values
                 try:
-                    singleValueDict[key]=[str(val).split(' ')[position]]
+                    singleValueDict[key]=[val[position]]
                 except IndexError:
-                    singleValueDict[key] =[str(val).split(' ')[0]]
+                    singleValueDict[key] =[val[0]]
             else:
                 try:
-                    singleValueDict[key] = str(val).split(' ')[position]
+                    singleValueDict[key] = val[position]
                 except IndexError:
-                    singleValueDict[key] = str(val).split(' ')[0] #not a list
+                    singleValueDict[key] = val[0] #not a list
 
 
     return singleValueDict

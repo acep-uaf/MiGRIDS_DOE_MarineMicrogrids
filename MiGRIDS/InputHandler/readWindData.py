@@ -30,11 +30,11 @@ def readAsHeader(file, header_dict, componentName,inputDict):
     :return [Dictionary] of header information for the file.
     '''
     inline = file.readline().split('\t')
-    inline = [re.sub(r"\s+", '_', x.strip()) for x in inline] # strip whitespaces at ends and replaces spaces with underscores
+    inline = [x.strip() for x in inline] # strip whitespaces at ends and replaces spaces with underscores
 
     #assumes 'Date & Time Stamp' is the first column name where the dataframe starts.
     #we return the dictionary of header information
-    if inline[0] == inputDict['dateChannel.value']:
+    if inline[0] == inputDict['dateChannel.value'].strip('\''):
 
         names = inline
         return header_dict, names
@@ -113,7 +113,7 @@ def scaleData(fileData, headerDict):
 
 def readIndividualWindFile(inputDict):
 
-    DATETIME = inputDict['dateChannel.value']
+    DATETIME = inputDict['dateChannel.value'].strip('\'')
     with open(os.path.join(inputDict['inputFileDir.value'],inputDict['fileName.value']), 'r', errors='ignore') as file:
         # read the header information of each file
 

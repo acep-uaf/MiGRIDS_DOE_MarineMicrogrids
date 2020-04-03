@@ -34,8 +34,8 @@ class Simulation:
     def runIndividualSimulation(self,runNum):
         def stitchLoopWrite(var, dim):
             stitched = SO.stitchVariable(var)
-            print(len(stitched))
-            print(type(stitched))
+            # print(len(stitched))
+            # print(type(stitched))
             for idx, c in enumerate(zip(*stitched)):  # for each object
                 writeNCFile(dim, c, 1, 0, self.getStandardUnit(var),
                             self.ncOutFileName(str(SO.getId(var, idx)) + str(var.replace('List', '')),runNum))
@@ -43,8 +43,8 @@ class Simulation:
 
         def stitchAndWrite(prefix):
             stitched = SO.stitchVariable(prefix)
-            print(len(stitched))
-            print(type(stitched))
+            # print(len(stitched))
+            # print(type(stitched))
             # scale is always 1, offset is always 0
             writeNCFile(SO.DM.realTime, stitched, 1, 0, self.getStandardUnit(prefix),
                         self.ncOutFileName(prefix.replace('wf', 'wtg'),runNum))
