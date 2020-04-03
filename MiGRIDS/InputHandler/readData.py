@@ -153,7 +153,10 @@ def singleLocation(dict, position):
                 try:
                     singleValueDict[key] = val[position]
                 except IndexError:
-                    singleValueDict[key] = val[0] #not a list
+                    if len(val) >0:
+                        singleValueDict[key] = val[0]
+                    else:
+                        singleValueDict[key] = ''
 
 
     return singleValueDict

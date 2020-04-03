@@ -68,7 +68,8 @@ class Controller:
         elif validatorType == ValidatorTypes.NetCDFList:
            self.netcdfsValid =self.validator.validate(ValidatorTypes.NetCDFList, input)
         elif validatorType == ValidatorTypes.DataObject:
-            self.inputData = self.validator.validate(ValidatorTypes.DataObject, input)
+            self.dataObjectValid = self.validator.validate(ValidatorTypes.DataObject, input)
+
         self.sender.callStatusChanged() #this notifies the other forms after control attributes have been set
 
     def newProject(self):
@@ -139,8 +140,9 @@ class Controller:
         return
     def loadedProject(self):
         self.createDatabaseConnection()
-        if not self.validator.validate(ValidatorTypes.DataObject,self.inputData): #this will set dataobjectvalid to its current state
-            self.showAlert("Could not create a valid data object.")
+        self.validate(ValidatorTypes.DataObject,input=self.inputData)
+        if not self.dataObjectValid:#this will set dataobjectvalid to its current state
+            print("Could not create a valid data object.")
 
     def createInputData(self):
         self.dbhandler.closeDatabase()
@@ -163,7 +165,8 @@ class Controller:
     def gotData(self,data):
         self.inputData = data
 
-    #@QtCore.pyqtSlot()
+
+            #@QtCore.pyqtSlot()
     def gotComponents(self,loc):
         self.components = loc
 
