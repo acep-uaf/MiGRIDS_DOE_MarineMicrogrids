@@ -143,7 +143,7 @@ class Simulation:
 
         stitchLoopList = ['futureWindList', 'wtgP', 'wtgPAvail', 'eesPLoss', 'eessSoc', 'eessSrc', 'genRunTime',
                           'genStartTime', 'genFuelCons', 'genP']
-        [stitchLoopWrite(SO.DM.realTime, v) for v in stitchLoopList]
+        [stitchLoopWrite(v,SO.DM.realTime) for v in stitchLoopList]
 
 
 
