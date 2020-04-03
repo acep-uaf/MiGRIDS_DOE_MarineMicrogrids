@@ -447,16 +447,16 @@ class SystemOperations:
             # covering with SRC
             eesSchedDischAvail = 0  # the amount of discharge available from all ees units for specified amount of time
             # iterate through all ees and add their available discharge
-            for index, ees in enumerate(self.EESS.electricalEnergyStorageUnits):
+            #for index, ees in enumerate(self.EESS.electricalEnergyStorageUnits):
                 # if generators running online, only schedule the ESS to be able to discharge if over the min SOC
                 # the problem is that this will not
-                if ees.eesSOC > ees.eesDispatchMinSoc:
-                    # find the loss associated with the spinning reserve
-                    eesLoss = ees.findLoss(eesSrcScheduledSwitch[index], ees.eesSrcTime)
-                    # calculate the available discharge, taking into account the amount reserved to supply SRC and the
-                    # energy capacity required taking into account losses
-                    eesSchedDischAvail += ees.findPdisAvail(ees.eesDispatchTime, eesSrcScheduledSwitch[index],
-                                                            eesLoss + ees.eesSrcTime * eesSrcScheduledSwitch[index])
+                # if ees.eesSOC > ees.eesDispatchMinSoc:
+                #     # find the loss associated with the spinning reserve
+                #     eesLoss = ees.findLoss(eesSrcScheduledSwitch[index], ees.eesSrcTime)
+                #     # calculate the available discharge, taking into account the amount reserved to supply SRC and the
+                #     # energy capacity required taking into account losses
+                #     eesSchedDischAvail += ees.findPdisAvail(ees.eesDispatchTime, eesSrcScheduledSwitch[index],
+                #                                             eesLoss + ees.eesSrcTime * eesSrcScheduledSwitch[index])
 
             # schedule the generators accordingly
             self.PH.runGenSchedule(self.futureLoad, sumFutureWind, futureSRC[1] - coveredSRCSwitch,

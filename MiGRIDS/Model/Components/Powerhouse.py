@@ -79,7 +79,7 @@ class Powerhouse:
             #TODO commented out because tag not in descriptor xml
             #self.genQMax = self.genQMax + self.generators[idx].genQMax
             self.genP += [self.generators[idx].genP]
-            self.genQ += [self.generators[idx].genQ]
+            #self.genQ += [self.generators[idx].genQ]
             self.genPAvail += [self.generators[idx].genPAvail]
             # TODO commented out because tag not in descriptor xml
             #self.genQAvail += [self.generators[idx].genQAvail]
@@ -233,7 +233,7 @@ class Powerhouse:
             self.outOfEfficientBounds[idx] = self.generators[idx].outOfEfficientBounds
             # get available power and minimum loading from each
             self.genPAvail[idx] = self.generators[idx].genPAvail
-            self.genQAvail[idx] = self.generators[idx].genQAvail
+            #self.genQAvail[idx] = self.generators[idx].genQAvail
             self.genMolAvail[idx] = self.generators[idx].genMolAvail
             self.genMelAvail[idx] = self.generators[idx].genMelAvail
             # get the fuel consumption

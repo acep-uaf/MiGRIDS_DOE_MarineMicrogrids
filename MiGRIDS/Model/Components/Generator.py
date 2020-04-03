@@ -210,7 +210,7 @@ class Generator:
             self.genRunTimeTot += self.timeStep # increment run time since beginning of sim
             # update available power
             self.genPAvail = self.genPMax
-            self.genQAvail = self.genQMax
+            #self.genQAvail = self.genQMax
             self.genMolAvail = self.genMol  # the lowest loading it can run at
             self.genMelAvail = self.genMel
 
@@ -223,7 +223,7 @@ class Generator:
             self.genStartTimeAct += self.timeStep # the time it has been starting up for
             # update available power
             self.genPAvail = 0
-            self.genQAvail = 0
+            #self.genQAvail = 0
             self.genMolAvail = 0  # the lowest loading it can run at
             self.genMelAvail = 0
 
@@ -246,7 +246,7 @@ class Generator:
             self.genStartTimeAct = 0 # if not starting reset to zero
             # update available power
             self.genPAvail = 0
-            self.genQAvail = 0
+            #self.genQAvail = 0
             self.genMolAvail = 0  # the lowest loading it can run at
             self.genMelAvail = 0
             self.genFuelCons = 0
@@ -269,13 +269,13 @@ class Generator:
         """
         if self.genState == 2: # if running online
             self.genPAvail = self.genPMax
-            self.genQAvail = self.genQMax
+            #self.genQAvail = self.genQMax
             self.genMolAvail = self.genMol  # the lowest loading it can run at
             self.genMelAvail = self.genMel
 
         else:  # if not running online
             self.genPAvail = 0
-            self.genQAvail = 0
+            #self.genQAvail = 0
             self.genMolAvail = 0  # the lowest loading it can run at
             self.genMelAvail = 0
 

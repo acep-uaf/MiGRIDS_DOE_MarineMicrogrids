@@ -117,8 +117,8 @@ class ElectricalEnergyStorageSystem:
             self.eesPsrcAvail[idx] = ees.eesPsrcAvail
             self.eesPinAvail[idx] = ees.eesPinAvail
             self.eesPoutAvail[idx] = ees.eesPoutAvail
-            self.eesQinAvail[idx] = ees.eesQinAvail
-            self.eesQoutAvail[idx] = ees.eesQoutAvail
+            #self.eesQinAvail[idx] = ees.eesQinAvail
+            #self.eesQoutAvail[idx] = ees.eesQoutAvail
             self.eesPloss[idx] = ees.eesPloss
             self.underSRC[idx] = ees.underSRC
             self.outOfBoundsReal[idx] = ees.outOfBoundsReal

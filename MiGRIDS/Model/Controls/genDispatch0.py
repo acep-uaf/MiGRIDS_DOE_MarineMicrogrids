@@ -22,10 +22,10 @@ class genDispatch:
         if sumGenPAvail == 0:
             for idx in range(len(ph.genIDS)):
                 ph.generators[idx].genP = newGenP / len(ph.genIDS)
-                ph.generators[idx].genQ = newGenQ / len(ph.genIDS)
+                #ph.generators[idx].genQ = newGenQ / len(ph.genIDS)
                 # update the local variable that keeps track of generator power
                 ph.genP[idx] = ph.generators[idx].genP
-                ph.genQ[idx] = ph.generators[idx].genQ
+                #ph.genQ[idx] = ph.generators[idx].genQ
         else:
             loadingP = newGenP / max(sumGenPAvail,
                                      1)  # this is the PU loading of each generator. max with 1 for 0 capacity instance
@@ -33,7 +33,7 @@ class genDispatch:
             # cycle through each gen and update with new P and Q
             for idx in range(len(ph.genIDS)):
                 ph.generators[idx].genP = loadingP * ph.generators[idx].genPAvail
-                ph.generators[idx].genQ = loadingQ * ph.generators[idx].genQAvail
+                #ph.generators[idx].genQ = loadingQ * ph.generators[idx].genQAvail
                 # update the local variable that keeps track of generator power
                 ph.genP[idx] = ph.generators[idx].genP
-                ph.genQ[idx] = ph.generators[idx].genQ
+                #ph.genQ[idx] = ph.generators[idx].genQ
