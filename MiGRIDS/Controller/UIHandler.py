@@ -114,7 +114,8 @@ class UIHandler():
         #setRecord component value needs to have commas removed
         setRecord['componentNames.value'] = " ".join(setRecord['componentNames.value'].split(","))
         for k in setRecord.keys():
-            setupSoup = self.updateSoup(setupSoup,k,setRecord[k])
+            if (setRecord[k] != None) & (setRecord[k] != 'None'): #don't update anything to None
+                setupSoup = self.updateSoup(setupSoup,k,setRecord[k])
 
         self.writeSetup(setupSoup,setName)
     def updateSoup(self,soup,tag,value):
