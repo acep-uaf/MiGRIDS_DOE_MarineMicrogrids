@@ -248,7 +248,7 @@ class RunHandler(UIHandler):
                 self.sender.update(1/runCount,"Running simulation " + str(runNum))
                 self.dbhandler.updateRunToStarted('Set' + str(currentSet), runNum)
                 Sim.runIndividualSimulation(runNum)
-                self.dbhandler.updateRunToFinished('Set' + str(self.setNum), runNum)
+                self.dbhandler.updateRunToFinished('Set' + str(currentSet), runNum)
         self.sender.update(9,"Extracting run results")
         fillRunMetaData(setDir, []) #get metadata for all the runs
         self.sender.update(10, "complete")
