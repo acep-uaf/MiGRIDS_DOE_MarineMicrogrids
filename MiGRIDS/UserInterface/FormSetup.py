@@ -83,6 +83,8 @@ class FormSetup(BaseForm):
             self.ComponentTable.hideColumn(0)
             self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
             #self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+            self.ComponentTable.model().beforeUpdate.connect(self.controller.validateInput)
+            self.ComponentTable.model().beforeUpdate.connect(self.controller.validateInput)
             tableGroup.addWidget(self.ComponentTable, 1)
             tableHandler = TableHandler(self)
             try:

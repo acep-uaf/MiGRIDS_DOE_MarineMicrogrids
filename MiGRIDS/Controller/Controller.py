@@ -55,11 +55,16 @@ class Controller:
         self.projectFolder = None # Path to the project folder
         self.sets=[] # list of set folders
 
+    def validateInput(self):
+        #TODO change to actualy check input
+        self.validate(ValidatorTypes.InputData,None)
 
     def validate(self,validatorType,input=None):
         '''calls the validator to validate a specific type of input'''
         if validatorType == ValidatorTypes.SetupXML:
            self.setupValid = self.validator.validate(validatorType, input)
+        elif validatorType==validatorType.InputData:
+            self.inputDataValid = self.validator.validate(ValidatorTypes.InputData,input)
         elif validatorType == ValidatorTypes.NetCDFList:
            self.netcdfsValid =self.validator.validate(ValidatorTypes.NetCDFList, input)
         elif validatorType == ValidatorTypes.DataObject:

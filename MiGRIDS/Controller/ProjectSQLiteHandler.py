@@ -479,21 +479,21 @@ class ProjectSQLiteHandler:
             " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
             #values are ';' seperated at this point and need to be parsed to xml format
             if values is not None:
-                setDict[FILEDIR] = stringToXML(values[0].split(';'))
-                setDict[FILETYPE] = stringToXML(values[1].split(';'))
-                setDict['componentChannels.' + COMPONENTNAME]= stringToXML(values[2].split(';'))
-                setDict['componentChannels.' + HEADERNAME] = stringToXML(values[3].split(';'))
-                setDict['componentChannels.' + COMPONENTATTRIBUTE] = stringToXML(values[4].split(';'))
-                setDict['componentChannels.' + COMPONENTATTRIBUTEUNIT] = stringToXML(values[5].split(';'))
-                setDict[DATECHANNEL]=stringToXML(values[6].split(';'))
-                setDict[DATECHANNELFORMAT] = stringToXML(values[8].split(';'))
-                setDict[TIMECHANNEL] = stringToXML(values[7].split(';'))
-                setDict[TIMECHANNELFORMAT] = stringToXML(values[9].split(';'))
-                setDict[TIMEZONE] =  stringToXML(values[10].split(';'))
-                setDict[DST] = stringToXML(values[11].split(';'))
+                setDict[FILEDIR] = stringToXML(str(values[0]).split(';'))
+                setDict[FILETYPE] = stringToXML(str(values[1]).split(';'))
+                setDict['componentChannels.' + COMPONENTNAME]= stringToXML(str(values[2]).split(';'))
+                setDict['componentChannels.' + HEADERNAME] = stringToXML(str(values[3]).split(';'))
+                setDict['componentChannels.' + COMPONENTATTRIBUTE] = stringToXML(str(values[4]).split(';'))
+                setDict['componentChannels.' + COMPONENTATTRIBUTEUNIT] = stringToXML(str(values[5]).split(';'))
+                setDict[DATECHANNEL]=stringToXML(str(values[6]).split(';'))
+                setDict[DATECHANNELFORMAT] = stringToXML(str(values[8]).split(';'))
+                setDict[TIMECHANNEL] = stringToXML(str(values[7]).split(';'))
+                setDict[TIMECHANNELFORMAT] = stringToXML(str(values[9]).split(';'))
+                setDict[TIMEZONE] =  stringToXML(str(values[10]).split(';'))
+                setDict[DST] = stringToXML(str(values[11]).split(';'))
                 setDict[UTCUNIT]  ='hr'
-                setDict[UTCOFFSET]=stringToXML(values[12].split(';'))
-                setDict[FLEXIBLEYEAR]=stringToXML(values[13].split(';'))
+                setDict[UTCOFFSET]=stringToXML(str(values[12]).split(';'))
+                setDict[FLEXIBLEYEAR]=stringToXML(str(values[13]).split(';'))
 
         else:
             return None
