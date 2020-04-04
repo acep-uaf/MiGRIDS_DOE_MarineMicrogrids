@@ -408,10 +408,10 @@ class FormSetup(BaseForm):
         wiztree = QtWidgets.QWizard(self)
         wiztree.setWizardStyle(QtWidgets.QWizard.ModernStyle)
         wiztree.setWindowTitle("Setup")
-        wiztree.addPage(WizardPage(dlist[3],self))  #project name
-        wiztree.addPage(TextWithDropDown(dlist[2],self)) #timesteps
-        wiztree.addPage(ComponentSelect(dlist[1],self))  #components
-        wiztree.addPage(TwoDatesDialog(dlist[0],self))  #runtimesteps
+        wiztree.addPage(WizardPage(dlist[3],self.controller.dbhandler,self))  #project name
+        wiztree.addPage(TextWithDropDown(dlist[2],self.controller.dbhandler,self)) #timesteps
+        wiztree.addPage(ComponentSelect(dlist[1],self.controller.dbhandler,self))  #components
+        wiztree.addPage(TwoDatesDialog(dlist[0],self.controller.dbhandler,self))  #runtimesteps
         btn = wiztree.button(QtWidgets.QWizard.FinishButton)
         btn.clicked.disconnect()
         #disconnect(btn,SIGNAL(clicked()),self, SLOT(accept()))

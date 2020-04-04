@@ -4,15 +4,12 @@
 #classes used for displaying wizard inputs
 from PyQt5 import QtWidgets,QtGui,QtCore
 
-from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
-
-
 class WizardPage(QtWidgets.QWizardPage):
-    def __init__(self, inputdict,parent,**kwargs):
+    def __init__(self, inputdict, dbhandler, parent,**kwargs):
         super().__init__(parent)
         self.first = kwargs.get('first')
         self.last = kwargs.get('last')
-        self.dbhandler = ProjectSQLiteHandler()
+        self.dbhandler = dbhandler
         self.initUI(inputdict)
 
 
@@ -54,16 +51,16 @@ class WizardPage(QtWidgets.QWizardPage):
 
 
 class ComponentSelect(WizardPage):
-    def __init__(self,d,parent):
-        super().__init__(d,parent)
+    def __init__(self,d,parent,dbhandler):
+        super().__init__(d,parent,dbhandler)
         self.d = d
 
     def setInput(self):
         grp = QtWidgets.QGroupBox()
         layout = QtWidgets.QGridLayout()
 
-        handler = ProjectSQLiteHandler()
-        lot = handler.getCurrentComponentTypeCount() #all possible component types, tuples with three values type code, description, count
+
+        lot = self.dbhandler.getCurrentComponentTypeCount() #all possible component types, tuples with three values type code, description, count
 
         for i,t in enumerate(lot):
             label = QtWidgets.QLabel()
@@ -79,12 +76,12 @@ class ComponentSelect(WizardPage):
         return grp
 
 class TwoDatesDialog(WizardPage):
-    def __init__(self,d,parent):
-        super().__init__(d,parent)
+    def __init__(self,d,parent,dbhandler):
+        super().__init__(d,parent,dbhandler)
         self.d = d
 
     def setInput(self):
-        handler = ProjectSQLiteHandler()
+
         grp = QtWidgets.QGroupBox()
         box = QtWidgets.QHBoxLayout()
         self.startDate = QtWidgets.QDateEdit()
@@ -102,9 +99,9 @@ class TwoDatesDialog(WizardPage):
         self.registerField('edate',self.endDate,"text")
         try:
             #if the setup info has already been set dates will be in the database table set
-            print(handler.getFieldValue('setup', 'date_start', '_id',1))
-            self.startDate.setDate(QtCore.QDate.fromString(handler.getFieldValue('setup', 'date_start', '_id', 1),"yyyy-MM-dd"))
-            self.endDate.setDate(QtCore.QDate.fromString(handler.getFieldValue('setup', 'date_end',  '_id', 1),"yyyy-MM-dd"))
+            print(self.dbhandler.getFieldValue('setup', 'date_start', '_id',1))
+            self.startDate.setDate(QtCore.QDate.fromString(self.dbhandler.getFieldValue('setup', 'date_start', '_id', 1),"yyyy-MM-dd"))
+            self.endDate.setDate(QtCore.QDate.fromString(self.dbhandler.getFieldValue('setup', 'date_end',  '_id', 1),"yyyy-MM-dd"))
         except AttributeError as a:
             print(a)
         except TypeError as a:
@@ -117,8 +114,8 @@ class TwoDatesDialog(WizardPage):
         return " - ".join([self.startDate.text(),self.endDate.text()])
 
 class DropDown(WizardPage):
-    def __init__(self,d,parent):
-        super().__init__(d,parent)
+    def __init__(self,d,parent,dbhandler):
+        super().__init__(d,parent,dbhandler)
 
     def setInput(self):
         self.input = QtWidgets.QComboBox()
@@ -136,15 +133,14 @@ class DropDown(WizardPage):
         return item
 
 class TextWithDropDown(WizardPage):
-    def __init__(self, d,parent):
-        super().__init__(d,parent)
+    def __init__(self, d,parent,dbhandler):
+        super().__init__(d,parent,dbhandler)
         self.d = d
 
     def setInput(self):
         grp = QtWidgets.QGroupBox()
         box = QtWidgets.QHBoxLayout()
         self.combo = QtWidgets.QComboBox()
-        handler = ProjectSQLiteHandler()
         self.combo.addItems(self.getItems())
         self.textInput = QtWidgets.QLineEdit()
         self.textInput.setValidator(QtGui.QIntValidator())
@@ -156,8 +152,8 @@ class TextWithDropDown(WizardPage):
         self.registerField('timestepunit',self.combo,"currentText")
         try:
             #if the setup info has already been set dates will be in the database table set
-            self.textInput.setText(handler.getFieldValue('setup', 'timestepvalue', '_id', 1))
-            self.combo.setCurrentText(handler.getFieldValue('setup', 'timestepunit', '_id', 1))
+            self.textInput.setText(self.dbhandler.getFieldValue('setup', 'timestepvalue', '_id', 1))
+            self.combo.setCurrentText(self.dbhandler.getFieldValue('setup', 'timestepunit', '_id', 1))
         except AttributeError as a:
             print(a)
         return grp
@@ -168,9 +164,9 @@ class TextWithDropDown(WizardPage):
         strInput = ' '.join([input,item])
         return strInput
     def getItems(self):
-        dbhandler = ProjectSQLiteHandler()
-        items = dbhandler.getCodes(self.d['reftable'])
-        dbhandler.closeDatabase()
+
+        items = self.dbhandler.getCodes(self.d['reftable'])
+
         return items
 
     def breakItems(self, str):

@@ -56,7 +56,7 @@ class SetTableView(customTableView):
 
               # the current selected component, and the folder with component xmls are passed used to generate tag list
              #the combo box that contains possible tags to edit
-            myBox.values = QtCore.QStringListModel(self.controller.setupHandler.getComponentAttributesAsList(compname, componentFolder))
+            myBox.items = QtCore.QStringListModel(self.controller.setupHandler.getComponentAttributesAsList(compname, componentFolder))
 
 class SetTableModel(QtSql.QSqlRelationalTableModel):
     def __init__(self, parent,position):
