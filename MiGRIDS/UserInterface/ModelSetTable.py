@@ -97,15 +97,15 @@ class SetTableModel(QtSql.QSqlRelationalTableModel):
             return self.header[section]
 
 
-    def submitTable(self):
-        for r in range(self.rowCount()):
-            if len(self.data(self.index(r,SetComponentFields.value.value)).split(',')) > 1:
-                lov = self.data(self.index(r,SetComponentFields.value.value)).split(',')
-            else:
-                lov = [self.data(self.index(r,SetComponentFields.value.value))]
-                t,a = splitAttribute(self.data(self.index(r,SetComponentFields.tag.value)))
-            self.controller.dbhandler.insertTagRecord(
-                (self.data(self.index(r,SetComponentFields.component_id.value)),
-                 t,a,
-                 lov),
-                self.data(self.index(r,SetComponentFields.set_id.value)))
+    # def submitTable(self):
+    #     for r in range(self.rowCount()):
+    #         if len(self.data(self.index(r,SetComponentFields.value.value)).split(',')) > 1:
+    #             lov = self.data(self.index(r,SetComponentFields.value.value)).split(',')
+    #         else:
+    #             lov = [self.data(self.index(r,SetComponentFields.value.value))]
+    #             t,a = splitAttribute(self.data(self.index(r,SetComponentFields.tag.value)))
+    #         self.controller.dbhandler.insertTagRecord(
+    #             (self.data(self.index(r,SetComponentFields.component_id.value)),
+    #              t,a,
+    #              lov),
+    #             self.data(self.index(r,SetComponentFields.set_id.value)))
