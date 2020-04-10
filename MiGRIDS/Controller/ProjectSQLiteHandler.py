@@ -1075,7 +1075,12 @@ class ProjectSQLiteHandler:
         componentFiles = [HEADERNAME, COMPONENTATTRIBUTEUNIT,
                                COMPONENTATTRIBUTE]  # plus file id and component id
         componentAttributes = [COMPONENTNAME]
-        files = {self.dbName(key): shlex.split(value) for key, value in setupDict.items() if
+        def splitValue(value):
+            v =shlex.shlex(value)
+            v.whitespace_split = True
+            return list(v)
+
+        files = {self.dbName(key): splitValue(value) for key, value in setupDict.items() if
                  key in fileAttributes}
 
         #sometimes setup files only contain the relative path to input files from the project directory
