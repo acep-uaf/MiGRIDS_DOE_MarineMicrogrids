@@ -42,7 +42,8 @@ class ComponentTableView(QtWidgets.QTableView):
         #combo columns
         self.setItemDelegateForColumn(ComponentFields.inputfile_id.value,ComboRelationDelegate(self,'input_files','_id','inputfiledirvalue','inputfiledirvalue'))
         self.setItemDelegateForColumn(ComponentFields.headernamevalue.value,ComboDelegate(self,QtCore.QStringListModel(fields),'headernamevalue'))
-        self.setItemDelegateForColumn(ComponentFields.component_id.value, RelationDelegate(self, 'componentnamevalue'))
+        self.setItemDelegateForColumn(ComponentFields.component_id.value, ComboRelationDelegate(self, 'component','_id','componentnamevalue','componentnamevalue'))
+
         self.setItemDelegateForColumn(ComponentFields.componenttype.value, RelationDelegate(self, 'componenttype'))
         self.setItemDelegateForColumn(ComponentFields.componentattributevalue.value, RelationDelegate(self, 'componentattributevalue'))
         self.setItemDelegateForColumn(ComponentFields.componentattributeunit.value, RelationDelegate(self, 'componentattributeunit'))
@@ -56,21 +57,35 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         #values to use as headers for component table
         self.header = ['ID','Directory','Field', 'Type', 'Component Name', 'Unit', 'Attribute','Scale',
                     'Offset','Customize','dummyfield','andanother']
+
+        self.makeModel()
+
+        return
+    def makeModel(self):
+        self.removeComboRelations()
         self.setTable('component_files')
-
-        #leftjoin so null values ok
-        self.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
-        #set the dropdowns
-
-        self.setRelation(ComponentFields.component_id.value,QtSql.QSqlRelation('component','_id','componentnamevalue'))
-        self.setRelation(ComponentFields.inputfile_id.value, QtSql.QSqlRelation('input_files','_id','inputfiledirvalue'))
-        self.setRelation(ComponentFields.componenttype.value,QtSql.QSqlRelation('ref_component_type','code','code'))
-        self.setRelation(ComponentFields.componentattributevalue.value, QtSql.QSqlRelation('ref_attributes','code','code'))
-        self.setRelation(ComponentFields.componentattributeunit.value, QtSql.QSqlRelation('ref_units', 'code', 'code'))
-        #database gets updated when fields are changed
-        self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
-
+        # set the dropdowns
+        self.createRelations()
+        # database gets updated when fields are changed
+        self.setEditStrategy(QtSql.QSqlTableModel.OnRowChange)
         self.select()
+
+    def createRelations(self):
+        # leftjoin so null values ok
+        self.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
+        self.setRelation(ComponentFields.component_id.value,
+                        QtSql.QSqlRelation('component', '_id', 'componentnamevalue'))
+        self.setRelation(ComponentFields.inputfile_id.value,
+                         QtSql.QSqlRelation('input_files', '_id', 'inputfiledirvalue'))
+        self.setRelation(ComponentFields.componenttype.value, QtSql.QSqlRelation('ref_component_type', 'code', 'code'))
+        self.setRelation(ComponentFields.componentattributevalue.value,
+                         QtSql.QSqlRelation('ref_attributes', 'code', 'code'))
+        self.setRelation(ComponentFields.componentattributeunit.value, QtSql.QSqlRelation('ref_units', 'code', 'code'))
+
+        return
+    def removeComboRelations(self):
+        self.setRelation(ComponentFields.inputfile_id.value,QtSql.QSqlRelation())
+        self.setRelation(ComponentFields.component_id.value, QtSql.QSqlRelation())
 
     def columnCount(self, parent=QtCore.QModelIndex()):
         """override the columnCount method to add an extra column"""
@@ -83,11 +98,10 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
 
     def setData(self, index,value,role):
 
-        if index.column() ==ComponentFields.inputfile_id.value:
-            self.setRelation(ComponentFields.inputfile_id.value,QtSql.QSqlRelation())
+        if (index.column() == ComponentFields.inputfile_id.value) | (index.column() == ComponentFields.component_id.value) :
+            self.removeComboRelations()
         success = super(ComponentTableModel, self).setData(index, value, role)
-        self.setRelation(ComponentFields.inputfile_id.value,
-                         QtSql.QSqlRelation('input_files', '_id', 'inputfiledirvalue'))
+        self.createRelations()
 
         return success
 

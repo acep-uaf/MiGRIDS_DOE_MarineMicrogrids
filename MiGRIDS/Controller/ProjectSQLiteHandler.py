@@ -469,14 +469,14 @@ class ProjectSQLiteHandler:
             # " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
             # #These are the input file specific info - should be none if data not entered
             values = self.cursor.execute(
-            "select group_concat(COALESCE(inputfiledirvalue,'None'),';'), group_concat(COALESCE(inputfiletypevalue,'None'),';'),group_concat(componentnamevalue,';'),"
-            "group_concat(headernamevalue,';'),group_concat(componentattributevalue, ';'), group_concat(componentattributeunit, ';'),group_concat(COALESCE(datechannelvalue,'None'), ';'),group_concat(COALESCE(timechannelvalue,'None'),';'),"
-            "group_concat(COALESCE(datechannelformat,'None'), ';'),group_concat(COALESCE(timechannelformat,'None'), ';'), "
-            "group_concat(COALESCE(timezonevalue,'None'), ';'), group_concat(COALESCE(usedstvalue,'None'), ';'), group_concat(COALESCE(inpututcoffsetvalue,'None'), ';'), group_concat(COALESCE(flexibleyearvalue,'None'), ';') "
-            "from input_files Left JOIN "
-            "(select component._id as component_id, inputfile_id, COALESCE(componentnamevalue,'None') as componentnamevalue, COALESCE(headernamevalue,'None') as headernamevalue, COALESCE(componentattributevalue,'None') as componentattributevalue, COALESCE(componentattributeunit,'None') as componentattributeunit from component_files "
-            "LEFT JOIN component on component._id = component_files.component_id ORDER BY component_id ) as components"
-            " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
+                "SELECT group_concat(COALESCE (NULLIF(inputfiledirvalue,''),'None'),';'), group_concat(COALESCE (NULLIF(inputfiletypevalue,''),'None'),';'),group_concat(componentnamevalue,';'),"
+                "group_concat(headernamevalue,';'),group_concat(componentattributevalue, ';'), group_concat(componentattributeunit, ';'),group_concat(COALESCE (NULLIF(datechannelvalue,''),'None'), ';'),group_concat(COALESCE (NULLIF(timechannelvalue,''),'None'),';'),"
+                "group_concat(COALESCE (NULLIF(datechannelformat,''),'None'), ';'),group_concat(COALESCE (NULLIF(timechannelformat,''),'None'), ';'), "
+                "group_concat(COALESCE (NULLIF(timezonevalue,''),'None'), ';'), group_concat(COALESCE (NULLIF(usedstvalue,''),'None'), ';'), group_concat(COALESCE (NULLIF(inpututcoffsetvalue,''),'None'), ';'), group_concat(COALESCE (NULLIF(flexibleyearvalue,''),'None'), ';') "
+                "FROM input_files LEFT JOIN "
+                "(SELECT component._id AS component_id, inputfile_id, COALESCE (NULLIF(componentnamevalue,''),'None') AS componentnamevalue, COALESCE (NULLIF(headernamevalue,''),'None') AS headernamevalue, COALESCE (NULLIF(componentattributevalue,''),'None') AS componentattributevalue, COALESCE (NULLIF(componentattributeunit,''),'None') AS componentattributeunit FROM component_files "
+                "LEFT JOIN component ON component._id = component_files.component_id ORDER BY component_id ) AS components"
+                " ON components.inputfile_id = input_files._id ORDER BY input_files._id").fetchone()
             #values are ';' seperated at this point and need to be parsed to xml format
             if values is not None:
                 setDict[FILEDIR] = stringToXML(str(values[0]).split(';'))

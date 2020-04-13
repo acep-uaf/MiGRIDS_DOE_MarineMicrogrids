@@ -6,8 +6,6 @@ from qtpy import QtCore
 
 import MiGRIDS
 from MiGRIDS.Controller.UIHandler import UIHandler
-from MiGRIDS.UserInterface.Delegates import ComboRelationDelegate
-
 
 class TableHandler():
 
@@ -23,6 +21,7 @@ class TableHandler():
         tableView = self.parent.findChild((QtWidgets.QTableView), table)
         model = tableView.model()
         model.submitAll()
+
 
         # insert an empty row as the last record
         model.insertRows(model.rowCount(), 1)
@@ -42,6 +41,8 @@ class TableHandler():
         result = model.submitAll()
         if result == False:
             print(model.lastError().text())
+
+        return
     # update the component drop down in the set table to include the selected or default components
     def updateComponentDelegate(self, loi,tv,cmbName):
         '''

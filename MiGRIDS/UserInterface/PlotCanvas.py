@@ -47,7 +47,10 @@ class PlotCanvas(FigureCanvas):
         [l.set_picker(10) for l in leg.get_lines()] #tolerance around legend items
         leg.get_frame().set_alpha(0.4)
         #refresh the plot
-        self.draw()
+        try:
+            self.draw()
+        except OverflowError:
+            print('could not update plot')
         return
 
     def onpick(self,event):

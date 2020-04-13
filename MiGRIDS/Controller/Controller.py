@@ -2,6 +2,7 @@
 # Created by: T.Morgan # Created on: 11/15/2019
 import os
 from PyQt5 import QtCore, QtGui
+from qtpy import QtWidgets
 
 from MiGRIDS.Controller.GenericSender import GenericSender
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
@@ -138,12 +139,28 @@ class Controller:
             print(e)
     def importData(self):
         return
-    def loadedProject(self):
+    def doNetCDFcreate(self):
+        if (not self.netcdfsValid) & (self.dataObjectValid):
+            # generate netcdf files if requested
+            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Time Series loaded",
+                                        "Do you want to generate netcdf files?.")
+            msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.No)
+            result = msg.exec()
+            # if yes create netcdf files, Otherwise this can be done after the data is reviewed.
+            return result
+        return QtWidgets.QMessageBox.No
+
+
+    def loadedProjectData(self):
         self.createDatabaseConnection()
         self.validate(ValidatorTypes.DataObject,input=self.inputData)
         if not self.dataObjectValid:#this will set dataobjectvalid to its current state
             print("Could not create a valid data object.")
-
+        else:
+            if self.doNetCDFcreate()== QtWidgets.QMessageBox.Ok:
+                self.generateNetcdf(self.inputData)
+            #tell the setup form to update dependent plot
+            self.sender.statusChanged.emit()
     def createInputData(self):
         self.dbhandler.closeDatabase()
         self.myThread = ThreadedDataCreate()
@@ -151,8 +168,8 @@ class Controller:
         self.myThread.signalAttributeUpdate.connect(self.updateAttribute)
         self.myThread.catchComponents.connect(self.gotComponents)
         self.myThread.catchData.connect(self.gotData)
-        #TODO update the gui to reflect input data was created
-        self.myThread.finished.connect(self.loadedProject)
+
+        self.myThread.finished.connect(self.loadedProjectData) #calls a status change event for controller
         self.myThread.start()
 
     #@QtCore.pyqtSlot()

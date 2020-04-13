@@ -67,6 +67,7 @@ class ComboRelationDelegate(QtWidgets.QItemDelegate):
         self.items.setQuery(
             "SELECT " + self.keyColumn + ", " + self.displayColumn + " FROM " + self.tableName + "  UNION SELECT -1, 'None' FROM " + self.tableName)
         self.items.query()
+        return
     def createEditor(self,parent, option, index):
         combo = QtWidgets.QComboBox(parent)
         combo.setObjectName(self.name)
