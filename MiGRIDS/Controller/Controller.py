@@ -125,6 +125,7 @@ class Controller:
         # filesCreated is a list of netcdf files that were generated
         self.netcdfs = self.setupHandler.createNetCDF(df, componentDict, self.setupFolder)
         self.validate(ValidatorTypes.NetCDFList,input=self.netcdfs)
+        self.validate(ValidatorTypes.NetCDFList,input=self.netcdfs)
     def switchProject(self,caller,saveTo):
         saveProject(saveTo)
         clearAppForms(caller)

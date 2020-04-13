@@ -43,6 +43,7 @@ class FormSetup(BaseForm):
     def initUI(self):
 
         self.controller.sender.statusChanged.connect(self.onControllerStateChange)
+
         self.setObjectName("setupDialog")
 
         #the main layout is oriented vertically
@@ -84,7 +85,7 @@ class FormSetup(BaseForm):
             self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
             #self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
             self.ComponentTable.model().beforeUpdate.connect(self.controller.validateInput)
-            self.ComponentTable.model().beforeUpdate.connect(self.controller.validateInput)
+            #self.ComponentTable.model().beforeUpdate.connect(self.controller.validateInput)
             tableGroup.addWidget(self.ComponentTable, 1)
             tableHandler = TableHandler(self)
             try:
@@ -276,6 +277,7 @@ class FormSetup(BaseForm):
         self.createInputButton.setEnabled(self.controller.inputDataValid)
         if self.controller.dataObjectValid:
             self.dataLoadedOutput.setText('Data Loaded')
+            self.updateFormProjectDataStatus()
         else:
             self.dataLoadedOutput.setText('')
         self.netCDFButton.setEnabled(self.controller.dataObjectValid)
@@ -369,6 +371,8 @@ class FormSetup(BaseForm):
             tab_count = len(self.controller.dbhandler.getAllRecords('input_files'))
             self.displayTabbedData(tab_count, 1) #update the form with loaded data
             self.updateFormProjectDataStatus()
+            self.updateComponentFiles()
+            self.updateComponentNameList()
 
             #boolean indicator of whether or not model sets have already been run
             #make the data blocks editable if there are no sets already created
@@ -455,6 +459,7 @@ class FormSetup(BaseForm):
 
             self.WizardTree.close()
             self.controller.newProject()
+            #self.ComponentTable.model().createRelations()
         return
     def createInputFiles(self):
         '''
@@ -480,23 +485,10 @@ class FormSetup(BaseForm):
     def updateFormProjectDataStatus(self):
         '''updates the setup form to reflect project data (DataClass object, Component info, netcdfs)status
         '''
-        self.refreshTable()
+        #self.refreshTable()
         try:
            # update the Model tab with set information
             self.updateDependents(self.controller.inputData) #make sure there is data here
-
-            if (not self.controller.netcdfsValid) & (self.controller.dataObjectValid):
-                # generate netcdf files if requested
-                msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Time Series loaded",
-                                        "Do you want to generate netcdf files?.")
-                msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.No)
-                result = msg.exec()
-                # if yes create netcdf files, Otherwise this can be done after the data is reviewed.
-                if result == QtWidgets.QMessageBox.Ok:
-                    self.makeNetcdfs()
-            # else:
-            #     self.updateDependents()
-
         except Exception as e:
             print(e)
     def setResultForm(self):
@@ -626,9 +618,9 @@ class FormSetup(BaseForm):
         '''warns the user the setup file is not valid and re-opens the setup wizard so inputs can be corrected.'''
         self.showAlert("Setup file invalid","Please correct your setup input")
         self.prePopulateSetupWizard()
-    def refreshTable(self):
-        self.ComponentTable.model().select()
-        return
+    # def refreshTable(self):
+    #     self.ComponentTable.model().select()
+    #     return
     def functionForLoadDescriptor(self, table):
         '''load a descriptor file for a component and populate the project_manager database with its values
         '''
@@ -679,8 +671,11 @@ class FormSetup(BaseForm):
         filedir = self.tabs.currentWidget().findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
         self.saveInput()
         id = self.controller.dbhandler.getId('input_files', ['inputfiledirvalue'], [filedir])
+        self.controller.dbhandler.closeDatabase()
         tableHandler.functionForNewRecord(table, fields=[1], values=[id])
+        self.controller.createDatabaseConnection()
 
+        return
     def functionForDeleteRecord(self, table):
         '''Deletes a selected record'''
         # get selected rows
@@ -764,20 +759,26 @@ class FormSetup(BaseForm):
 
 
     def updateComponentDelegates(self, preview):
-        self.updateComponentHeaders(preview) #TODO this will need to add not replace
+
+        self.updateComponentHeaders(preview)
         self.updateComponentFiles()
         self.updateComponentNameList()
+        self.ComponentTable.model().makeModel()
 
     def updateComponentFiles(self):
 
         tableHandler = TableHandler(self)
         tableHandler.updateComponentDelegate(None, self.ComponentTable, 'inputfiledirvalue')
+        self.ComponentTable.model().makeModel()
         return
     def updateComponentHeaders(self, preview):
         tableHandler = TableHandler(self)
         tableHandler.updateComponentDelegate(preview.header, self.ComponentTable, 'headernamevalue')
 
     def updateComponentNameList(self):
+
         tableHandler = TableHandler(self)
-        tableHandler.updateComponentDelegate(self.controller.dbhandler.getAsRefTable('component', '_id', 'componentnamevalue'),
-                                             self.ComponentTable, 'componentnamevalue')
+        # tableHandler.updateComponentDelegate(self.controller.dbhandler.getAsRefTable('component', '_id', 'componentnamevalue'),
+        #                                      self.ComponentTable, 'componentnamevalue')
+        tableHandler.updateComponentDelegate(None, self.ComponentTable, 'componentnamevalue')
+        self.ComponentTable.setModel(T.ComponentTableModel(self))
