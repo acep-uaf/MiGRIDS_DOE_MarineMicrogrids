@@ -73,7 +73,7 @@ def fixBadData(data, setupDir, **kwargs):
            # replace the column in the dataframe with cleaned up data
            reps = data.fixOfflineData(TOTALL,columnsToReplace, groupings[TOTALL])
            data.df = data.df.drop(reps.columns, axis=1)
-           data.df = reps.join(data.df, how='outer')
+           data.df = pd.concat([reps,data.df],join='outer',axis=1)
    except KeyError as e:
        raise DataValidationError(2) #validation error 1 is missing power
 

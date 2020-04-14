@@ -213,10 +213,10 @@ class DataClass:
         '''replaces missing or bad data within df with values found elsewhere in the dataframe
         :param columnToCompare is the column that was used to find bad data - it can represent multiple columns as a single value
         :param columnsToReplace list of columns whose data will be overwritten with replacement values. Must also include columnToCompare
-        :param groupingColumn is the name of the column in df that identifies individual groups of missing data'''
+        :param groupingColumn is the column in df that identifies individual groups of missing data'''
         df = self.df[columnsToReplace].copy()
         if len(df[pd.notnull(df[columnToCompare])]) > 0:
-            original_range = [df.first_valid_index(),df.last_valid_index()]
+            originalRange = [df.first_valid_index(),df.last_valid_index()]
             RcolumnsToReplace = ['R' + c for c in columnsToReplace]
             notReplacedGroups = groupingColumn
             for g in range(len(self.yearBreakdown)):
@@ -240,7 +240,7 @@ class DataClass:
 
             groupingColumn.name = '_'.join([columnToCompare,'grouping'])
             df_to_fix = pd.concat([df,groupingColumn],axis=1,join='outer')
-            df_to_fix = df_to_fix[original_range[0]:original_range[1]]
+            df_to_fix = df_to_fix[originalRange[0]:originalRange[1]]
 
             #filling in the more difficult to fill values
             df_to_fix = self.truncateDate(df_to_fix)
@@ -254,8 +254,8 @@ class DataClass:
                 groups['size'] = groups['last']-groups['first']
 
                 #filter groups we replaced already from the grouping column
-                groups= groups[(groups['size'] >= pd.Timedelta(days=1)) |
-                        groups.index.isin(notReplacedGroups[pd.notnull(notReplacedGroups)].index.tolist())]
+                groups= groups[(groups['size'] >= pd.Timedelta(days=5)) |
+                        groups.index.isin(notReplacedGroups[pd.notnull(notReplacedGroups)])]
                 cuts = groups['size'].quantile([0.25, 0.5, 0.75,1])
                 cuts = list(set(cuts.tolist()))
                 cuts.sort()

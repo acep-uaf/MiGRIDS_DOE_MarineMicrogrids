@@ -471,6 +471,11 @@ class FormSetup(BaseForm):
                                         "Please fill in all required fields before generating input files.")
 
             return
+        result = self.ComponentTable.model().submit()
+        if not result:
+            print(self.ComponentTable.model().lastError.text())
+        #make sure everything is in the setup file
+        self.controller.setupHandler.makeSetup(self.controller.project, self.controller.setupFolder)
 
         self.progressBar = CustomProgressBar('Data fixing')
         self.controller.sender.notifyProgress.connect(self.progressBar.onProgress)

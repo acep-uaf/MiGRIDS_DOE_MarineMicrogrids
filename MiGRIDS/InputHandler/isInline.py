@@ -174,7 +174,7 @@ def findValid(initialTs, d, possibles, s):
     else:
         totalCoverage = calculateNonNullDuration(pd.to_datetime(possibles.first_valid_index()),pd.to_datetime(possibles.first_valid_index())+d, s)
 
-        if (totalCoverage < d * 0.9 ) | (totalCoverage >  d * 1.2): #not a fit so keep looking
+        if (totalCoverage < d * 0.9 ) | (totalCoverage >  d * 1.2) | (possibles.first_valid_index() == initialTs): #not a fit so keep looking
         #if len(s[pd.to_datetime(possibles.first_valid_index()):pd.to_datetime(possibles.first_valid_index()) + d].dropna()) < len(s[pd.to_datetime(possibles.first_valid_index()):pd.to_datetime(possibles.first_valid_index()) + d]):
             possibles = possibles[possibles.first_valid_index():][1:] #remove the first possible value from consideration
             return findValid(initialTs, d, possibles, s)
@@ -195,7 +195,7 @@ def calculateNonNullDuration(index1,index2, s):
         evaluationTime.loc[pd.isnull(evaluationChunk)] = 0  # set to 0 where s is null
     else:
         evaluationTime.loc[pd.isnull(evaluationChunk).any(axis=1)] = 0
-    totalCoverage = pd.notnull(evaluationTime).sum()
+    totalCoverage = evaluationTime[pd.notnull(evaluationTime)].sum()
     totalCoverage = pd.to_timedelta(totalCoverage, 'h')
 
     return totalCoverage
@@ -209,6 +209,8 @@ def validReplacements(possibleIndices, possibleReplacementValues):
     :return: [DateTimeIndex]
     '''
     if type(possibleIndices['possibles']) is not list:
+        return possibleIndices['first']
+    if len(possibleIndices['possibles']) <=1:
         return possibleIndices['first']
     #n is the entire indicesOfinterest dataframe
     p = pd.Series(possibleIndices['possibles'], index=possibleIndices['possibles'])
@@ -226,7 +228,9 @@ def validReplacements(possibleIndices, possibleReplacementValues):
     diff = abs(pd.to_timedelta(pd.Series(df.index) - pd.to_datetime(possibleIndices['first'])))
     diff.index = df.index
     df['diff'] = diff
-    df = df.sort_values('diff')
+    df['monthdistance']= abs(possibleIndices['first'].month - df.index.month)
+    df['yeardistance'] = ((possibleIndices['first'].year - df.index.year) + 1) * (-1 / len(set(df.index.year)))
+    df = df.sort_values(['yeardistance','monthdistance','diff'])
     p = df['possibles']
     v = findValid(possibleIndices['first'], possibleIndices['last'] - possibleIndices['first'], p, possibleReplacementValues)
     return v
@@ -273,7 +277,9 @@ def doReplaceData(groups, df_to_fix, cuts, possibleReplacementValues):
             searchSeries = pd.Series(possibleReplacementValues.index)
             searchSeries.index = searchSeries
             pos = indices.apply(lambda i: getPossibleStarts(i['first'],i['last'], searchSeries),axis=1)
-            indicesOfInterest.loc[:, 'possibles'] = pos
+            pos = pos['first']
+            pos.name = 'possibles'
+            indicesOfInterest = pd.concat([indicesOfInterest,pos],axis=1)
             replacementStarts = indicesOfInterest.apply(lambda n: validReplacements(n, possibleReplacementValues), axis = 1)
             
             indicesOfInterest.loc[:,'replacementsStarts'] = replacementStarts
@@ -361,7 +367,7 @@ def getPossibleStarts(missingIndexFirst,missingIndexLast,searchIndex):
 
     :param MissingIndex: pandas date_range of missing values
     :param searchIndex: pandas.index of possible replacements
-    :return: [ListOf Indices] the indices of records that could be used as the start point for replacement blocks
+    :return: [ListOf datetimes] the datetime indices of records that could be used as the start point for replacement blocks
     '''
     # if there is a match then stop looking,
     # otherwise increment the search window by a year and look again
@@ -373,9 +379,9 @@ def getPossibleStarts(missingIndexFirst,missingIndexLast,searchIndex):
     #dd = pd.DataFrame({'smallBlock':smallBlock,'missingIndex':missingIndexFirst})
     sy = getStartYear(smallBlock,missingIndexFirst,searchIndex)
 
-    possibles = calculateStarts([], smallBlock, sy,[missingIndexFirst,missingIndexLast], searchIndex)
+    possibles = calculateStarts([missingIndexFirst,missingIndexLast], searchIndex)
     #possibles get filtered 
-    return possibles
+    return [possibles.tolist()]
 
 
 #DataFrame -> DataFrame
@@ -418,7 +424,7 @@ def getStartYear(smallBlock, firstMissingIndex,searchIndex):
         sy =  np.nan
     return sy
 
-def calculateStarts(possibles, smallBlock, searchPoint, missingIndex, searchSeries):
+def calculateStarts(missingIndex,searchSeries):
     '''
     [], n['smallBlock'], n['startyear'],n['missingIndex'], n['searchIndex']
     finds the possible start points for replacement blocks for a given block of missing data
@@ -431,16 +437,21 @@ def calculateStarts(possibles, smallBlock, searchPoint, missingIndex, searchSeri
     :param origin: [index] the first index of the dataframe
     :return: [ListOf DatetimeIndices]
     '''
-    if searchPoint > searchSeries.index[-1]: #can't search any more so return the possibles
+    searchExcluded = pd.concat([searchSeries[:missingIndex[0]], searchSeries[missingIndex[-1]:]], axis=0)
+    searchExcluded = searchExcluded[searchExcluded.index.dayofweek == missingIndex[0].dayofweek]
+    searchExcluded = searchExcluded[(searchExcluded.index.hour <= (missingIndex[0] + pd.to_timedelta('3 h')).hour) & (
+                searchExcluded.index.hour >= (missingIndex[0] - pd.to_timedelta('3 h')).hour)]
 
-        p = searchSeries[searchSeries.between(pd.to_datetime(possibles[0]), pd.to_datetime(possibles[1]))]
-        return [filteredTimes(p, missingIndex[0])]
-    elif abs(searchPoint - missingIndex[0]) > pd.to_timedelta(31536000,'s'): #search point is more than a year from block to replace
-        #generate a new range of values to search and create a list of possibles based on a small window around the search point
-        return  calculateStarts(createSearchRange(searchPoint,pd.to_timedelta(10800,'s')), smallBlock, cycleYear(searchPoint,True,missingIndex[0], smallBlock), missingIndex, searchSeries)
-    else:
-        return  calculateStarts(createSearchRange(searchPoint,missingIndex[1]-missingIndex[0]), smallBlock, cycleYear(searchPoint,True,missingIndex[0], smallBlock), missingIndex, searchSeries)
-
+    # if searchPoint > searchSeries.index[-1]: #can't search any more so return the possibles
+    #
+    #     p = searchSeries[searchSeries.between(pd.to_datetime(possibles[0]), pd.to_datetime(possibles[1]))]
+    #     return [filteredTimes(p, missingIndex[0])]
+    # elif abs(searchPoint - missingIndex[0]) > pd.to_timedelta(31536000,'s'): #search point is more than a year from block to replace
+    #     #generate a new range of values to search and create a list of possibles based on a small window around the search point
+    #     return  calculateStarts(createSearchRange(searchPoint,pd.to_timedelta(10800,'s')), smallBlock, cycleYear(searchPoint,True,missingIndex[0], smallBlock), missingIndex, searchSeries)
+    # else:
+    #     return  calculateStarts(createSearchRange(searchPoint,missingIndex[1]-missingIndex[0]), smallBlock, cycleYear(searchPoint,True,missingIndex[0], smallBlock), missingIndex, searchSeries)
+    return searchExcluded
 
 #filters the possible times to match day of week and time envelope
 def filteredTimes(possibles,missingIndexStart):
