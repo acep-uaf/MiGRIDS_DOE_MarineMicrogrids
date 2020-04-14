@@ -210,7 +210,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         list(map(lambda w: constrainDateRange(w,qdateFromString(start),qdateFromString(end)), wids))
     def saveSet(self):
         dict = {}
-        for i in range(3,5):
+        for i in range(3,6):
             wid = self.infoBox.findChild(QtWidgets.QWidget, self.set_model.record().fieldName(i))
             dict[wid.objectName()] = wid.text()
         self.controller.dbhandler.updateFromDictionaryRow('set_',dict, ['_id'],[self.setId])
