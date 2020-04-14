@@ -52,12 +52,13 @@ class ThermalEnergyStorage:
         self.tesPInMax = float(tesSoup.PInMaxPa.get('value'))  # max charging power
         self.tesEMax = float(
             tesSoup.ratedDuration.get('value')) * self.tesPInMax  # the maximum energy capacity of the EES in kWs
-        self.thermalCapacity = float(tesSoup.thermalCapacity.get('value'))  # thermalCapacity
-        self.thermalConductanceInsulation = float(tesSoup.thermalConductanceInsulation.get('value'))  # thermalConductanceInsulation
-        self.thermalConductanceExchanger = float(tesSoup.thermalConductanceExchanger.get('value'))  # thermalConductanceExchanger
-        self.conversionEfficiency = float(tesSoup.conversionEfficiency.get('value'))  # conversionEfficiency
-        self.ambientTemperature = float(tesSoup.ambientTemperature.get('value'))  # ambientTemperature
-        self.thermalCapacity = float(tesSoup.thermalCapacity.get('value'))  # thermalCapacity
+        # the following properties are commented out until they will be used
+        #self.thermalCapacity = float(tesSoup.thermalCapacity.get('value'))  # thermalCapacity
+        #self.thermalConductanceInsulation = float(tesSoup.thermalConductanceInsulation.get('value'))  # thermalConductanceInsulation
+        #self.thermalConductanceExchanger = float(tesSoup.thermalConductanceExchanger.get('value'))  # thermalConductanceExchanger
+        #self.conversionEfficiency = float(tesSoup.conversionEfficiency.get('value'))  # conversionEfficiency
+        #self.ambientTemperature = float(tesSoup.ambientTemperature.get('value'))  # ambientTemperature
+        #self.thermalCapacity = float(tesSoup.thermalCapacity.get('value'))  # thermalCapacity
         # check if EMax is zero, this is likely because it is a zero EES condition. Set it to 1 kWs in order not to crash the
         # SOC calculations
         if self.tesEMax == 0:
