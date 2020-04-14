@@ -36,6 +36,7 @@ class FormModelRun(BaseForm):
 
         self.setLayout(self.layout)
         self.showMaximized()
+        self.controller.sender.statusChanged.connect(self.updateForm)
     def getTabCount(self):
         return len(self.tabs)
     #add a new set to the project, this adds a new tab for the new set information
@@ -97,7 +98,7 @@ class FormModelRun(BaseForm):
         #gb.setSizePolicy((QtWidgets.QSizePolicy.Fixed,QtWidgets.QSizePolicy.Fixed))
 
         return gb
-    def updateForm(self):#TODO call
+    def updateForm(self):#called on signal from controller.sender
         self.run_Model.refresh()
         return
     def receiveUpdateRunBaseCase(self, id, checked):

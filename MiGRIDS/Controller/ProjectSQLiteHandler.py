@@ -381,6 +381,8 @@ class ProjectSQLiteHandler:
         :param setName: String name of the set to get information for
         :return: dictionary of xml tags and values to be written to a setup.xml file
         '''
+
+        #TODOD this is not reading correctly
         setDict = {}
 
 
@@ -415,9 +417,9 @@ class ProjectSQLiteHandler:
             setDict[ENDDATE] = values[4]
             start = asDatasetIndex(str(values[3]))
             if start != None:
-                setDict[RUNTIMESTEPS] = " ".join([str(asDatasetIndex(str(values[3]))),str(asDatasetIndex(str(values[4])))])
+                setDict[RUNTIMESTEPS] = ",".join([str(asDatasetIndex(str(values[3]))),str(asDatasetIndex(str(values[4])))])
             else:
-                setDict[RUNTIMESTEPS] = str(values[5])
+                setDict[RUNTIMESTEPS] = str(",".join(values[5].split(" ")))
             #as long as there was basic set up info look for component setup info
             #componentNames is a list of distinct components, order does not matter
             compTuple =  self.cursor.execute("SELECT group_concat(componentnamevalue,',') FROM "

@@ -35,7 +35,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         self.setName = "Set" + str(tabPosition) #set name is a string with a prefix
         self.tabName = "Set " + str(tabPosition)
         self.setId = self.controller.dbhandler.getIDByPosition('set_',tabPosition)
-        if (self.setId == -1) & (self.controller.dbhandler.getProject() != None):
+        if ((self.setId == None) | (self.setId == -1)) & (self.controller.dbhandler.getProject() != None):
             self.setId = self.controller.dbhandler.insertRecord('set_',['set_name','project_id'],[self.setName,1])
             #update components to the default list
             components = self.controller.dbhandler.getComponentNames()
@@ -415,7 +415,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
 
         if not result:
             print(self.set_componentsModel.lastError().text())
-        if len(self.controller.dbhandler.getSetComponents(self.setId))> 0:
+        if len(self.controller.dbhandler.getSetComponents(self.setId))> 0: #won't run models unless tags have been set
             #cretae the required xml files and set directory
             self.setupSet()
             self.startModeling()
@@ -438,7 +438,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         return
     def updateDependents(self):
         self.refreshDataPlot()
-        self.parent().updateForm()
+        # self.controller.sender.statusChanged.emit()
     # def createRunTable(self,setId):
     #     '''Show table of run information'''
     #     gb = QtWidgets.QGroupBox('Runs')
