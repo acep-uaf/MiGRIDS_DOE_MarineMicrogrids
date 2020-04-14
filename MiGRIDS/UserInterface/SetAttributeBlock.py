@@ -438,6 +438,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         return
     def updateDependents(self):
         self.refreshDataPlot()
+        self.parent().updateForm()
     # def createRunTable(self,setId):
     #     '''Show table of run information'''
     #     gb = QtWidgets.QGroupBox('Runs')

@@ -253,6 +253,7 @@ class RunHandler(UIHandler):
         fillRunMetaData(setDir, []) #get metadata for all the runs
         self.sender.update(10, "complete")
 
+        return
     def createRun(self, setComponentIds, run,setName):
         # make the run directory
         os.makedirs(getFilePath("Run" + str(run), Set=setName, projectFolder=self.dbhandler.getProjectPath()),exist_ok=True)
