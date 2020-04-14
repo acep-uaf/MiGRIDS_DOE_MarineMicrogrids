@@ -208,6 +208,14 @@ class SetsAttributeEditorBlock(BaseEditorTab):
 
 
         list(map(lambda w: constrainDateRange(w,qdateFromString(start),qdateFromString(end)), wids))
+    def saveSet(self):
+        dict = {}
+        for i in range(3,5):
+            wid = self.infoBox.findChild(QtWidgets.QWidget, self.set_model.record().fieldName(i))
+            dict[wid.objectName()] = wid.text()
+        self.controller.dbhandler.updateFromDictionaryRow('set_',dict, ['_id'],[self.setId])
+        return
+
     def mapWidgets(self):
         '''
         create a widget mapper object to tie fields to data in database tables
@@ -216,12 +224,13 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         # map model to fields
         self.mapper = QtWidgets.QDataWidgetMapper()
         self.mapper.setModel(self.set_model)
-        self.mapper.setItemDelegate(QtSql.QSqlRelationalDelegate())
+        #self.mapper.setItemDelegate(QtSql.QSqlRelationalDelegate())
 
         # map the widgets we created with our dictionary to fields in the sql table
         for i in range(0, self.set_model.columnCount()):
             if self.infoBox.findChild(QtWidgets.QWidget, self.set_model.record().fieldName(i)) != None:
                 wid = self.infoBox.findChild(QtWidgets.QWidget, self.set_model.record().fieldName(i))
+                self.mapper.setItemDelegate(QtWidgets.QItemDelegate())
                 self.mapper.addMapping(wid, i)
                 if isinstance(wid,QtWidgets.QDateEdit):
                     wid.setDate(qdateFromString(self.set_model.data(self.set_model.index(0, i))))
@@ -406,9 +415,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         self.controller.createDatabaseConnection()
     def runModels(self):
         #make sure data is up to date in the database
-        result = self.set_model.submitAll()
-        if not result:
-            print(self.set_model.lastError().text())
+        self.saveSet()
         self.controller.dbhandler.getAllRecords(("set_components"))
         # self.set_componentsModel.submitTable()
         result = self.set_componentsModel.submitAll()
