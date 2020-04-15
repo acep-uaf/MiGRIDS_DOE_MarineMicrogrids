@@ -204,7 +204,7 @@ class Simulation:
         elif runTimeSteps[0] == runTimeSteps[1]:
             self.runTimeSteps = 'all'
         else:  # convert to int
-            self.runTimeSteps = [int(x) for x in runTimeSteps] #TODO should be additional check for string date vs string int
+            self.runTimeSteps = [int(float(x)) for x in runTimeSteps] #TODO should be additional check for string date vs string int
         try:
             # get the load predicting function
             self.predictLoadFile = readXmlTag(self.projectSetSetupFile, 'loadPredict', 'value')[0]

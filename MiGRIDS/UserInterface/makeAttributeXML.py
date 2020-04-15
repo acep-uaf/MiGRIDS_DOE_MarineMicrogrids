@@ -24,7 +24,9 @@ def makeAttributeXML(currentSet, compChanges, setChanges):
 
     updateSetupAttributes(currentSet, setChanges, soup)
     return soup
-
+def dropComp(comptag): #TODO get list of types
+    if any([ele for ele in ['ees','wtg','gen','tes','load'] if(ele in comptag.split(".")[0])]):
+        return ".".join(comptag.split(".")[1:])
 def dropAttr(lotag):
         t = []
         a = []
@@ -42,6 +44,7 @@ def updateComponentAttributes(currentSet, compChanges,  soup):
         compName, compTag, compValue = zip(*compChanges)
         splitTags = [dropAttr(t) for t in compTag]
         compTag,compAttr =list(zip(*splitTags))
+        values = [dropComp(v) for v in compValue]
         tag = soup.find('compName')
         tag.attrs['value'] = ' '.join(compName)
         tag = soup.find('compTag')
@@ -51,12 +54,15 @@ def updateComponentAttributes(currentSet, compChanges,  soup):
         tag = soup.find('compValue')
         tag.attrs['value'] = ' '.join(compValue)
         return soup
-
+def changedelim(s):
+    return ",".join(s.split(" "))
 def updateSetupAttributes(currentSet, dataDict, soup):
+    'attribtes that were space delimited are comma delimited in the attribute xml'
     # Changes to setup file
 
     dataTuple = [(t, dataDict[t]) for t in dataDict.keys()]
     setupTag, setupValue = list(zip(*dataTuple))
+    setupValue = [changedelim(s) for s in setupValue]
     setupSplitTag = [dropAttr(t) for t in setupTag]
     setupTag, setupAttr = list(zip(*setupSplitTag))
     tag = soup.find('setupTag')

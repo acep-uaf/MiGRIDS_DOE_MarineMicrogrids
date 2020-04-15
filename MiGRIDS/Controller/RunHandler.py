@@ -54,9 +54,11 @@ class RunHandler(UIHandler):
 
         fileName = self.dbhandler.getProject() + currentSet.capitalize() + 'Attributes.xml'
         setDir = getFilePath(currentSet, projectFolder=self.dbhandler.getProjectPath())
-        writeAttributeXML(soup, setDir, fileName)
 
         #add model xml attributes
+        writeAttributeXML(soup, setDir, fileName)
+
+        return
     def makeRunDescriptors(self,setCompId,runName,setName):
         allComponents = self.dbhandler.getSetComponents(self.dbhandler.getSetId(setName))
         for i in allComponents:

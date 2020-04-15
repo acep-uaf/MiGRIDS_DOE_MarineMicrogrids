@@ -38,14 +38,14 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         self.setId = self.controller.dbhandler.getIDByPosition('set_',tabPosition)
         if ((self.setId == None) | (self.setId == -1)) & (self.controller.dbhandler.getProject() != None):
 
-            self.setId = self.controller.dbhandler.insertRecord('set_',['set_name','project_id','date_start','date_end','runtimestepvalue'],
-                                                                [self.setName,1,self.controller.dbhandler.getFieldValue('setup','date_start',['_id'],[1]),
+            self.setId = self.controller.dbhandler.insertRecord('set_',['set_name','project_id','date_start','date_end','runtimestepsvalue'],
+                                                                [self.setName,1,self.controller.dbhandler.getFieldValue('setup','date_start','_id',1),
                                                                  self.controller.dbhandler.getFieldValue('setup',
                                                                                                          'date_end',
-                                                                                                         ['_id'], [1]),
+                                                                                                         '_id', 1),
                                                                  self.controller.dbhandler.getFieldValue('setup',
-                                                                                                         'runtimestepvalue',
-                                                                                                         ['_id'], [1])
+                                                                                                         'runtimestepsvalue',
+                                                                                                         '_id', 1)
                                                                  ])
             #update components to the default list
             components = self.controller.dbhandler.getComponentNames()
@@ -94,10 +94,10 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         # self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         # self.fillSetInfo(str(self.tabPosition))
     def updateDateWidgets(self):
-        for i in range(3,5):
-            wid = self.infoBox.findChild(QtWidgets.QWidget, self.set_model.record().fieldName(i))
-            wid.setDate(qdateFromString(self.set_model.data(self.set_model.index(0, i))))
-
+    #     for i in range(3,5):
+    #         wid = self.infoBox.findChild(QtWidgets.QWidget, self.set_model.record().fieldName(i))
+    #         wid.setDate(qdateFromString(self.set_model.data(self.set_model.index(0, i))))
+        return
     def updateForm(self):
         '''refreshes data displayed in form based on any changes made in database or xml model files'''
         self.refreshSetModel()

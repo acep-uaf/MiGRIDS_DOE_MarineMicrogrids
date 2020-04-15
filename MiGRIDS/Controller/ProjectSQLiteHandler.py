@@ -404,7 +404,7 @@ class ProjectSQLiteHandler:
             if dateDiff > pd.to_timedelta('0 s'): #if its negative its after the startpoint
                 dateDiff = pd.to_timedelta('0 s') #reset to 0 record position is the first record
             interval = self.getTimeStep(SETUPTABLE,1)
-            record_position = abs(dateDiff) / pd.to_timedelta(interval)
+            record_position = (abs(dateDiff) / pd.to_timedelta(interval)) -1
             return record_position
 
         #get tuple for basic set info
@@ -417,9 +417,9 @@ class ProjectSQLiteHandler:
             setDict[ENDDATE] = values[4]
             start = asDatasetIndex(str(values[3]))
             if start != None:
-                setDict[RUNTIMESTEPS] = ",".join([str(asDatasetIndex(str(values[3]))),str(asDatasetIndex(str(values[4])))])
+                setDict[RUNTIMESTEPS] = " ".join([str(asDatasetIndex(str(values[3]))),str(asDatasetIndex(str(values[4])))])
             else:
-                setDict[RUNTIMESTEPS] = str(",".join(values[5].split(" ")))
+                setDict[RUNTIMESTEPS] = str(" ".join(values[5].split(" ")))
             #as long as there was basic set up info look for component setup info
             #componentNames is a list of distinct components, order does not matter
             compTuple =  self.cursor.execute("SELECT group_concat(componentnamevalue,',') FROM "
@@ -650,7 +650,7 @@ class ProjectSQLiteHandler:
     def getSetComponents(self, set_id):
         '''produces a list of component id's for a given set'''
         componentsInSet = self.cursor.execute("SELECT _id from component WHERE _id in "
-                                          "(SELECT component_id FROM set_components WHERE set_id = ?) GROUP BY _id",
+                                          "(SELECT component_id FROM set_components WHERE set_id = ? AND tag != 'None') GROUP BY _id",
                                           [set_id]).fetchall()
         return componentsInSet
 
