@@ -190,7 +190,7 @@ def findValid(initialTs, d, possibles, s):
 def calculateNonNullDuration(index1,index2, s):
     '''Calculates the time duration of a series, excluding null values '''
     evaluationChunk = s[index1:index2]
-    evaluationTime = pd.Series(evaluationChunk.index, index=evaluationChunk.index).diff()
+    evaluationTime = pd.Series(evaluationChunk.index, index=evaluationChunk.index).diff().astype('timedelta64[ns]')
     if (isinstance(s,pd.Series)):
         evaluationTime.loc[pd.isnull(evaluationChunk)] = 0  # set to 0 where s is null
     else:

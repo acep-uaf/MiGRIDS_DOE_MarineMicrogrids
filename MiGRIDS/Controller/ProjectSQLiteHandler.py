@@ -401,10 +401,10 @@ class ProjectSQLiteHandler:
                 #if there is not start date information we can't identify the position so None is returned
                 return None
             dateDiff = pd.to_timedelta(startPoint - asDate(value),unit='s')
-            if dateDiff < pd.to_timedelta('0 s'):
-                dateDiff = pd.to_timedelta('0 s')
+            if dateDiff > pd.to_timedelta('0 s'): #if its negative its after the startpoint
+                dateDiff = pd.to_timedelta('0 s') #reset to 0 record position is the first record
             interval = self.getTimeStep(SETUPTABLE,1)
-            record_position = dateDiff / pd.to_timedelta(interval)
+            record_position = abs(dateDiff) / pd.to_timedelta(interval)
             return record_position
 
         #get tuple for basic set info
