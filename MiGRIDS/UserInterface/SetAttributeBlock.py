@@ -4,14 +4,15 @@ import datetime
 
 import os
 from PyQt5 import QtWidgets, QtSql, QtCore
+import pandas as pd
 
-from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.InputHandler.InputFields import COMPONENTNAMES
+
 from MiGRIDS.UserInterface.BaseEditorTab import BaseEditorTab
 from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.DialogComponentList import ComponentSetListForm
-from MiGRIDS.UserInterface.ModelRunTable import RunTableView, RunTableModel
+
 from MiGRIDS.UserInterface.ModelSetTable import SetTableView, SetTableModel
 from MiGRIDS.UserInterface.ResultsModel import ResultsModel
 from MiGRIDS.UserInterface.TableHandler import TableHandler
@@ -36,7 +37,16 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         self.tabName = "Set " + str(tabPosition)
         self.setId = self.controller.dbhandler.getIDByPosition('set_',tabPosition)
         if ((self.setId == None) | (self.setId == -1)) & (self.controller.dbhandler.getProject() != None):
-            self.setId = self.controller.dbhandler.insertRecord('set_',['set_name','project_id'],[self.setName,1])
+
+            self.setId = self.controller.dbhandler.insertRecord('set_',['set_name','project_id','date_start','date_end','runtimestepvalue'],
+                                                                [self.setName,1,self.controller.dbhandler.getFieldValue('setup','date_start',['_id'],[1]),
+                                                                 self.controller.dbhandler.getFieldValue('setup',
+                                                                                                         'date_end',
+                                                                                                         ['_id'], [1]),
+                                                                 self.controller.dbhandler.getFieldValue('setup',
+                                                                                                         'runtimestepvalue',
+                                                                                                         ['_id'], [1])
+                                                                 ])
             #update components to the default list
             components = self.controller.dbhandler.getComponentNames()
             self.controller.dbhandler.updateSetComponents(self.setName, components)
@@ -83,12 +93,14 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         #                      10)  # Set Id will be negative 1 at creation
         # self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         # self.fillSetInfo(str(self.tabPosition))
+    def updateDateWidgets(self):
+        for i in range(3,5):
+            wid = self.infoBox.findChild(QtWidgets.QWidget, self.set_model.record().fieldName(i))
+            wid.setDate(qdateFromString(self.set_model.data(self.set_model.index(0, i))))
 
     def updateForm(self):
         '''refreshes data displayed in form based on any changes made in database or xml model files'''
-        self.setId = self.controller.dbhandler.getSetId(str(self.tabPosition))
-        self.set_model.select() #update the set data inputs
-        self.set_model.setFilter('set_._id = ' + str(self.setId))
+        self.refreshSetModel()
         self.setValidators() #update the validators tied to inputs
         self.mapper.toLast() #make sure the mapper is on the actual record (1 per tab)
         #self.setModel.submit() #submit any data that was changed
@@ -103,6 +115,15 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         #self.rehide(self.findChild(QtWidgets.QTableView,'runs'),[0,1,26])
         self.rehide(self.findChild(QtWidgets.QTableView,'sets'), [0,1])
         self.updateDependents()
+        return
+
+    def refreshSetModel(self):
+        self.setId = self.controller.dbhandler.getSetId(str(self.tabPosition))
+        self.set_model.setFilter('set_._id = ' + str(self.setId))
+        self.set_model.select()  # update the set data inputs
+        self.updateDateWidgets()
+        return
+
     def rehide(self,tview,loc):
         for i in loc:
             tview.hideColumn(i)
@@ -188,8 +209,30 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         # self.controller.runHandler.loadExistingProjectSet(self.setName)
         # load and update from attributeXML
         # load and update from xml resources
+
+        #update the runtimesteps to match the setup file if they are outside the bounds
+        self.updateRunTimeSteps()
         self.updateForm()
         return
+    def updateRunTimeSteps(self):
+        setInfo = self.controller.dbhandler.getSetInfo(self.setName)
+        setupInfo = self.controller.dbhandler.getSetUpInfo()
+
+        if not (pd.to_datetime(setInfo['date_start']) > (pd.to_datetime(setupInfo['date_start']))) & (
+            pd.to_datetime(setInfo['date_start']) < (pd.to_datetime(setupInfo['date_end']))):
+            setInfo['date_start'] = setupInfo['date_start']
+        if not (pd.to_datetime(setInfo['date_end']) > (pd.to_datetime(setupInfo['date_start']))) & (
+            pd.to_datetime(setInfo['date_end']) < (pd.to_datetime(setupInfo['date_end']))):
+            setInfo['date_end'] = setupInfo['date_end']
+        if 'project_name' in setInfo.keys():
+            setInfo.pop('project_name')
+        if 'componentNames.value' in setInfo.keys():
+            setInfo.pop('componentNames.value')
+
+        self.controller.dbhandler.updateFromDictionaryRow('set_',setInfo,['_id'],[self.controller.dbhandler.getSetId(self.setName)])
+        return
+
+
     def setValidators(self):
         #timesteps need to be equal to or greater than te setup timestep
         minSeconds = self.controller.dbhandler.getFieldValue('setup','timestepvalue','_id',1)
@@ -205,9 +248,8 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         #start date needs to be equal to or greater than the setup start
         start, end = self.controller.dbhandler.getSetupDateRange()
         wids = self.infoBox.findChildren(QtWidgets.QDateEdit)
-
-
         list(map(lambda w: constrainDateRange(w,qdateFromString(start),qdateFromString(end)), wids))
+        return
     def saveSet(self):
         dict = {}
         for i in range(3,6):
@@ -445,38 +487,16 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         return
     def updateDependents(self):
         self.refreshDataPlot()
-        # self.controller.sender.statusChanged.emit()
-    # def createRunTable(self,setId):
-    #     '''Show table of run information'''
-    #     gb = QtWidgets.QGroupBox('Runs')
-    #
-    #     tableGroup = QtWidgets.QVBoxLayout()
-    #
-    #     tv = RunTableView(self)
-    #     tv.setObjectName('runs')
-    #     self.run_Model = RunTableModel(self,setId)
-    #
-    #     # hide the id columns
-    #     #tv.hiddenColumns = [0,1,4,5,26]
-    #     self.run_Model.query()
-    #     tv.setModel(self.run_Model)
-    #     tv.updateRunBaseCase.connect(self.receiveUpdateRunBaseCase)
-    #     tv.reFormat()
-    #     tableGroup.addWidget(tv, 1)
-    #     gb.setLayout(tableGroup)
-    #     #gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-    #     #gb.setSizePolicy((QtWidgets.QSizePolicy.Fixed,QtWidgets.QSizePolicy.Fixed))
-    #
-    #     return gb
+
+        return
+
     def refreshDataPlot(self):
         '''finds the plot object and calls its default method'''
         resultDisplay = self.window().findChild(ResultsModel)
         resultDisplay.makePlotArea()
         resultDisplay.showPlot()
-    # def receiveUpdateRunBaseCase(self,id, checked):
-    #      self.controller.dbhandler.updateBaseCase(self.setId, id, checked)
-    #      self.run_Model.refresh()
-    #      self.refreshDataPlot()
+        return
+
 
     def closeForm(self):
          self.submitData()

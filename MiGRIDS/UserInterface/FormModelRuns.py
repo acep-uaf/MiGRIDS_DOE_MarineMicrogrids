@@ -75,7 +75,7 @@ class FormModelRun(BaseForm):
         modelForms = self.window().findChildren(SetsAttributeEditorBlock)
         [m.loadSetData() for m in modelForms]  # load data individually for each set
         self.updateForm()
-
+        return
     def createRunTable(self):
         '''Show table of run information'''
         gb = QtWidgets.QGroupBox('Runs')

@@ -365,20 +365,11 @@ def getPossibleStarts(missingIndexFirst,missingIndexLast,searchIndex):
     ''' find the possible start indices for replacement data based in the indices of missing data and total duration of missing data.
     If there are multiple years represented in the dataset that possible starts are biassed towards previous years data.
 
-    :param MissingIndex: pandas date_range of missing values
+    :param MissingIndexFirst: pandas datetime of the missing block
+    :param MissingIndexLast: pandas datetime that is the last value missing in a block
     :param searchIndex: pandas.index of possible replacements
     :return: [ListOf datetimes] the datetime indices of records that could be used as the start point for replacement blocks
     '''
-    # if there is a match then stop looking,
-    # otherwise increment the search window by a year and look again
-
-    smallBlock = (missingIndexLast-missingIndexFirst).total_seconds() < MAXSMALLBLOCKDURATION #the number of second that we are willing to replace with data from the same year
-
-
-    #make start and small block a dataframe
-    #dd = pd.DataFrame({'smallBlock':smallBlock,'missingIndex':missingIndexFirst})
-    sy = getStartYear(smallBlock,missingIndexFirst,searchIndex)
-
     possibles = calculateStarts([missingIndexFirst,missingIndexLast], searchIndex)
     #possibles get filtered 
     return [possibles.tolist()]
@@ -428,29 +419,13 @@ def calculateStarts(missingIndex,searchSeries):
     '''
     [], n['smallBlock'], n['startyear'],n['missingIndex'], n['searchIndex']
     finds the possible start points for replacement blocks for a given block of missing data
-    :param possibles: [ListOfIndices] the possible start indices
-    :param smallBlock: [Boolean] whether or not the missing data is small or large in duration
-    :param searchPoint: [index] index of the initial search point - changes with each recursive call
-    :param start: [index] start index of the rows to be replaced
-    :param timeRange: [integer] number of seconds on either side of the searchPoint to include in the search range
-    :param lastIndex: [integer] the total number of seconds covered by the dataframe
-    :param origin: [index] the first index of the dataframe
-    :return: [ListOf DatetimeIndices]
+     :return: [ListOf DatetimeIndices]
     '''
     searchExcluded = pd.concat([searchSeries[:missingIndex[0]], searchSeries[missingIndex[-1]:]], axis=0)
     searchExcluded = searchExcluded[searchExcluded.index.dayofweek == missingIndex[0].dayofweek]
     searchExcluded = searchExcluded[(searchExcluded.index.hour <= (missingIndex[0] + pd.to_timedelta('3 h')).hour) & (
                 searchExcluded.index.hour >= (missingIndex[0] - pd.to_timedelta('3 h')).hour)]
 
-    # if searchPoint > searchSeries.index[-1]: #can't search any more so return the possibles
-    #
-    #     p = searchSeries[searchSeries.between(pd.to_datetime(possibles[0]), pd.to_datetime(possibles[1]))]
-    #     return [filteredTimes(p, missingIndex[0])]
-    # elif abs(searchPoint - missingIndex[0]) > pd.to_timedelta(31536000,'s'): #search point is more than a year from block to replace
-    #     #generate a new range of values to search and create a list of possibles based on a small window around the search point
-    #     return  calculateStarts(createSearchRange(searchPoint,pd.to_timedelta(10800,'s')), smallBlock, cycleYear(searchPoint,True,missingIndex[0], smallBlock), missingIndex, searchSeries)
-    # else:
-    #     return  calculateStarts(createSearchRange(searchPoint,missingIndex[1]-missingIndex[0]), smallBlock, cycleYear(searchPoint,True,missingIndex[0], smallBlock), missingIndex, searchSeries)
     return searchExcluded
 
 #filters the possible times to match day of week and time envelope

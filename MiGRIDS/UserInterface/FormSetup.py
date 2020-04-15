@@ -370,7 +370,7 @@ class FormSetup(BaseForm):
             # the number of directories listed in inputFileDir indicates how many tabs are required
             tab_count = len(self.controller.dbhandler.getAllRecords('input_files'))
             self.displayTabbedData(tab_count, 1) #update the form with loaded data
-            self.updateFormProjectDataStatus()
+            #self.updateFormProjectDataStatus()
             self.updateComponentFiles()
             self.updateComponentNameList()
 
@@ -532,13 +532,7 @@ class FormSetup(BaseForm):
             if len(listDf) > 0:
                 s = listDf[0].index[0].date()
                 e = listDf[0].index[len(listDf[0]) - 1].date()
-
-                if (s < defaultStart) & (e > defaultEnd):
-                    return getDefaults(listDf[1:], s, e)
-                elif s < defaultStart:
-                    return getDefaults(listDf[1:], s, defaultEnd)
-                elif e > defaultStart:
-                    return getDefaults(listDf[1:], defaultStart, e)
+                return str(s), str(e)
             return str(defaultStart), str(defaultEnd)
 
         # default start is the first date there is record for
@@ -547,6 +541,8 @@ class FormSetup(BaseForm):
             values['date_start'], values['date_end'] = getDefaults(data.fixed)
         else:
             values['date_start'], values['date_end'] = getDefaults([])
+        values['runtimestepsvalue'] = ' '.join([values['date_start'],values['date_end']])
+        self.controller.dbhandler.updateFromDictionaryRow('setup',values,['_id'],[1]) #update the setup to reflect the actual span of the dataframe
         values['date_start'] = [values['date_start']]
         values['date_end'] = [values['date_end']]
         values['set_name'] = ['Set0']

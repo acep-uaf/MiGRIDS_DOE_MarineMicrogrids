@@ -282,7 +282,7 @@ class ProjectSQLiteHandler:
                                date_end text,
                                timestepvalue integer,
                                timestepunit text,
-                               runtimestepsvalue
+                               runtimestepsvalue text
                                );""")
         self.cursor.execute("DROP TABLE IF EXISTS pretty_names")
         self.cursor.executescript("""
@@ -404,7 +404,7 @@ class ProjectSQLiteHandler:
             if dateDiff < pd.to_timedelta('0 s'):
                 dateDiff = pd.to_timedelta('0 s')
             interval = self.getTimeStep(SETUPTABLE,1)
-            record_position = dateDiff / pd.to_datetime(interval)
+            record_position = dateDiff / pd.to_timedelta(interval)
             return record_position
 
         #get tuple for basic set info
@@ -438,7 +438,7 @@ class ProjectSQLiteHandler:
         return thisString
 
     def getTimeStep(self,table, id):
-        interval = self.cursor.execute("select timestepvalue || ' ' || timstepunit from " + table + " WHERE _id = ?",[id]).fetchone()
+        interval = self.cursor.execute("select timestepvalue || ' ' || timestepunit from " + table + " WHERE _id = ?",[id]).fetchone()
         return interval[0]
     def getSetUpInfo(self):
         '''
