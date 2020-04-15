@@ -271,18 +271,21 @@ def doReplaceData(groups, df_to_fix, cuts, possibleReplacementValues):
         indicesOfInterest = groups[groups['size'] <= cuts[0]]
         #if thera are any blocks of the appropriate size replace them.
         if len(indicesOfInterest) > 0:
-            indices = pd.DataFrame()
-            indices['first'] = indicesOfInterest['first']
-            indices['last'] = indicesOfInterest['last']
+            indices = pd.DataFrame(
+                {'first': indicesOfInterest['first'].values, 'last': indicesOfInterest['last'].values},
+                index=indicesOfInterest.index)
+
             searchSeries = pd.Series(possibleReplacementValues.index)
-            searchSeries.index = searchSeries
-            pos = indices.apply(lambda i: getPossibleStarts(i['first'],i['last'], searchSeries),axis=1)
-            pos = pos['first']
-            pos.name = 'possibles'
-            indicesOfInterest = pd.concat([indicesOfInterest,pos],axis=1)
+            searchSeries.index = searchSeries.values
+            #pos = indices.apply(lambda i: getPossibleStarts(i['first'],i['last'], searchSeries),axis=1)
+            indices['possibles'] = indices.apply(lambda i: getPossibleStarts(i['first'], i['last'], searchSeries),
+                                                  axis=1)
+            #pos = pos['first']
+            #pos.name = 'possibles'
+            indicesOfInterest = pd.concat([indicesOfInterest,indices['possibles']],axis=1)
             replacementStarts = indicesOfInterest.apply(lambda n: validReplacements(n, possibleReplacementValues), axis = 1)
             
-            indicesOfInterest.loc[:,'replacementsStarts'] = replacementStarts
+            indicesOfInterest.loc[:,'replacementsStarts'] = replacementStarts.values
        
             #replace blocks of nas with blocks of replacementstarts
             df_to_fix = dropIndices(df_to_fix, indicesOfInterest)
@@ -372,7 +375,7 @@ def getPossibleStarts(missingIndexFirst,missingIndexLast,searchIndex):
     '''
     possibles = calculateStarts([missingIndexFirst,missingIndexLast], searchIndex)
     #possibles get filtered 
-    return [possibles.tolist()]
+    return possibles.tolist()
 
 
 #DataFrame -> DataFrame
