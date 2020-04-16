@@ -397,9 +397,14 @@ class ProjectSQLiteHandler:
                 return value
 
             startPoint = asDate(self.getFieldValue(SETUPTABLE,STARTDATE,ID,'1'))
+            endPoint = asDate(self.getFieldValue(SETUPTABLE,ENDDATE,ID,'1'))
             if startPoint == None:
                 #if there is not start date information we can't identify the position so None is returned
                 return None
+            if startPoint == value:
+                return 0 #index position of first record
+            if endPoint == value:
+                return None #No end
             dateDiff = pd.to_timedelta(startPoint - asDate(value),unit='s')
             if dateDiff > pd.to_timedelta('0 s'): #if its negative its after the startpoint
                 dateDiff = pd.to_timedelta('0 s') #reset to 0 record position is the first record
@@ -417,7 +422,11 @@ class ProjectSQLiteHandler:
             setDict[ENDDATE] = values[4]
             start = asDatasetIndex(str(values[3]))
             if start != None:
-                setDict[RUNTIMESTEPS] = " ".join([str(asDatasetIndex(str(values[3]))),str(asDatasetIndex(str(values[4])))])
+                if asDatasetIndex(str(values[4])) != None:
+                    setDict[RUNTIMESTEPS] = " ".join([str(asDatasetIndex(str(values[3]))),str(asDatasetIndex(str(values[4])))])
+                else:
+                    setDict[RUNTIMESTEPS] = " ".join(
+                        [str(asDatasetIndex(str(values[3]))), str(asDatasetIndex(str(values[3])))]) #if the end is the end of the dataset runtimesteps gets set to 2 equal values resulting the the full dataset being used.
             else:
                 setDict[RUNTIMESTEPS] = str(" ".join(values[5].split(" ")))
             #as long as there was basic set up info look for component setup info
@@ -529,8 +538,13 @@ class ProjectSQLiteHandler:
             in the setup file and the timestep interval
             :param value is a integer index position'''
             startPoint = asDate(self.getFieldValue(SETUPTABLE, STARTDATE, ID, '1')) #the start date of all generated netcdf files
+            endPoint = asDate(self.getFieldValue(SETUPTABLE,ENDDATE,ID,'1'))
             if startPoint is None:
                 return None
+            if value == startPoint:
+                return startPoint #references first record
+            if value == endPoint:
+                return endPoint #has no end - use entire dataset
             try:
                 intervals = int(value)/int(self.getFieldValue(SETUPTABLE, self.dbName(TIMESTEP), ID, '1'))
             except ValueError as e:
@@ -548,6 +562,7 @@ class ProjectSQLiteHandler:
             print("runtimesteps not start stop indices")
             startdate = asDatasetDateTime(setupDict[RUNTIMESTEPS])
             enddate = asDatasetDateTime(setupDict[RUNTIMESTEPS])
+
         #if the record already exists a -1 will be returned and updateRecord is run
         setId = self.insertRecord(SETTABLE,
                                   [self.dbName(TIMESTEPUNIT), self.dbName(TIMESTEP), self.dbName(RUNTIMESTEPS), STARTDATE, ENDDATE,

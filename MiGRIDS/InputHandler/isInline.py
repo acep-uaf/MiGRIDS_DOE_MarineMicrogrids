@@ -100,7 +100,7 @@ def removeChunk(df, i1, i2):
 
 
 def identifyCuts(lod, cname, cutoff, cutStarts):
-    '''Evaluates a list of dataframes for gaps in data beyond an acceptable tolerance. Indices returned provide cut points to spit the dataframes at.
+    '''Evaluates a list of dataframes for gaps in data beyond an acceptable tolerance. Indices returned provide cut points to split the dataframes at.
     :param lod: [ListOf Dataframe] list of dataframes to evaluate
     :param cname: [String] column within a dataframe to evaluate
     :param cutoff: [pandas.TimeDelta] max duration tolerable without data
@@ -285,7 +285,7 @@ def doReplaceData(groups, df_to_fix, cuts, possibleReplacementValues):
             indicesOfInterest = pd.concat([indicesOfInterest,indices['possibles']],axis=1)
             replacementStarts = indicesOfInterest.apply(lambda n: validReplacements(n, possibleReplacementValues), axis = 1)
             
-            indicesOfInterest.loc[:,'replacementsStarts'] = replacementStarts.values
+            indicesOfInterest.loc[:,'replacementsStarts'] = replacementStarts
             indicesOfInterest['replacementsStarts'].dt.tz_localize(indicesOfInterest['first'].dt.tz)
             #replace blocks of nas with blocks of replacementstarts
             df_to_fix = dropIndices(df_to_fix, indicesOfInterest)
@@ -426,8 +426,7 @@ def calculateStarts(missingIndex,searchSeries):
     '''
     searchExcluded = pd.concat([searchSeries[:missingIndex[0]], searchSeries[missingIndex[-1]:]], axis=0)
     searchExcluded = searchExcluded[searchExcluded.index.dayofweek == missingIndex[0].dayofweek]
-    searchExcluded = searchExcluded[(searchExcluded.index.hour <= (missingIndex[0] + pd.to_timedelta('3 h')).hour) & (
-                searchExcluded.index.hour >= (missingIndex[0] - pd.to_timedelta('3 h')).hour)]
+    searchExcluded = searchExcluded.between_time((missingIndex[0] - pd.to_timedelta('3 h')).time(),(missingIndex[0] + pd.to_timedelta('3 h')).time())
 
     return searchExcluded
 

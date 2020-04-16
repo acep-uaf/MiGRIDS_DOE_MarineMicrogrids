@@ -246,6 +246,12 @@ class DataClass_test(unittest.TestCase):
 
         cuts = identifyCuts(lod, 'wtg0P', pd.to_timedelta('1.5 h'), pd.Series())
         self.assertEqual(cuts.index[0],pd.to_datetime(lod[0].index[1]))
+        df = self.createMultiYearComponentDataframe(self.comps)
+        df.loc[5:100,'wtg0P'] = np.nan
+        lod=[df]
+        cuts = identifyCuts(lod, 'wtg0P', pd.to_timedelta('1.5 h'), pd.Series())
+        self.assertEqual(cuts.index[0], pd.to_datetime(lod[0].index[4]))
+        self.assertEqual(cuts.iloc[0], pd.to_timedelta('4 days'))
     def test_findValid(self):
         df = self.createMultiYearComponentDataframe(self.comps)
         df['2019-05-01 00:00:00':'2019-05-04 00:00:00']['wtg0P'] = np.nan #4 days missing values
@@ -273,25 +279,23 @@ class DataClass_test(unittest.TestCase):
        filteredValues = filteredTimes(testRange,t1)
        self.assertTrue(len(testRange)>len(filteredValues))
     def test_calculateStarts(self):
-        possibles = []
-        smallBlock = True
-        searchPoint = pd.to_datetime('2020-04-01 00:00:00')
         missingIndex = [pd.to_datetime('2019-04-01 00:00:00'),pd.to_datetime('2019-04-02 00:00:00')]
         searchIndex = pd.Series(pd.date_range(start = '2019-03-01 00:00:00',end = '2020-04-28 00:00:00',freq='h'))
         searchIndex.index = searchIndex
-        filteredlist = calculateStarts(possibles, smallBlock, searchPoint, missingIndex, searchIndex)
+        filteredlist = calculateStarts(missingIndex, searchIndex)
         #filteredlist is a list of lists
         self.assertTrue(len(filteredlist) > 0)
-        self.assertTrue(filteredlist[0][0] == searchPoint - pd.to_timedelta('3 h'))
+        self.assertTrue(filteredlist[0].dayofweek == missingIndex[0].dayofweek)
+
     def test_getPossibleStarts(self):
         missingIndex = [pd.to_datetime('2019-04-01 00:00:00'), pd.to_datetime('2019-04-02 00:00:00')]
         searchIndex = pd.Series(pd.date_range(start='2019-03-01 00:00:00', end='2020-04-28 00:00:00', freq='h'))
         searchIndex.index = searchIndex
 
         possibleStarts = getPossibleStarts(missingIndex[0],missingIndex[1], searchIndex)
-        self.assertTrue(len(possibleStarts[0]) < len(searchIndex))
-        self.assertTrue(possibleStarts[0][0] == pd.to_datetime('2020-03-30 00:00:00'))
-        self.assertTrue(possibleStarts[0][-1] == pd.to_datetime('2020-04-01 00:00:00'))
+        self.assertTrue(len(possibleStarts) < len(searchIndex))
+        self.assertTrue(possibleStarts[0] == pd.to_datetime('2020-03-30 00:00:00'))
+        self.assertTrue(possibleStarts[-1] == pd.to_datetime('2020-04-01 00:00:00'))
     def test_fixBadData(self):
 
          df = self.createMultiYearComponentDataframe(self.comps)

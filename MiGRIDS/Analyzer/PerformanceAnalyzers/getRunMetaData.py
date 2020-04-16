@@ -60,17 +60,6 @@ def fillRunMetaData(projectSetDir, runs):
 
     return eessOverLoading,genOverLoading
 
-
-def preserveRunMetadata(eessOverLoading,genOverLoading,projectSetDir):
-    generateOverLoadResults(eessOverLoading, genOverLoading, projectSetDir)
-    setNum = re.findall('Set[0-100]',projectSetDir)[0]
-    exportRunMetadata(setNum)
-
-def exportRunMetadata(setNum):
-    dbhandler = ProjectSQLiteHandler()
-    dbhandler.exportRunMetadata(setNum)
-    del dbhandler
-
 def getRunMetadata(projectSetDir, runNum, setNum):
     # get run dir
     projectRunDir = os.path.join(projectSetDir, 'Run' + str(runNum))
