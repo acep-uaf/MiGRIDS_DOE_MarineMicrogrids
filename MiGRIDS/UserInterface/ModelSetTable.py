@@ -7,7 +7,7 @@ from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import splitAttribute
 from MiGRIDS.Controller.Controller import Controller
 
 from MiGRIDS.UserInterface.Delegates import TextDelegate, ComboDelegate, RelationDelegate
-from MiGRIDS.UserInterface.ModelRunTable import customTableView
+from MiGRIDS.UserInterface.ModelRunTable import  customAlternateTableView
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 
@@ -28,12 +28,12 @@ class SetFields(Enum):
     timestepunit=6
 
 #subclass of QTableView for displaying set information
-class SetTableView(customTableView):
+class SetTableView(customAlternateTableView):
     def __init__(self, *args, **kwargs):
         super(SetTableView, self).__init__()
         self.tabPosition = kwargs.get('position')
         self.controller = Controller()
-        self.header.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+
         attributes = QtCore.QStringListModel([])
         self.setItemDelegateForColumn(1, TextDelegate(self))
         # needs to be called componentname for delegate signal
@@ -62,7 +62,7 @@ class SetTableModel(QtSql.QSqlRelationalTableModel):
     def __init__(self, parent,position):
         super(SetTableModel,self).__init__(parent)
         QtSql.QSqlTableModel.__init__(self, parent)
-        self.hide_headers_mode = True
+        # self.hide_headers_mode = True
         self.header = ['ID','Set', 'Component', 'Tag', 'Value']
         self.setTable('set_components')
         self.controller = Controller()
@@ -85,17 +85,9 @@ class SetTableModel(QtSql.QSqlRelationalTableModel):
         self.hide_headers_mode = False
 
     def headerData(self, section: int, orientation, role):
-        if role != QtCore.Qt.DisplayRole:
-            return None
-        if orientation != QtCore.Qt.Horizontal:
-            return None
-        if section < 0 or section >= len(self.header):
-            return None
-        if self.hide_headers_mode == True:
-            return None
-        else:
-            return self.header[section]
-
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            return QtCore.QVariant(self.header[section])
+        return QtCore.QVariant()
 
     # def submitTable(self):
     #     for r in range(self.rowCount()):

@@ -1380,25 +1380,17 @@ class ProjectSQLiteHandler:
 
         return dict_from_tuple(resultTuples,{})
 
-    def exportRunMetadata(self,setName):
-        exportPath = getFilePath(setName, projectFolder=self.getProjectPath())
+    def getMetaData(self):
 
-        strSQL = "SELECT * FROM run LEFT JOIN (SELECT run_id, " \
-        "group_concat(componentnamevalue ||'.' || tag || ' = ' || tag_value) from run_attributes " \
-        "JOIN set_components ON set_components._id = run_attributes.set_component_id " \
-        "JOIN component on set_components.component_id = component._id WHERE " \
-        "set_components.set_id = " + str(self.setId) + ") as ra ON run._id = ra.run_id " \
-                                                       "GROUP BY run_id"
-        self.exportView(strSQL,exportPath)
-        return
-    def exportView(self,strSql,exportPath):
-        records = self.cursor.execute(strSql).fetchall()
-        col_name_list = [tuple[0] for tuple in self.cursor.description]
-        with open(exportPath,'w+') as csvFile:
-            csvFile.write(col_name_list)
-            csvFile.write("/n")
-            for r in records:
-                csvFile.write(r)
+        strSQL = "SELECT * FROM (SELECT set_name, run_id, " \
+                      "group_concat(componentnamevalue ||'.' || tag || ' = ' || tag_value) from run_attributes " \
+                      "JOIN set_components ON set_components._id = run_attributes.set_component_id " \
+                      "JOIN component on set_components.component_id = component._id  " \
+                      " JOIN (SELECT _id, set_name from set_) as set_ on set_components.set_id = set_._id" \
+                       " GROUP BY run_attributes.run_id) as ra JOIN run ON run._id = ra.run_id " \
+                          "GROUP BY set_name, run_id ORDER BY set_name, run_num"
+
+        return self.cursor.execute(strSQL).fetchall()
 
     def checkPath(self, filePath):
         '''converts the selected path to an existing path if it matches'''

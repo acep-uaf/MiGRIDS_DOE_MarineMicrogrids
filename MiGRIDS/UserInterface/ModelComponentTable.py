@@ -8,10 +8,10 @@ import typing
 
 from MiGRIDS.UserInterface.Delegates import *
 from MiGRIDS.UserInterface.Delegates import ComboDelegate
-from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
+
 from enum import Enum
 
-from MiGRIDS.UserInterface.ModelRunTable import customTableView
+from MiGRIDS.UserInterface.ModelRunTable import  customAlternateTableView
 
 
 class ComponentFields(Enum):
@@ -27,15 +27,16 @@ class ComponentFields(Enum):
     customize = 9
 
 #QTableView for displaying component information
-class ComponentTableView(QtWidgets.QTableView):
+class ComponentTableView(customAlternateTableView):
     def __init__(self, *args, **kwargs):
-        #super(ComponentTableView, self).__init__()
+        super(ComponentTableView, self).__init__()
+        self.hiddenColumns = [0]
         # column 1 gets autfilled with filedir
         #self.tabPosition = kwargs.get('position')
-        QtWidgets.QTableView.__init__(self, *args)
-        self.dbhandler = ProjectSQLiteHandler()
-        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
-        self.resizeColumnsToContents()
+        #QtWidgets.QTableView.__init__(self, *args)
+        #self.dbhandler = ProjectSQLiteHandler()
+       # self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
+        #self.resizeColumnsToContents()
 
         fields = []
 
@@ -61,6 +62,13 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         self.makeModel()
 
         return
+
+    def hideHeaders(self):
+        self.hide_headers_mode = True
+
+    def unhideHeaders(self):
+        self.hide_headers_mode = False
+
     def makeModel(self):
         self.removeComboRelations()
         self.setTable('component_files')

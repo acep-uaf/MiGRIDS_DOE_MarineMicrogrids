@@ -67,6 +67,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         # the table view filtered to the specific set for each tab
         tv = SetTableView(self, position=self.tabPosition)
         tv.setObjectName('sets')
+
         self.set_componentsModel = SetTableModel(self, self.tabPosition)
         self.set_componentsModel.setFilter('set_id = ' + str(self.tabPosition + 1) + " and tag != 'None'")
         tv.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)

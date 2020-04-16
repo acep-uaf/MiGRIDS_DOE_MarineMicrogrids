@@ -64,6 +64,30 @@ class customTableView(QtWidgets.QTableView):
         for c in self.hiddenColumns:
             self.hideColumn(c)
 
+class customAlternateTableView(QtWidgets.QTableView):
+    def __init__(self, *args, **kwargs):
+        QtWidgets.QTableView.__init__(self, *args, **kwargs)
+        self.hiddenColumns = [1,3,4,7,8]
+        self.columns = []
+        self.header = HeaderViewWithoutWordWrap()
+
+
+    def reFormat(self):
+        self.setHorizontalHeader(self.header)
+
+        self.horizontalHeader().setFixedHeight(50)
+        self.unhideColumns()
+        self.hideColumns()
+
+    def unhideColumns(self):
+        for i,c in enumerate(self.columns):
+            self.setColumnHidden(c,False)
+
+    def hideColumns(self):
+        for c in self.hiddenColumns:
+            self.hideColumn(c)
+
+
 class RunTableView(customTableView):
     updateRunBaseCase = QtCore.pyqtSignal(int, bool)
     def __init__(self, *args, **kwargs):
@@ -175,6 +199,56 @@ class HeaderViewWithWordWrap(QtWidgets.QHeaderView):
             painter.drawText(QtCore.QRectF(rect), QtCore.Qt.AlignCenter|QtCore.Qt.TextWordWrap, headerText)
         else:
             QtWidgets.QHeaderView.paintSection(self, painter, rect, logicalIndex)
+
+    def setStyleState(self):
+        if self.model() is None:
+            stylesheet = "::section{Background-color:rgb(171,181,184)}"
+        elif self.model().rowCount() > 0:
+            stylesheet = "::section{Background-color:rgb(171,181,184)}"
+        else:
+            stylesheet = "::section{Background-color:rgb(139, 140, 140)}"
+
+        self.setStyleSheet(stylesheet)
+
+class HeaderViewWithoutWordWrap(QtWidgets.QHeaderView):
+    def __init__(self):
+        QtWidgets.QHeaderView.__init__(self, QtCore.Qt.Horizontal)
+        self.setStyleState()
+        self.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+
+
+    def sectionSizeFromContents(self, logicalIndex):
+        # if self.model():
+        #     self.setSectionResizeMode(logicalIndex,QtWidgets.QHeaderView.Interactive)
+        #     headerText = self.model().headerData(logicalIndex,
+        #                                          self.orientation(),
+        #                                          QtCore.Qt.DisplayRole)
+        #     options = self.viewOptions()
+        #     metrics = QtGui.QFontMetrics(options.font)
+        #     maxWidth = self.sectionSize(logicalIndex)
+        #     minWidth = 100
+        #     rect = QtCore.QRect(0, 0, minWidth, 50000)
+        #     # rectbox = metrics.boundingRect(rect,
+        #     #                                QtCore.Qt.AlignCenter | QtCore.Qt.TextWordWrap | QtCore.Qt.TextExpandTabs,
+        #     #                                headerText, 4)
+        #
+        #     return rect.size()
+        # else:
+        return QtWidgets.QHeaderView.sectionSizeFromContents(self, logicalIndex)
+
+    def paintSection(self, painter, rect, logicalIndex):
+        # if self.model():
+        #     painter.save()
+        #     self.model().hideHeaders()
+        #     QtWidgets.QHeaderView.paintSection(self, painter, rect, logicalIndex)
+        #     self.model().unhideHeaders()
+        #     painter.restore()
+        #     headerText = self.model().headerData(logicalIndex,
+        #                                          self.orientation(),
+        #                                          QtCore.Qt.DisplayRole)
+        #     painter.drawText(QtCore.QRectF(rect), QtCore.Qt.AlignCenter | QtCore.Qt.TextWordWrap, headerText)
+        # else:
+        QtWidgets.QHeaderView.paintSection(self, painter, rect, logicalIndex)
 
     def setStyleState(self):
         if self.model() is None:

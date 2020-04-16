@@ -23,12 +23,8 @@ class FormModelRun(BaseForm):
 
         self.layout = QtWidgets.QVBoxLayout()
 
-        #button to create a new set tab
-        newTabButton = QtWidgets.QPushButton()
-        newTabButton.setText(' + Set')
-        newTabButton.setFixedWidth(100)
-        newTabButton.clicked.connect(lambda:self.newTab(self.getTabCount()))
-        self.layout.addWidget(newTabButton)
+        buttons = self.makeButtonBlock()
+        self.layout.addWidget(buttons)
 
         #set table goes below the new tab button
         self.layout.addWidget(self.tabs)
@@ -37,6 +33,25 @@ class FormModelRun(BaseForm):
         self.setLayout(self.layout)
         self.showMaximized()
         self.controller.sender.statusChanged.connect(self.updateForm)
+
+    def makeButtonBlock(self):
+        topButtons = QtWidgets.QGroupBox()
+        hlayout = QtWidgets.QHBoxLayout()
+        # button to create a new set tab
+        newTabButton = QtWidgets.QPushButton()
+        newTabButton.setText(' + Set')
+        newTabButton.setFixedWidth(100)
+        newTabButton.clicked.connect(lambda: self.newTab(self.getTabCount()))
+        hlayout.addWidget(newTabButton)
+        # button to create a new set tab
+        exportButton = QtWidgets.QPushButton()
+        exportButton.setText('Export Results')
+        exportButton.setFixedWidth(300)
+        exportButton.clicked.connect(self.exportResults)
+        hlayout.addWidget(exportButton, 3)
+        topButtons.setLayout(hlayout)
+        return topButtons
+
     def getTabCount(self):
         return len(self.tabs)
     #add a new set to the project, this adds a new tab for the new set information
@@ -47,6 +62,8 @@ class FormModelRun(BaseForm):
         #widg.fillSetInfo()
         self.tabs.addTab(widg, 'Set' + str(position))
 
+    def exportResults(self):
+        self.controller.runHandler.exportResults(self.run_Model.header)
     # calls the specified function connected to a button onClick event
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):

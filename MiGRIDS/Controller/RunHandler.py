@@ -1,5 +1,6 @@
 # Projet: MiGRIDS
 # Created by: T.Morgan# Created on: 9/25/2019
+import csv
 import glob
 import os
 
@@ -210,7 +211,15 @@ class RunHandler(UIHandler):
 
     def findSetupFile(self, setName):
         return os.path.join(*[getFilePath(setName,projectFolder=self.dbhandler.getProjectPath()),'Setup',self.dbhandler.getProject() + setName +  'Setup.xml'])
-
+    def exportResults(self,header):
+        meta = self.dbhandler.getMetaData()
+        metafile = os.path.join(getFilePath('OutputData',projectFolder=self.dbhandler.getProjectPath()),'runMetadata.csv')
+        with open(metafile, 'w+', newline='') as csvFile:
+            csvWriter = csv.writer(csvFile)
+            csvWriter.writerow(header)
+            for m in meta:
+                csvWriter.writerow(m)
+        return
     def runModels(self, currentSet):
         '''makes a call to the model package to run a model set.
         All required xmls are already in the set and run directories'''
