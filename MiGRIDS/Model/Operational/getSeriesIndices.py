@@ -11,11 +11,14 @@ def getSeriesIndices(steps, seriesLen):
         idx = range(seriesLen)
     elif (type(steps) is list or type(steps) is np.ndarray):
         if len(steps) == 2:
-            idx = range(steps[0],steps[1])
+            start = np.max([steps[0],0])
+            stop = np.min([steps[-1],seriesLen-1])
+            idx = range(start,stop)
         else:
             idx = steps
     elif type(steps) is int:
-        idx = range(steps)
+        stop = np.min([steps, seriesLen - 1])
+        idx = range(stop)
     else:
         idx = steps
 
