@@ -543,15 +543,17 @@ class ProjectSQLiteHandler:
             endPoint = asDate(self.getFieldValue(SETUPTABLE,ENDDATE,ID,'1'))
             if startPoint is None:
                 return None
+            if value == '0.0':
+                return startPoint
             if value == startPoint:
                 return startPoint #references first record
             if value == endPoint:
                 return endPoint #has no end - use entire dataset
             try:
-                intervals = int(value)/int(self.getFieldValue(SETUPTABLE, self.dbName(TIMESTEP), ID, '1'))
+                intervals = int(float(value))/int(self.getFieldValue(SETUPTABLE, self.dbName(TIMESTEP), ID, '1'))
             except ValueError as e:
                 return startPoint
-            currentDateTime = asDate(startPoint) + pd.to_timedelta(intervals, unit='s') #seconds between the start position and value
+            currentDateTime = startPoint + pd.to_timedelta(intervals, unit='s') #seconds between the start position and value
             return currentDateTime
 
         # update fields that are in the set table
