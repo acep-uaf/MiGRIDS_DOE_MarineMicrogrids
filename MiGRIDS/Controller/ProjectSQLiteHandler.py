@@ -410,6 +410,8 @@ class ProjectSQLiteHandler:
                 dateDiff = pd.to_timedelta('0 s') #reset to 0 record position is the first record
             interval = self.getTimeStep(SETUPTABLE,1)
             record_position = (abs(dateDiff) / pd.to_timedelta(interval)) -1
+            if record_position < 0:
+                record_position  = 0
             return record_position
 
         #get tuple for basic set info
