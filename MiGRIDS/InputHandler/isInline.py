@@ -286,7 +286,7 @@ def doReplaceData(groups, df_to_fix, cuts, possibleReplacementValues):
             replacementStarts = indicesOfInterest.apply(lambda n: validReplacements(n, possibleReplacementValues), axis = 1)
             
             indicesOfInterest.loc[:,'replacementsStarts'] = replacementStarts
-            indicesOfInterest['replacementsStarts'].dt.tz_localize(indicesOfInterest['first'].dt.tz)
+            #indicesOfInterest['replacementsStarts'].dt.tz_localize(indicesOfInterest['first'].dt.tz)
             #replace blocks of nas with blocks of replacementstarts
             df_to_fix = dropIndices(df_to_fix, indicesOfInterest)
             #new values get appended onto the datframe
