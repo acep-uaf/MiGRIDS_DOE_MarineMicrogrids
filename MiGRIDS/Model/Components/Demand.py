@@ -82,7 +82,9 @@ class Demand:
         # interpolate wind power according to the desired timestep
         f = interp1d(time, load)
         #TODO: cannot assume the timestep is 1 sec
-        num = int(len(time) / self.timeStep)
+        # get the
+        timeStepNC = int(np.mean(np.diff(time)))
+        num = int(len(time) * timeStepNC / self.timeStep)
         timeNew = np.linspace(time[0], time[-1], num)
         loadNew = f(timeNew)
         # get the indices of the timesteps to simulate
