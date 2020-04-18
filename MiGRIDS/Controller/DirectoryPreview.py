@@ -127,7 +127,7 @@ class DirectoryPreview():
         except IndexError as e:
             # No date column found moves on to find time and date gets set to empty string
             sampleDate = ''
-            print(e)
+
         finally:
             try:
                

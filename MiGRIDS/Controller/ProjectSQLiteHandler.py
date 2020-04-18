@@ -10,6 +10,7 @@ from MiGRIDS.UserInterface.qdateFromString import asDate
 from MiGRIDS.InputHandler.InputFields import *
 import pandas as pd
 import shlex
+import datetime
 # field and table constants
 # fields
 PROJECTNAME = "project_name"
@@ -409,7 +410,7 @@ class ProjectSQLiteHandler:
             if dateDiff > pd.to_timedelta('0 s'): #if its negative its after the startpoint
                 dateDiff = pd.to_timedelta('0 s') #reset to 0 record position is the first record
             interval = self.getTimeStep(SETUPTABLE,1)
-            record_position = (abs(dateDiff) / pd.to_timedelta(interval)) -1
+            record_position = (abs(dateDiff) / pd.to_timedelta(interval))
             if record_position < 0:
                 record_position  = 0
             return record_position
@@ -543,17 +544,17 @@ class ProjectSQLiteHandler:
             endPoint = asDate(self.getFieldValue(SETUPTABLE,ENDDATE,ID,'1'))
             if startPoint is None:
                 return None
-            if value == '0.0':
+            if (value == '0.0') | (value == '0'):
                 return startPoint
             if value == startPoint:
                 return startPoint #references first record
             if value == endPoint:
                 return endPoint #has no end - use entire dataset
             try:
-                intervals = int(float(value))/int(self.getFieldValue(SETUPTABLE, self.dbName(TIMESTEP), ID, '1'))
+                duration = int(float(value)) * pd.to_timedelta(self.getFieldValue(SETUPTABLE, self.dbName(TIMESTEP), ID, '1') + " " + self.getFieldValue(SETUPTABLE, self.dbName(TIMESTEPUNIT), ID, '1'))
             except ValueError as e:
                 return startPoint
-            currentDateTime = startPoint + pd.to_timedelta(intervals, unit='s') #seconds between the start position and value
+            currentDateTime = startPoint + duration #seconds between the start position and value
             return currentDateTime
 
         # update fields that are in the set table
@@ -665,7 +666,13 @@ class ProjectSQLiteHandler:
         sqlStatement = self.createStatements(componentsInSet,set_id)
         set_component_combos = self.cursor.execute(sqlStatement).fetchall()
         return set_component_combos
+    def getAllSetComponents(self,set_id):
 
+        '''produces a list of component id's for a given set'''
+        componentsInSet = self.cursor.execute("SELECT _id from component WHERE _id in "
+                                              "(SELECT component_id FROM set_components WHERE set_id = ? ) GROUP BY _id",
+                                              [set_id]).fetchall()
+        return componentsInSet
     def getSetComponents(self, set_id):
         '''produces a list of component id's for a given set'''
         componentsInSet = self.cursor.execute("SELECT _id from component WHERE _id in "
@@ -1007,7 +1014,7 @@ class ProjectSQLiteHandler:
             enddate = None
 
         setId = self.insertRecord(SETUPTABLE,[self.dbName(TIMESTEPUNIT),self.dbName(TIMESTEP),self.dbName(RUNTIMESTEPS),STARTDATE,ENDDATE,PROJECTID],
-                          [setupDict[TIMESTEPUNIT],setupDict[TIMESTEP],setupDict[RUNTIMESTEPS],startdate,enddate,pid])
+                          [setupDict[TIMESTEPUNIT],setupDict[TIMESTEP],setupDict[RUNTIMESTEPS],datetime.datetime.strftime(asDate(startdate),'%Y-%m-%d %H:%M:%S'),datetime.datetime.strftime(asDate(enddate),'%Y-%m-%d %H:%M:%S'),pid])
 
         #update input handler infomation
         #this information is in the from of space delimited ordered lists that require parsing and are used by the input handler

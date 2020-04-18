@@ -150,11 +150,11 @@ class SetsAttributeEditorBlock(BaseEditorTab):
             end = datetime.datetime.today()
             start = datetime.datetime.today() - datetime.timedelta(days=365)
         elif type(start)== str:
-            start = datetime.datetime.strptime(start, '%Y-%m-%d')
-            end = datetime.datetime.strptime(end, '%Y-%m-%d')
+            start = datetime.datetime.strptime(start, '%Y-%m-%d %H:%m:%s')
+            end = datetime.datetime.strptime(end, '%Y-%m-%d %H:%m:%s')
         else:
-            start = datetime.datetime.strptime(start[0], '%Y-%m-%d')
-            end = datetime.datetime.strptime(end[0], '%Y-%m-%d')
+            start = datetime.datetime.strptime(start[0], '%Y-%m-%d %H:%m:%s')
+            end = datetime.datetime.strptime(end[0], '%Y-%m-%d %H:%m:%s')
 
         return start, end
     def setSetDates(self,setInfo):
@@ -244,8 +244,8 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         #timestepWidget.setValidator(QtGui.QIntValidator(int(minSeconds),86400))
         timestepWidget.setMinimum(int(minSeconds))
         def constrainDateRange(dateWidget,start,end):
-            dateWidget.setMinimumDate(start)
-            dateWidget.setMaximumDate(end)
+            dateWidget.setMinimumDateTime(start)
+            dateWidget.setMaximumDateTime(end)
         #start date needs to be equal to or greater than the setup start
         start, end = self.controller.dbhandler.getSetupDateRange()
         wids = self.infoBox.findChildren(QtWidgets.QDateEdit)
@@ -276,7 +276,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
                 self.mapper.setItemDelegate(QtWidgets.QItemDelegate())
                 self.mapper.addMapping(wid, i)
                 if isinstance(wid,QtWidgets.QDateEdit):
-                    wid.setDate(qdateFromString(self.set_model.data(self.set_model.index(0, i))))
+                    wid.setDateTime(qdateFromString(self.set_model.data(self.set_model.index(0, i))))
 
         # submit data changes automatically on field changes -this doesn't work
         self.mapper.setSubmitPolicy(QtWidgets.QDataWidgetMapper.AutoSubmit)
@@ -343,12 +343,12 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         self.set_componentsModel.select()
     #Boolean -> QDateEdit
     def makeDateSelector(self, start=True):
-        widg = QtWidgets.QDateEdit()
+        widg = QtWidgets.QDateTimeEdit()
         if start:
             widg.setObjectName('date_start')
         else:
             widg.setObjectName('date_end')
-        widg.setDisplayFormat('yyyy-MM-dd')
+        widg.setDisplayFormat('yyyy-MM-dd HH:mm:ss')
         widg.setCalendarPopup(True)
         return widg
     #QDateEdit, Boolean -> QDateEdit()
@@ -358,7 +358,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
            widg.setDate(QtCore.QDate(self.startDate.year,self.startDate.month,self.startDate.day))
         else:
             widg.setDate(QtCore.QDate(self.endDate.year, self.endDate.month, self.endDate.day))
-        widg.setDisplayFormat('yyyy-MM-dd')
+        widg.setDisplayFormat('yyyy-MM-dd HH:mm:ss')
         widg.setCalendarPopup(True)
         return widg
     # string -> QGroupbox

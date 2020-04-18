@@ -46,6 +46,7 @@ def checkDataGaps(s):
     filtered['start'] = pd.Series(pd.to_datetime(filtered.index),index=filtered.index)
     #list of missing timestamps for each indice in filtered
     missingIndices =filtered.apply(lambda r: makeIndex(r),axis=1)
+    #TODO handle result in df or series ambiguous way.
     if len(missingIndices) > 0:
         #make the indices into a list of dataframes to be concatonated
         indices = missingIndices.iloc[:,0].apply(lambda i:pd.DataFrame(data = None,index = pd.DatetimeIndex(i))).tolist()

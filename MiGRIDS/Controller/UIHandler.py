@@ -13,7 +13,7 @@ from MiGRIDS.InputHandler.makeSoup import makeComponentSoup
 from MiGRIDS.InputHandler.writeXmlTag import writeXmlTag
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.InputHandler.getSetupInformation import getSetupInformation
-
+import datetime
 
 class UIHandler():
     def __init__(self,dbhandler):

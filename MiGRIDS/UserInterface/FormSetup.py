@@ -10,6 +10,7 @@ wind turbine components can have either an associated power time series or a win
 In the case of a windspeed file a windspeed netcdf file will be generated and power time series will be generated once the model is run based
 on each wtg components descriptor file.'''
 import os
+import datetime
 from PyQt5 import QtWidgets, QtCore
 from glob2 import glob
 import MiGRIDS.UserInterface.ModelComponentTable as T
@@ -510,6 +511,7 @@ class FormSetup(BaseForm):
 
         values = self.updateInputDataDependents(data)
         self.updateModelInputDependents(values)
+        return
     def updateModelInputDependents(self, values):
         if len(self.controller.sets)<=0:
             self.controller.dbhandler.insertFirstSet(values)
@@ -517,6 +519,7 @@ class FormSetup(BaseForm):
         # Deliver appropriate info to the ModelForm
         modelForm = self.window().findChild(FormModelRun)
         modelForm.projectLoaded()
+        return
     def updateInputDataDependents(self, data = None):
         ''':return dictionary of values relevant to a setup file'''
 
@@ -531,8 +534,8 @@ class FormSetup(BaseForm):
             '''
 
             if len(listDf) > 0:
-                s = listDf[0].index[0].date()
-                e = listDf[0].index[len(listDf[0]) - 1].date()
+                s = datetime.datetime.strftime(listDf[0].index[0],'%Y-%m-%d %H:%M:%S')
+                e = datetime.datetime.strftime(listDf[0].index[len(listDf[0]) - 1],'%Y-%m-%d %H:%M:%S')
                 return str(s), str(e)
             return str(defaultStart), str(defaultEnd)
 

@@ -86,11 +86,11 @@ class TwoDatesDialog(WizardPage):
         box = QtWidgets.QHBoxLayout()
         self.startDate = QtWidgets.QDateEdit()
         self.startDate.setObjectName('start')
-        self.startDate.setDisplayFormat('yyyy-MM-dd')
+        self.startDate.setDisplayFormat('yyyy-MM-dd HH:mm:ss')
         self.startDate.setCalendarPopup(True)
         self.endDate = QtWidgets.QDateEdit()
         self.endDate.setObjectName('end')
-        self.endDate.setDisplayFormat('yyyy-MM-dd')
+        self.endDate.setDisplayFormat('yyyy-MM-dd  HH:mm:ss')
         self.endDate.setCalendarPopup(True)
         box.addWidget(self.startDate)
         box.addWidget(self.endDate)
@@ -100,8 +100,8 @@ class TwoDatesDialog(WizardPage):
         try:
             #if the setup info has already been set dates will be in the database table set
             print(self.dbhandler.getFieldValue('setup', 'date_start', '_id',1))
-            self.startDate.setDate(QtCore.QDate.fromString(self.dbhandler.getFieldValue('setup', 'date_start', '_id', 1),"yyyy-MM-dd"))
-            self.endDate.setDate(QtCore.QDate.fromString(self.dbhandler.getFieldValue('setup', 'date_end',  '_id', 1),"yyyy-MM-dd"))
+            self.startDate.setDate(QtCore.QDate.fromString(self.dbhandler.getFieldValue('setup', 'date_start', '_id', 1),"yyyy-MM-dd HH:mm:ss'"))
+            self.endDate.setDate(QtCore.QDate.fromString(self.dbhandler.getFieldValue('setup', 'date_end',  '_id', 1),"yyyy-MM-dd HH:mm:ss'"))
         except AttributeError as a:
             print(a)
         except TypeError as a:

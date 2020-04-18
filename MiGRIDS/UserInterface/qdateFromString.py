@@ -7,16 +7,17 @@ from PyQt5 import QtCore
 
 def qdateFromString(strDate):
     if (type(strDate) == str) & (strDate != 'None') & (strDate != ''):
-       return QtCore.QDate(asDate(strDate))
+       return QtCore.QDateTime(asDate(strDate))
     elif type(strDate) == list:
-       return QtCore.QDate(asDate(strDate[0]))
+       return QtCore.QDateTime(asDate(strDate[0]))
     else:
-        return QtCore.QDate(datetime.datetime.today())
+        return QtCore.QDateTime(datetime.datetime.today())
 
 
 def asDate(strDate):
     try:
         realDate = datetime.datetime.strptime(strDate, '%Y-%m-%d')
+
     except ValueError as v:
         try:
             realDate = datetime.datetime.strptime(strDate, '%Y-%m-%d %H:%M:%S')

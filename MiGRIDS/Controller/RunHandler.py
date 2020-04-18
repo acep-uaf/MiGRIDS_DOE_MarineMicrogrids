@@ -61,7 +61,7 @@ class RunHandler(UIHandler):
 
         return
     def makeRunDescriptors(self,setCompId,runName,setName):
-        allComponents = self.dbhandler.getSetComponents(self.dbhandler.getSetId(setName))
+        allComponents = self.dbhandler.getAllSetComponents(self.dbhandler.getSetId(setName))
         for i in allComponents:
             runFolder = getFilePath(runName,projectFolder = self.dbhandler.getProjectPath(),Set=setName)
             descFile = os.path.join(*[runFolder,'Components',
