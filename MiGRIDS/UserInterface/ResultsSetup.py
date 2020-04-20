@@ -71,7 +71,14 @@ class ResultsSetup(ResultsPlot):
 
         if (xvalue == '') | (yvalue == '') | (self.data is None) :
             return {}
-        if xvalue == 'index':
+        if yvalue == 'index':
+            data = {'raw': {'x': self.data['raw'][xvalue].fillna(method ='pad',limit=1), 'y': self.data['raw'].index,
+                            'color': 'red'},
+                    'fixed': {'x': self.data['fixed'][xvalue], 'y': self.data['fixed'].index,
+                              'color': (0.0, 0.04, 0.96, 0.9)}
+                    }
+
+        elif xvalue == 'index':
             data = {'raw': {'x': self.data['raw'].index, 'y': self.data['raw'][yvalue].fillna(method ='pad',limit=1),'color':'red'},
                     'fixed': {'x': self.data['fixed'].index, 'y': self.data['fixed'][yvalue],'color':(0.0, 0.04, 0.96,0.9)}
 

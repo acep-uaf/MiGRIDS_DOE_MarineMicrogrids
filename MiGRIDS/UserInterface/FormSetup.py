@@ -523,7 +523,7 @@ class FormSetup(BaseForm):
     def updateInputDataDependents(self, data = None):
         ''':return dictionary of values relevant to a setup file'''
 
-        def getDefaults(listDf, defaultStart=pd.datetime.today().date(), defaultEnd=pd.datetime.today().date()):
+        def getDefaults(listDf, defaultStart=datetime.datetime.today().date(), defaultEnd=datetime.datetime.today().date()):
             '''
             returns the earliest and latest date index found in a list of dataframes with date indices. Will return initial default
             start and end if no dates are found in dataframes.

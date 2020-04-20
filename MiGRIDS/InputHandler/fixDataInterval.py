@@ -157,7 +157,7 @@ def fixSeriesInterval(startingSeries, reSampledSeries,interval):
 def scaleSigma(sigma):
     '''Calculates the standard deviation using a rolling window'''
     WINDOW = 5
-    records = abs(pd.to_timedelta(pd.Series(sigma.index).diff(-1)).dt.total_seconds()) #records is the number of seconds between consecutive values - one record per second
+    records = abs(pd.to_timedelta(pd.Series(sigma.index,index=sigma.index).diff(-1)).dt.total_seconds()) #records is the number of seconds between consecutive values - one record per second
     records = records.rolling(WINDOW, 2).mean() #mean number of seconds between intervals used to calculate sigma
     records = records.bfill()
     records[records < 60] = 1
@@ -306,7 +306,7 @@ def getValues(start, sigma):
         del time_matrix0
         del nRemaining
         del x0
-        #put the time and values together s
+    #put the time and values together s
     tv = np.array(list(zip(timeArray,values)))
     tv = tv[tv[:,0].argsort()] # sort by timeArray
 

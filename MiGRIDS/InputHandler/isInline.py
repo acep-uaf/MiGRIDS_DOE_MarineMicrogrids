@@ -46,10 +46,12 @@ def checkDataGaps(s):
     filtered['start'] = pd.Series(pd.to_datetime(filtered.index),index=filtered.index)
     #list of missing timestamps for each indice in filtered
     missingIndices =filtered.apply(lambda r: makeIndex(r),axis=1)
-    #TODO handle result in df or series ambiguous way.
+    if isinstance(missingIndices,pd.DataFrame):
+        missingIndices = missingIndices.iloc[:,0]
+
     if len(missingIndices) > 0:
         #make the indices into a list of dataframes to be concatonated
-        indices = missingIndices.iloc[:,0].apply(lambda i:pd.DataFrame(data = None,index = pd.DatetimeIndex(i))).tolist()
+        indices = missingIndices.apply(lambda i:pd.DataFrame(data = None,index = pd.DatetimeIndex(i[0]))).tolist()
         s = s.append(pd.concat(indices))
 
         #only keep the colums we started with (return df to its original dimensions)
@@ -193,9 +195,9 @@ def calculateNonNullDuration(index1,index2, s):
     evaluationChunk = s[index1:index2]
     evaluationTime = pd.Series(evaluationChunk.index, index=evaluationChunk.index).diff().astype('timedelta64[ns]')
     if (isinstance(s,pd.Series)):
-        evaluationTime.loc[pd.isnull(evaluationChunk)] = 0  # set to 0 where s is null
+        evaluationTime.loc[pd.isnull(evaluationChunk)] = pd.to_timedelta('0 D')  # set to 0 where s is null
     else:
-        evaluationTime.loc[pd.isnull(evaluationChunk).any(axis=1)] = 0
+        evaluationTime.loc[pd.isnull(evaluationChunk).any(axis=1)] = pd.to_timedelta('0 D')
     totalCoverage = evaluationTime[pd.notnull(evaluationTime)].sum()
     totalCoverage = pd.to_timedelta(totalCoverage, 'h')
 
@@ -288,7 +290,7 @@ def doReplaceData(groups, df_to_fix, cuts, possibleReplacementValues):
             
             indicesOfInterest.loc[:,'replacementsStarts'] = replacementStarts.values
             if indicesOfInterest['replacementsStarts'].dt.tz == None:
-                indicesOfInterest['replacementsStarts'].dt.tz_localize(indicesOfInterest['first'].dt.tz)
+                indicesOfInterest['replacementsStarts'] = indicesOfInterest['replacementsStarts'].dt.tz_localize(indicesOfInterest['first'].dt.tz)
             #replace blocks of nas with blocks of replacementstarts
             df_to_fix = dropIndices(df_to_fix, indicesOfInterest)
             #new values get appended onto the datframe
