@@ -276,7 +276,7 @@ class FormSetup(BaseForm):
 
     def grantPermissions(self):
         self.tabs.setEnabled(self.controller.setupValid)
-        self.createInputButton.setEnabled(self.controller.inputDataValid)
+        self.createInputButton.setEnabled(self.controller.setupValid)
         if self.controller.dataObjectValid:
             self.dataLoadedOutput.setText('Data Loaded')
             self.updateFormProjectDataStatus()
