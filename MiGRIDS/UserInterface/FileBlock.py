@@ -154,7 +154,7 @@ class FileBlock(BaseEditorTab):
                 print(name + " not set")
                 pass
         self.updateComponentDelegates.emit(preview)
-        self.updateDefaultDates()
+        self.updateDefaultDates(preview)
         #the component table needs to be updated to reflect the file input and preview - update table filter
         # try:
         #     self.updateComponentDelegates(preview) #error if component table not created yet
