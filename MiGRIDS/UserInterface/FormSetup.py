@@ -276,7 +276,7 @@ class FormSetup(BaseForm):
 
     def grantPermissions(self):
         self.tabs.setEnabled(self.controller.setupValid)
-        self.createInputButton.setEnabled(self.controller.inputDataValid)
+        self.createInputButton.setEnabled(self.controller.setupValid)
         if self.controller.dataObjectValid:
             self.dataLoadedOutput.setText('Data Loaded')
             self.updateFormProjectDataStatus()
@@ -523,7 +523,7 @@ class FormSetup(BaseForm):
     def updateInputDataDependents(self, data = None):
         ''':return dictionary of values relevant to a setup file'''
 
-        def getDefaults(listDf, defaultStart=pd.datetime.today().date(), defaultEnd=pd.datetime.today().date()):
+        def getDefaults(listDf, defaultStart=datetime.datetime.today().date(), defaultEnd=datetime.datetime.today().date()):
             '''
             returns the earliest and latest date index found in a list of dataframes with date indices. Will return initial default
             start and end if no dates are found in dataframes.

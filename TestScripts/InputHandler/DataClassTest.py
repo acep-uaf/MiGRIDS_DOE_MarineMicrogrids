@@ -101,11 +101,7 @@ class DataClass_test(unittest.TestCase):
         D = DataClass(df)
         D.splitDataFrame(df.columns)
         self.assertTrue(len(D.fixed),2)
-    def test_fixGen(self):
-        clist = [c.component_name for c in self.comps]
-        #fixGen()
-        self.assertTrue(False)
-        return
+
     def test_totalPower(self):
         df = self.df.copy()
         D = DataClass(df)
@@ -261,9 +257,9 @@ class DataClass_test(unittest.TestCase):
         s =df['wtg0P']
         value = findValid(initialTs, d, possibles, s)
         self.assertTrue(value == pd.to_datetime('2019-01-01 00:00:00'))
-        possibles2 = df['2019-02-27 00:00:00':]['wtg0P'] #first possible index is shortly before gap in data
+        possibles2 = df['2019-02-27 00:00:00':]['wtg0P']
         value = findValid(initialTs,d, possibles2, s)
-        self.assertTrue(value == pd.to_datetime('2019-05-04 01:00:00')) #first possible with enough data to replace gap is after the month long data gap
+        self.assertTrue(value == pd.to_datetime('2019-02-28 23:00:00')) #first possible with enough data to replace gap is after the month long data gap
     def test_listToDataframe(self):
         df = self.df.copy()
         lor = pd.DataFrame()
