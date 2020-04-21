@@ -171,7 +171,8 @@ class WindTurbine:
 
         # interpolate wind power according to the desired timestep
         f = interp1d(windTime,windPower)
-        num = int(len(windTime) / self.timeStep)
+        timeStepNC = int(np.mean(np.diff(windTime)))
+        num = int(len(windTime)* timeStepNC / self.timeStep)
         windTimeNew = np.linspace(windTime[0], windTime[-1], num)
         windPowerNew = f(windTimeNew)
         # get the indices of the timesteps to simulate
