@@ -220,6 +220,14 @@ class RunHandler(UIHandler):
             for m in meta:
                 csvWriter.writerow(m)
         return
+
+    def checkRunTimesteps(self):
+        '''Checks the runtimesteps in the set setup file against one of the netcdf files.
+        Since all netcdfs should be the same lenght it only needs to compare to one.
+        '''
+
+        return
+
     def runModels(self, currentSet):
         '''makes a call to the model package to run a model set.
         All required xmls are already in the set and run directories'''

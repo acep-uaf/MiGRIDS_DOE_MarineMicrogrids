@@ -468,9 +468,14 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         if len(self.controller.dbhandler.getSetComponents(self.setId))> 0: #won't run models unless tags have been set
             #cretae the required xml files and set directory
             self.setupSet()
+            self.controller.runHandler.checkRunTimesteps()
             self.startModeling()
         else:
             pass
+        return
+
+
+
     def startModeling(self):
         #post a progress dialog box
         pbox = CustomProgressBar("Running Simulations")

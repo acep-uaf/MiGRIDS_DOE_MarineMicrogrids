@@ -154,7 +154,7 @@ class FileBlock(BaseEditorTab):
                 print(name + " not set")
                 pass
         self.updateComponentDelegates.emit(preview)
-        self.updateDefaultDates(preview)
+
         #the component table needs to be updated to reflect the file input and preview - update table filter
         # try:
         #     self.updateComponentDelegates(preview) #error if component table not created yet
@@ -162,9 +162,7 @@ class FileBlock(BaseEditorTab):
         #     pass
 
         self.saveInput()
-
-    def updateDefaultDates(self,preview):
-        self.controller.dbhandler.updateDefaultDates(preview.startDate,preview.endDate)
+        return
     def createTopBlock(self,title, fn):
         '''The top block is where file information is set (format, date and time channels and file type)
         :param title: [String]
