@@ -475,7 +475,7 @@ class FormSetup(BaseForm):
             return
         result = self.ComponentTable.model().submit()
         if not result:
-            print(self.ComponentTable.model().lastError.text())
+            print(self.ComponentTable.model().lastError().text())
         #make sure everything is in the setup file
         self.controller.setupHandler.makeSetup(self.controller.project, self.controller.setupFolder)
 
