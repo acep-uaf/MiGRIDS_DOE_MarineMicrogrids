@@ -999,14 +999,16 @@ class ProjectSQLiteHandler:
             :returns True if the value only contains a date (no time)'''
             return ":" not in value
         #update fields that are in the setup table
+        lstRuntimesteps = shlex.split(setupDict[RUNTIMESTEPS])
         try:
             if isdateOnly(setupDict[RUNTIMESTEPS]):
-                startdate = setupDict[RUNTIMESTEPS].split(" ")[0]
-                enddate = setupDict[RUNTIMESTEPS].split(" ")[1]
+                startdate = lstRuntimesteps[0]
+                enddate = lstRuntimesteps[1]
             else:
-                startdate = setupDict[RUNTIMESTEPS].split(" ")[0] + " " +setupDict[RUNTIMESTEPS].split(" ")[1]
-                enddate = setupDict[RUNTIMESTEPS].split(" ")[2] + " " + \
-                            setupDict[RUNTIMESTEPS].split(" ")[3]
+
+                startdate =lstRuntimesteps[0] + " " + lstRuntimesteps[1]
+                enddate = lstRuntimesteps[2] + " " + \
+                            lstRuntimesteps[3]
 
         except IndexError as i:
             print("runtimesteps not start stop indices")
