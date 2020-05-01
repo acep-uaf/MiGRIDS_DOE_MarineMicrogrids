@@ -842,8 +842,9 @@ class ProjectSQLiteHandler:
             return m
 
         def replaceNone(val):
-            if len(val) <= 0:
-                return 'None'
+            if (not isinstance(val,int)) & (not isinstance(val,float)):
+                if len(val) <= 0:
+                    return 'None'
             else:
                 return val
 

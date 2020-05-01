@@ -43,7 +43,9 @@ def checkDataGaps(s):
     timeDiff = pd.DataFrame(timeDiff)
     timeDiff.columns = ['timeDiff']
     filtered = timeDiff[timeDiff.timeDiff > m]
-    filtered['start'] = pd.Series(pd.to_datetime(filtered.index),index=filtered.index)
+    start = pd.Series(pd.to_datetime(filtered.index),index=filtered.index)
+    start.name = 'start'
+    filtered = pd.concat([filtered,start], axis = 1)
     #list of missing timestamps for each indice in filtered
     missingIndices =filtered.apply(lambda r: makeIndex(r),axis=1)
     if isinstance(missingIndices,pd.DataFrame):
