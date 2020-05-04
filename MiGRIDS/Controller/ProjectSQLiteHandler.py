@@ -679,7 +679,11 @@ class ProjectSQLiteHandler:
                                           "(SELECT component_id FROM set_components WHERE set_id = ? AND tag != 'None') GROUP BY _id",
                                           [set_id]).fetchall()
         return componentsInSet
-
+    def isRunStarted(self, setId, runNum):
+        if len(self.cursor.execute("SELECT * FROM run where set_id = ? and run_num = ?",[setId,runNum]).fetchall()) == 0:
+            return None
+        else:
+            return True
     def getSetComponentNames(self, setName ='Set0'):
         '''
         returns a list of names for components in the set_components table. Defaults to set0

@@ -500,6 +500,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         '''finds the plot object and calls its default method'''
         resultDisplay = self.window().findChild(ResultsModel)
         resultDisplay.makePlotArea()
+        resultDisplay.setData( resultDisplay.getPlotData())
         resultDisplay.showPlot()
         return
 

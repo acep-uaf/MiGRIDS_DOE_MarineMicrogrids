@@ -56,6 +56,26 @@ class Controller:
         self.projectFolder = None # Path to the project folder
         self.sets=[] # list of set folders
 
+    def listNetCDFs(self,setupFile):
+        '''
+        produces a list of netcdf files located in the Processed folder of a project TimeSeries folder
+        :return: List of Strings of names of netCDF files
+        '''
+        try:
+            lof = [f for f in os.listdir(getFilePath('Processed', setupFolder=os.path.dirname(setupFile))) if
+                   f[-2:] == 'nc']
+            return lof
+        except FileNotFoundError as e:
+            print('No netcdf model files found.')
+        return []
+
+    def loadNetcdfs(self):
+        netcdfs = self.listNetCDFs()
+        # validate netcdfs
+        if self.validate(ValidatorTypes.NetCDFList, netcdfs):
+            self.updateAttribute('Controller', 'netcdfsValid', True)
+            self.updateAttribute('Controller', 'netcdfs', netcdfs)  # send the object to the controller
+
     def validateInput(self):
         #TODO change to actualy check input
         self.validate(ValidatorTypes.InputData,None)

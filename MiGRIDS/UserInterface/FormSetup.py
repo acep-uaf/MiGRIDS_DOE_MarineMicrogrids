@@ -193,6 +193,12 @@ class FormSetup(BaseForm):
         # generate netcd button
         self.netCDFButton = self.createSubmitButton()
         hlayout.addWidget(self.netCDFButton)
+
+        self.loadNetCDFButton = self.createLoadNetcdfButton()
+        hlayout.addWidget(self.loadNetCDFButton)
+
+        self.switchGenerateNetcdf(False)
+
         self.netCDFButton.setFixedWidth(200)
         self.currentNetcdfs  = QtWidgets.QLineEdit()
         self.currentNetcdfs.setFrame(False)
@@ -282,10 +288,14 @@ class FormSetup(BaseForm):
             self.updateFormProjectDataStatus()
         else:
             self.dataLoadedOutput.setText('')
-        self.netCDFButton.setEnabled(self.controller.dataObjectValid)
+        self.switchGenerateNetcdf(self.controller.dataObjectValid)
         self.detailsBtn.setEnabled(self.controller.dataObjectValid)
         self.currentNetcdfs.setText(",".join(self.controller.netcdfs))
-
+    def switchGenerateNetcdf(self, hasDataObject):
+        self.netCDFButton.setEnabled(hasDataObject) #generate button becomes enabled or disabled
+        self.netCDFButton.setVisible(hasDataObject)
+        self.loadNetCDFButton.setEnabled(not hasDataObject) #load becomes enabled or disabled
+        self.loadNetCDFButton.setVisible(not hasDataObject)
     def prePopulateSetupWizard(self):
             #rebuild the wizard tree with values pre-set
             self.WizardTree = self.buildWizardTree(dlist)
@@ -591,6 +601,20 @@ class FormSetup(BaseForm):
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):
         buttonFunction()
+
+    def createLoadNetcdfButton(self):
+        '''
+        Create a button to initiate the creation of netcdf files for model input
+        :return:
+        '''
+        button = QtWidgets.QPushButton()
+        button.setText("Load netCDF inputs")
+        button.clicked.connect(self.readNetcdf)
+        return button
+    def readNetcdf(self):
+        self.controller.loadNetcdfs()
+
+
     def createSubmitButton(self):
         '''
         Create a button to initiate the creation of netcdf files for model input

@@ -131,7 +131,7 @@ class RunHandler(UIHandler):
 
         setId = dbhandler.getSetId(setName)
           # fills in metadata results - TODO remove.
-        [self.updateRunStartFinishMeta(projectSetDir,setId,r,dbhandler) for r in runs if self.dbhandler.getFieldValue('run','started','run_num',str(r)) is None]
+        [self.updateRunStartFinishMeta(projectSetDir,setId,r,dbhandler) for r in runs if self.dbhandler.isRunStarted(setId,str(r)) is None]
         fillRunMetaData(projectSetDir, []) #fills in metadata for all runs
         return
 
@@ -171,7 +171,8 @@ class RunHandler(UIHandler):
                 return xmlName
         searchPath = os.path.join(*[runPath, 'Components', '*.xml'])
         xmls = glob.glob(searchPath)
-        selectedXML = [xmlMatched(x,d['component_name']) for x in xmls][0]
+        selectedXMLs = [xmlMatched(x,d['component_name']) for x in xmls]
+        selectedXML = [xml for xml in selectedXMLs if xml is not None][0]
         t, a = splitAttribute(d['tag'])
         xmlValue = readXmlTag(os.path.basename(selectedXML),t ,a, os.path.dirname(selectedXML))
         def actualValue(tagv):
