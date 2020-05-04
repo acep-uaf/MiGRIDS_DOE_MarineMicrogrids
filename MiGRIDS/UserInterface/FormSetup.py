@@ -514,7 +514,7 @@ class FormSetup(BaseForm):
         return
     def updateModelInputDependents(self, values):
         if len(self.controller.sets)<=0:
-            self.controller.dbhandler.insertFirstSet(values)
+            self.controller.dbhandler.updateSetSetup('Set0',values)
             self.controller.dbhandler.insertAllComponents('Set0')
         # Deliver appropriate info to the ModelForm
         modelForm = self.window().findChild(FormModelRun)
