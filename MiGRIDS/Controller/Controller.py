@@ -70,10 +70,11 @@ class Controller:
         return []
 
     def loadNetcdfs(self):
-        netcdfs = self.listNetCDFs()
+        netcdfs = self.listNetCDFs(self.setupFile)
         # validate netcdfs
-        if self.validate(ValidatorTypes.NetCDFList, netcdfs):
-            self.updateAttribute('Controller', 'netcdfsValid', True)
+        self.validate(ValidatorTypes.NetCDFList, netcdfs)
+        if self.netcdfsValid:
+
             self.updateAttribute('Controller', 'netcdfs', netcdfs)  # send the object to the controller
 
     def validateInput(self):
@@ -92,7 +93,7 @@ class Controller:
             self.dataObjectValid = self.validator.validate(ValidatorTypes.DataObject, input)
 
         self.sender.callStatusChanged() #this notifies the other forms after control attributes have been set
-
+        return
     def newProject(self):
         '''Creates folders and writes new setup xml'''
         self.project = self.dbhandler.getProject()
@@ -103,6 +104,7 @@ class Controller:
         self.componentFolder = getFilePath('Components', setupFolder=self.setupFolder)
         #create the setup xml and validate it
         setupXML = self.setupHandler.makeSetup(self.project, self.setupFolder)
+        self.setupFile = setupXML
         self.validate(ValidatorTypes.SetupXML,input=setupXML)
 
     def makeNetcdfs(self):

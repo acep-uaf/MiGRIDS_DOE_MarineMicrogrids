@@ -279,7 +279,7 @@ class FormSetup(BaseForm):
 
     def onControllerStateChange(self):
         self.grantPermissions()
-
+        return
     def grantPermissions(self):
         self.tabs.setEnabled(self.controller.setupValid)
         self.createInputButton.setEnabled(self.controller.setupValid)
@@ -291,6 +291,7 @@ class FormSetup(BaseForm):
         self.switchGenerateNetcdf(self.controller.dataObjectValid)
         self.detailsBtn.setEnabled(self.controller.dataObjectValid)
         self.currentNetcdfs.setText(",".join(self.controller.netcdfs))
+        return
     def switchGenerateNetcdf(self, hasDataObject):
         self.netCDFButton.setEnabled(hasDataObject) #generate button becomes enabled or disabled
         self.netCDFButton.setVisible(hasDataObject)
@@ -361,7 +362,7 @@ class FormSetup(BaseForm):
         setupFile = QtWidgets.QFileDialog.getOpenFileName(self,"Select your setup file", os.path.join(os.path.dirname(__file__),'..','..','MiGRIDSProjects'), "*xml" )
         if (setupFile == ('','')) | (setupFile is None):
             return
-        
+        self.controller.setupFile = setupFile
         self.progressBar = CustomProgressBar('Loading Project')
         try:
             # when thread finishes self.controller.inputData and self.components are set
@@ -612,6 +613,7 @@ class FormSetup(BaseForm):
         return button
     def readNetcdf(self):
         self.controller.loadNetcdfs()
+        return
 
 
     def createSubmitButton(self):
