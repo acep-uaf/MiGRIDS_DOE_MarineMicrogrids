@@ -52,7 +52,7 @@ class ResultsModel(ResultsPlot):
         tag = self.getSelectedX()
         metric = self.getSelectedY()
         #x is values for tag changes
-        data = self.getXYData(tag,metric) #TODO this is returning empty
+        data = self.getXYData(tag,metric)
         data =self.validate(data)
 
         return data

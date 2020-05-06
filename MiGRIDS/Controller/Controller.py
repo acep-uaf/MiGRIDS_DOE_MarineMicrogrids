@@ -171,7 +171,6 @@ class Controller:
             return result
         return QtWidgets.QMessageBox.No
 
-
     def loadedProjectData(self):
         self.createDatabaseConnection()
         self.validate(ValidatorTypes.DataObject,input=self.inputData)

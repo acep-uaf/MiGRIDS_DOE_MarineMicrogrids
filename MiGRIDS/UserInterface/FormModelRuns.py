@@ -3,6 +3,7 @@
 
 from PyQt5 import QtWidgets, QtCore
 from MiGRIDS.UserInterface.BaseForm import BaseForm
+from MiGRIDS.UserInterface.ResultsModel import ResultsModel
 from MiGRIDS.UserInterface.SetAttributeBlock import SetsAttributeEditorBlock
 from MiGRIDS.UserInterface.ModelRunTable import RunTableModel, RunTableView
 from MiGRIDS.UserInterface.Pages import Pages
@@ -115,10 +116,23 @@ class FormModelRun(BaseForm):
         #gb.setSizePolicy((QtWidgets.QSizePolicy.Fixed,QtWidgets.QSizePolicy.Fixed))
 
         return gb
+
     def updateForm(self):#called on signal from controller.sender
         self.run_Model.refresh()
+        self.refreshDataPlot()
+        #self.projectLoaded()
         return
+
     def receiveUpdateRunBaseCase(self, id, checked):
         self.controller.dbhandler.updateBaseCase(self.setId, id, checked)
         self.run_Model.refresh()
         self.refreshDataPlot()
+        return
+
+    def refreshDataPlot(self):
+        '''finds the plot object and calls its default method'''
+        resultDisplay = self.window().findChild(ResultsModel)
+        resultDisplay.makePlotArea()
+        resultDisplay.setData(resultDisplay.getPlotData())
+        resultDisplay.showPlot()
+        return

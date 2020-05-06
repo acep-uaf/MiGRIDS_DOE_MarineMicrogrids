@@ -12,7 +12,6 @@ from MiGRIDS.UserInterface.BaseEditorTab import BaseEditorTab
 from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.DialogComponentList import ComponentSetListForm
-
 from MiGRIDS.UserInterface.ModelSetTable import SetTableView, SetTableModel
 from MiGRIDS.UserInterface.ResultsModel import ResultsModel
 from MiGRIDS.UserInterface.TableHandler import TableHandler
@@ -50,6 +49,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
             #update components to the default list
             components = self.controller.dbhandler.getComponentNames()
             self.controller.dbhandler.updateSetComponents(self.setName, components)
+
 
         #main layouts
         self.makeForm()
@@ -115,7 +115,6 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         #self.run_Model.refresh(self.setId)
         #self.rehide(self.findChild(QtWidgets.QTableView,'runs'),[0,1,26])
         self.rehide(self.findChild(QtWidgets.QTableView,'sets'), [0,1])
-        self.updateDependents()
         return
 
     def refreshSetModel(self):
@@ -482,27 +481,20 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         self.controller.runHandler.sender.notifyProgress.connect(pbox.onProgress)
         #try:#starts running models based on xml files that were genereted in a set directory
         self.controller.runHandler.runModels(self.setName)
-        self.updateDependents() #update the plot to show results
-        # except OSError as e:
+        self.controller.updateAttribute('Controller','sets',self.controller.sets + [self.setName])
+        self.controller.sender.statusChanged()#update the plot to show results
+        #  except OSError as e:
         #     print(e)
         #     print("Could not complete model simulations")
         # except Exception as e:
         #     print("Could not complete model simulations")
         # finally:
         self.controller.runHandler.sender.update(10, "complete")
-        return
-    def updateDependents(self):
-        self.refreshDataPlot()
 
         return
 
-    def refreshDataPlot(self):
-        '''finds the plot object and calls its default method'''
-        resultDisplay = self.window().findChild(ResultsModel)
-        resultDisplay.makePlotArea()
-        resultDisplay.setData( resultDisplay.getPlotData())
-        resultDisplay.showPlot()
-        return
+
+
 
 
     def closeForm(self):

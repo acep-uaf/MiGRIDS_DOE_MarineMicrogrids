@@ -526,7 +526,6 @@ class FormSetup(BaseForm):
         if len(self.controller.sets)<=0:
             self.controller.dbhandler.updateSetSetup('Set0',values)
             self.controller.dbhandler.insertAllComponents('Set0')
-        # Deliver appropriate info to the ModelForm
         modelForm = self.window().findChild(FormModelRun)
         modelForm.projectLoaded()
         return

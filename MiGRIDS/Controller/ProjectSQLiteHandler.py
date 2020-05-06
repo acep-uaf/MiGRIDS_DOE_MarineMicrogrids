@@ -1387,18 +1387,18 @@ class ProjectSQLiteHandler:
             if not lot:
                 return d
             else:
-                if (lot[0][4]) in d.keys():
-                    d[lot[0][4]]['x'].append(getActualValue(lot[0][0],lot[0][1]))
-                    d[lot[0][4]]['y'].append(getActualValue(lot[0][0],lot[0][2]))
+                if (lot[0][5]) in d.keys():
+                    d[lot[0][5]]['x'].append(getActualValue(lot[0][0],lot[0][1]))
+                    d[lot[0][5]]['y'].append(getActualValue(lot[0][0],lot[0][2]))
                 else:
-                    d[lot[0][4]] = {}
-                    d[lot[0][4]]['x']=[getActualValue(lot[0][0],lot[0][1])]
-                    d[lot[0][4]]['y']=[getActualValue(lot[0][0],lot[0][2])]
+                    d[lot[0][5]] = {}
+                    d[lot[0][5]]['x']=[getActualValue(lot[0][0],lot[0][1])]
+                    d[lot[0][5]]['y']=[getActualValue(lot[0][0],lot[0][2])]
                 lot.pop(0)
                 return dict_from_tuple(lot,d)
-
+        setname = tag.split(" ")[0]
         tag = tag.split(" ")[1]
-        resultTuples = self.cursor.execute("SELECT * FROM (SELECT run_id,tag_value," + metric + " FROM "
+        resultTuples = self.cursor.execute("SELECT * FROM (SELECT run_id,tag_value," + metric + ",set_name FROM "
                              "run JOIN run_attributes ON run._id = run_attributes.run_id "
                               "JOIN set_components ON run_attributes.set_component_id = set_components._id "
                               "JOIN component on set_components.component_id = component._id "
@@ -1408,8 +1408,8 @@ class ProjectSQLiteHandler:
 "JOIN set_components ON run_attributes.set_component_id = set_components._id "
                               "JOIN component on set_components.component_id = component._id "
                               "JOIN set_ on set_components.set_id = set_._id "
- "WHERE componentnamevalue || '.' || tag != ? GROUP BY run_id HAVING count(tag) > 1) as seriesValues "
-"on tagvalues.run_id = seriesValues.run_id GROUP BY tagvalues.tag_value,seriesValues.seriesname ORDER BY CAST(tagvalues.tag_value as real) ASC",[tag,tag]).fetchall()
+ "WHERE componentnamevalue || '.' || tag = ? GROUP BY run_id) as seriesValues "
+"on tagvalues.run_id = seriesValues.run_id WHERE set_name = ? GROUP BY tagvalues.tag_value,seriesValues.seriesname ORDER BY CAST(tagvalues.tag_value as real) ASC",[tag,tag,setname]).fetchall()
 
         return dict_from_tuple(resultTuples,{})
 
