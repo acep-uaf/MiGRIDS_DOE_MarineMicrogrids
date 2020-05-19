@@ -53,7 +53,7 @@ def checkDataGaps(s):
 
     if len(missingIndices) > 0:
         #make the indices into a list of dataframes to be concatonated
-        indices = missingIndices.apply(lambda i:pd.DataFrame(data = None,index = pd.DatetimeIndex(i[0]))).tolist()
+        indices = missingIndices.apply(lambda i:pd.DataFrame(data = None,index = pd.DatetimeIndex(i))).tolist()
         s = s.append(pd.concat(indices))
 
         #only keep the colums we started with (return df to its original dimensions)
@@ -172,7 +172,7 @@ def findValid(initialTs, d, possibles, s):
     :param s: pandas.Series series being evaluated.
     :return: pandas.datetime a single datetime that indicates the start of the data block to be used as replacement
     '''
-    s = s.copy()
+    s = s.copy().astype(float) # convert to float so that adding nan is supported
     s.loc[initialTs:initialTs + d,] = np.nan
     if len(possibles) < 1:
         return initialTs
