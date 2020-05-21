@@ -70,13 +70,13 @@ class Controller:
         return []
 
     def loadNetcdfs(self):
-        netcdfs = self.listNetCDFs(self.setupFile)
+        self.netcdfs = self.listNetCDFs(self.setupFile)
         # validate netcdfs
-        self.validate(ValidatorTypes.NetCDFList, netcdfs)
+        self.validate(ValidatorTypes.NetCDFList, self.netcdfs)
         if self.netcdfsValid:
-
-            self.updateAttribute('Controller', 'netcdfs', netcdfs)  # send the object to the controller
-
+            self.updateAttribute('Controller', 'netcdfs', self.netcdfs)  # send the object to the controller
+        else:
+            self.netcdfs = []
     def validateInput(self):
         #TODO change to actualy check input
         self.validate(ValidatorTypes.InputData,None)
@@ -105,6 +105,7 @@ class Controller:
         #create the setup xml and validate it
         setupXML = self.setupHandler.makeSetup(self.project, self.setupFolder)
         self.setupFile = setupXML
+        self.dbhandler.updateRecord("project",["_id"],["1"],["setupfile"],[self.setupFile])
         self.validate(ValidatorTypes.SetupXML,input=setupXML)
 
     def makeNetcdfs(self):

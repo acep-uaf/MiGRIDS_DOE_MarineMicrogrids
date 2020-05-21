@@ -255,7 +255,18 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         for i in range(3,6):
             wid = self.infoBox.findChild(QtWidgets.QWidget, self.set_model.record().fieldName(i))
             dict[wid.objectName()] = wid.text()
-        self.controller.dbhandler.updateFromDictionaryRow('set_',dict, ['_id'],[self.setId])
+        try:
+            self.setId = self.controller.dbhandler.insertRecord('set_',['set_name','project_id','date_start','date_end','runtimestepsvalue'],
+                                                                [self.setName,1,self.controller.dbhandler.getFieldValue('setup','date_start','_id',1),
+                                                                 self.controller.dbhandler.getFieldValue('setup',
+                                                                                                         'date_end',
+                                                                                                         '_id', 1),
+                                                                 self.controller.dbhandler.getFieldValue('setup',
+                                                                                                         'runtimestepsvalue',
+                                                                                                         '_id', 1)
+                                                                 ])
+        except Exception as e:
+            self.controller.dbhandler.updateFromDictionaryRow('set_',dict, ['_id'],[self.setId])
         return
 
     def mapWidgets(self):

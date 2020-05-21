@@ -2,6 +2,8 @@
 # Created by: # Created on: 11/15/2019
 
 #classes used for displaying wizard inputs
+import datetime
+
 from PyQt5 import QtWidgets,QtGui,QtCore
 
 class WizardPage(QtWidgets.QWizardPage):
@@ -99,9 +101,18 @@ class TwoDatesDialog(WizardPage):
         self.registerField('edate',self.endDate,"text")
         try:
             #if the setup info has already been set dates will be in the database table set
-            print(self.dbhandler.getFieldValue('setup', 'date_start', '_id',1))
-            self.startDate.setDate(QtCore.QDate.fromString(self.dbhandler.getFieldValue('setup', 'date_start', '_id', 1),"yyyy-MM-dd HH:mm:ss'"))
-            self.endDate.setDate(QtCore.QDate.fromString(self.dbhandler.getFieldValue('setup', 'date_end',  '_id', 1),"yyyy-MM-dd HH:mm:ss'"))
+            d = self.dbhandler.getFieldValue('setup', 'date_start', '_id', 1)
+            if d is None:
+                self.startDate.setDate(QtCore.QDate(datetime.datetime.now()))
+            else:
+                self.startDate.setDate(QtCore.QDate.fromString(self.dbhandler.getFieldValue('setup', 'date_start', '_id', 1),"yyyy-MM-dd HH:mm:ss'"))
+
+            d = self.dbhandler.getFieldValue('setup', 'date_end', '_id', 1)
+            if d is None:
+                self.endDate.setDate(QtCore.QDate(datetime.datetime.now()))
+            else:
+                self.endDate.setDate(QtCore.QDate.fromString(self.dbhandler.getFieldValue('setup', 'date_end', '_id', 1),"yyyy-MM-dd HH:mm:ss'"))
+
         except AttributeError as a:
             print(a)
         except TypeError as a:

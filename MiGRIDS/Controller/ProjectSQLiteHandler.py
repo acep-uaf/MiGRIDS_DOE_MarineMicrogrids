@@ -561,23 +561,23 @@ class ProjectSQLiteHandler:
         try:
             #set setup files only store record positions for runTimeSteps.
             #these need to be converted to datetimes for display and storing in datatable
-           startdate = asDatasetDateTime(setupDict[RUNTIMESTEPS].split(" ")[0])
-           enddate = asDatasetDateTime(setupDict[RUNTIMESTEPS].split(" ")[1])
+           startdate = asDatasetDateTime(setupDict[self.dbName(RUNTIMESTEPS)].split(" ")[0])
+           enddate = asDatasetDateTime(setupDict[self.dbName(RUNTIMESTEPS)].split(" ")[1])
         except IndexError as i:
             print("runtimesteps not start stop indices")
-            startdate = asDatasetDateTime(setupDict[RUNTIMESTEPS])
-            enddate = asDatasetDateTime(setupDict[RUNTIMESTEPS])
+            startdate = asDatasetDateTime(setupDict[self.dbName(RUNTIMESTEPS)])
+            enddate = asDatasetDateTime(setupDict[self.dbName(RUNTIMESTEPS)])
 
         #if the record already exists a -1 will be returned and updateRecord is run
         setId = self.insertRecord(SETTABLE,
                                   [self.dbName(TIMESTEPUNIT), self.dbName(TIMESTEP), self.dbName(RUNTIMESTEPS), STARTDATE, ENDDATE,
                                    'project_id',SETNAME],
-                                  [setupDict[TIMESTEPUNIT], setupDict[TIMESTEP],
-                                   setupDict[RUNTIMESTEPS], startdate, enddate, 1,setName])
+                                  [setupDict[self.dbName(TIMESTEPUNIT)][0], setupDict[self.dbName(TIMESTEP)][0],
+                                   setupDict[self.dbName(RUNTIMESTEPS)], datetime.datetime.strftime(startdate,'%Y-%m-%d %H:%M:%S'),datetime.datetime.strftime(enddate,'%Y-%m-%d %H:%M:%S'), 1,setName])
         if setId == -1:
             self.updateRecord(SETTABLE,[SETNAME],[setName],
                                   [self.dbName(TIMESTEPUNIT), self.dbName(TIMESTEP), self.dbName(RUNTIMESTEPS), STARTDATE, ENDDATE],
-                                  [setupDict[TIMESTEPUNIT], setupDict[TIMESTEP],setupDict[RUNTIMESTEPS], startdate, enddate])
+                                  [setupDict[self.dbName(TIMESTEPUNIT)][0], setupDict[self.dbName(TIMESTEP)][0],setupDict[self.dbName(RUNTIMESTEPS)], datetime.datetime.strftime(startdate,'%Y-%m-%d %H:%M:%S'),datetime.datetime.strftime(enddate,'%Y-%m-%d %H:%M:%S')])
 
         return
     def updateSetComponents(self,setName,loc):
