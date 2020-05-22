@@ -104,12 +104,13 @@ class RunHandler(UIHandler):
 
         #get a setup dictionary - None if setup file not found
         setSetup = self.readInSetupFile(self.findSetupFile(setName))
+        setSetup = self.makeDBFriendly(setSetup)
         #if a set folder exists but set setup info is not in the database populate the datebase with the set xml files
         if (setSetup != None) & (dbhandler.getSetId(setName) == -1):
             #update the database based on info in the set setup file, this includes adding components to set_components if not already there
             dbhandler.updateSetSetup(setName, setSetup)
             #get the list of components associated with this project
-            compList = setSetup['componentNames.value'].split(" ")
+            compList = setSetup[dbhandler.dbName('componentNames.value')].split(" ")
             #add components to the set_component table (base case, tag set to None)
             dbhandler.updateSetComponents(setName, compList)
 
@@ -294,3 +295,10 @@ class RunHandler(UIHandler):
 
     def updateRunToFinished(self,setName,runNum):
         self.dbhandler.updateRunToFinished(setName,runNum)
+
+    def makeDBFriendly(self, setupDictionary):
+        oldkeys = list(setupDictionary.keys())
+        for oldkey in oldkeys:
+            setupDictionary[self.dbhandler.dbName(oldkey)] = setupDictionary.pop(oldkey)
+        return setupDictionary
+

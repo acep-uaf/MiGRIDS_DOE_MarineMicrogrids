@@ -557,16 +557,25 @@ class ProjectSQLiteHandler:
             currentDateTime = startPoint + duration #seconds between the start position and value
             return currentDateTime
 
+        def isdateOnly(value):
+            '''determines if a string contains both date and time or just date values
+            :returns True if the value only contains a date (no time)'''
+            return ":" not in value
         # update fields that are in the set table
+        lstRuntimesteps = shlex.split(setupDict[self.dbName(RUNTIMESTEPS)]) #set setup files alwasy have integers for datetimes indicating record positions
         try:
-            #set setup files only store record positions for runTimeSteps.
-            #these need to be converted to datetimes for display and storing in datatable
-           startdate = asDatasetDateTime(setupDict[self.dbName(RUNTIMESTEPS)].split(" ")[0])
-           enddate = asDatasetDateTime(setupDict[self.dbName(RUNTIMESTEPS)].split(" ")[1])
+                if('None' in lstRuntimesteps):
+                    startdate = 0
+                    enddate = 0
+                else:
+                    startdate = lstRuntimesteps[0]
+                    enddate = lstRuntimesteps[1]
+                startdate = asDatasetDateTime(startdate)
+                enddate = asDatasetDateTime(enddate)
         except IndexError as i:
             print("runtimesteps not start stop indices")
-            startdate = asDatasetDateTime(setupDict[self.dbName(RUNTIMESTEPS)])
-            enddate = asDatasetDateTime(setupDict[self.dbName(RUNTIMESTEPS)])
+            startdate = 0
+            enddate = 0
 
         #if the record already exists a -1 will be returned and updateRecord is run
         setId = self.insertRecord(SETTABLE,
