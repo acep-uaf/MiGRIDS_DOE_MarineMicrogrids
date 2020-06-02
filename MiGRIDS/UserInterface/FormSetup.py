@@ -291,6 +291,7 @@ class FormSetup(BaseForm):
         self.switchGenerateNetcdf(self.controller.dataObjectValid)
         self.detailsBtn.setEnabled(self.controller.dataObjectValid)
         self.currentNetcdfs.setText(",".join(self.controller.netcdfs))
+        self.updateSetRunnable(self.controller.netcdfsValid)
         return
     def switchGenerateNetcdf(self, hasDataObject):
         self.netCDFButton.setEnabled(hasDataObject) #generate button becomes enabled or disabled
@@ -523,6 +524,9 @@ class FormSetup(BaseForm):
         values = self.updateInputDataDependents(data)
         self.updateModelInputDependents(values)
         return
+    def updateSetRunnable(self,hasnetcdf):
+        if hasnetcdf:
+            self.updateDependents()
     def updateModelInputDependents(self, values):
         if len(self.controller.sets)<=0:
             self.controller.dbhandler.updateSetSetup('Set0',values)
