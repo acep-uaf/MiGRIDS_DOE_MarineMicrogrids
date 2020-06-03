@@ -124,10 +124,11 @@ class WindPowerCurve:
 
         # Check for duplicates and clean up if possible.
         prevVal = (-999, -999)
+        inptDataPointsNoDup = inptDataPoints.copy() # temporarily save input data points
         for inptDataPoint in inptDataPoints:
             # remove duplicates
             if inptDataPoint[0] == prevVal[0] and inptDataPoint[1] == prevVal[1]:
-                inptDataPoints.remove(inptDataPoint)
+                inptDataPointsNoDup.remove(inptDataPoint)
             # if there's multiple power values for the same wind speed raise an exception
             elif inptDataPoint[0] == prevVal[0] and inptDataPoint[1] != prevVal[1]:
                 raise ValueError('Power curve data points  ill-defined, multiple power values for single wind speed.')
@@ -135,7 +136,7 @@ class WindPowerCurve:
             # Copy current to previous value and proceed.
             prevVal = inptDataPoint
 
-        self.coords = inptDataPoints
+        self.coords = inptDataPointsNoDup
 
 
 

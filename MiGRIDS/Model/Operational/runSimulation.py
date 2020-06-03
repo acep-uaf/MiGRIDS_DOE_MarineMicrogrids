@@ -147,6 +147,16 @@ class Simulation:
                           'genStartTime', 'genFuelCons', 'genP']
         [stitchLoopWrite(v,SO.DM.realTime) for v in stitchLoopList]
 
+        # write input data files for simulation run
+        os.mkdir(os.path.join(runDir,'InputData'))
+        os.chdir(os.path.join(runDir,'InputData'))
+        # each wind turbine power available
+        for idx, wtgID in enumerate(SO.WF.wtgIDS):
+            writeNCFile(SO.DM.realTime, SO.WF.windTurbines[idx].windPower, 1, 0, 'kW',
+                        'wtg'+wtgID+'WPSet'+str(self.setNum)+'Run'+runNum+'.nc')
+        # total load
+        writeNCFile(SO.DM.realTime, SO.DM.realLoad, 1, 0, 'kW',
+                'totalload0'+'PSet'+str(self.setNum)+'Run'+runNum+'.nc')
 
 
     def ncOutFileName(self,prefix,runNum):

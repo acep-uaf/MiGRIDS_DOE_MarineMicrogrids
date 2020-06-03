@@ -112,12 +112,24 @@ class WindTurbine:
             wtgSoup.recalculateWtgPAvail.get('value'))  # bool whether to recalculate wind power from wind speeds
         self.wtgMinSrcCover = float(wtgSoup.minSrcCover.get('value'))  # the minimum SRC required as PU of current import
 
+        # check if the wind turbine power curve and rated power parameters are the same as in the input file. If not,
+        # then will need to recalculate
+        # get InputData/Setup directory
+        wtgDescriptorInput = os.path.join(os.path.dirname(wtgDescriptor),'..','..','..','..','InputData','Components',self.wtgName+'Descriptor.xml')
+        # read input xml file
+        wtgDescriptorFileInput = open(wtgDescriptorInput, "r")
+        wtgDescriptorInputXml = wtgDescriptorFileInput.read()
+        wtgDescriptorFileInput.close()
+        wtgInputSoup = Soup(wtgDescriptorInputXml, "xml")
+
+        # check for any differences in the wtg descriptor
+        changedWtgDescriptor = not(wtgInputSoup == wtgSoup)
 
         # check if there are wind power files in the wind speed directory
         windSpeedFile = os.path.join(windSpeedDir,'wtg'+str(self.wtgID)+'WS.nc')
         windPowerFile = os.path.join(windSpeedDir,'wtg'+str(self.wtgID)+'WP.nc')
         # if there are wind power measurements and recalculate is not set
-        if os.path.isfile(windPowerFile) and not self.wtgRecalculateWtgPAvail:
+        if os.path.isfile(windPowerFile) and not self.wtgRecalculateWtgPAvail and not changedWtgDescriptor:
             # if there is, then read it
             NCF = readNCFile(windPowerFile)
             windPower = np.array(NCF.value)*NCF.scale + NCF.offset
@@ -164,8 +176,9 @@ class WindTurbine:
             PCws, PCpower = zip(*self.wtgPowerCurve)  # separate out the windspeed and power
             # get wind power
             windPower = self.getWP(PCpower,PCws,windSpeed, wtgPC.wsScale)
-            # save nc file to avoid having to calculate for future simulations
-            writeNCFile(NCF.time[:], windPower, 1, 0, 'kW', os.path.join(windSpeedDir,'wtg'+str(self.wtgID)+'WP.nc'))
+            # Only write wind power file to input folder if the wind power descriptor file is the same
+            if not changedWtgDescriptor:
+                writeNCFile(NCF.time[:], windPower, 1, 0, 'kW', os.path.join(windSpeedDir,'wtg'+str(self.wtgID)+'WP.nc'))
         else:
             raise ValueError('There is no wind speed file in the specified directory.')
 
