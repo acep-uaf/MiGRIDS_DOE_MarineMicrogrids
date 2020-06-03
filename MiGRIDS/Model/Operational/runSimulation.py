@@ -33,7 +33,8 @@ class Simulation:
 
     def runIndividualSimulation(self,runNum):
         def stitchLoopWrite(var, dim):
-            stitched = SO.stitchVariable(var)
+            dirPath = os.path.join(self.projectSetDir, 'Run' + str(runNum), 'OutputData')
+            stitched = SO.stitchVariable(var,dirPath)
             # print(len(stitched))
             # print(type(stitched))
             for idx, c in enumerate(zip(*stitched)):  # for each object
@@ -45,7 +46,8 @@ class Simulation:
             return
 
         def stitchAndWrite(prefix):
-            stitched = SO.stitchVariable(prefix)
+            dirPath = os.path.join(self.projectSetDir, 'Run' + str(runNum), 'OutputData')
+            stitched = SO.stitchVariable(prefix,dirPath)
             # print(len(stitched))
             # print(type(stitched))
             # scale is always 1, offset is always 0
