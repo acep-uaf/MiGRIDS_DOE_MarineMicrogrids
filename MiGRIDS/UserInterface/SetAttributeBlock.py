@@ -381,7 +381,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         buttonRow.addWidget(makeButtonBlock(self, lambda: self.functionForNewRecord(table),
                                             '+', None,
                                             'Add a component change'))
-        buttonRow.addWidget(makeButtonBlock(self, lambda: handler.functionForDeleteRecord(table),
+        buttonRow.addWidget(makeButtonBlock(self, lambda: self.functionForDeleteRecord(table),
                                             None, 'SP_TrashIcon',
                                             'Delete a component change'))
         buttonRow.addWidget(makeButtonBlock(self, lambda: self.runModels(),
@@ -462,6 +462,12 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         return runs
     def revalidate(self):
         return True
+    def functionForDeleteRecord(self,table):
+        self.controller.dbhandler.closeDatabase()
+        handler = TableHandler(self)
+        handler.functionForDeleteRecord(table)
+        self.controller.createDatabaseConnection()
+
     def functionForNewRecord(self,table):
         self.controller.dbhandler.closeDatabase()
         handler = TableHandler(self)
@@ -494,7 +500,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         #try:#starts running models based on xml files that were genereted in a set directory
         self.controller.runHandler.runModels(self.setName)
         self.controller.updateAttribute('Controller','sets',self.controller.sets + [self.setName])
-        self.controller.sender.statusChanged()#update the plot to show results
+        self.controller.sender.callStatusChanged()#update the plot to show results
         #  except OSError as e:
         #     print(e)
         #     print("Could not complete model simulations")
