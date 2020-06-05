@@ -233,11 +233,12 @@ class SystemOperations:
         # Re-initialize
         self.initDataChannels(resultLength)
 
-    def stitchVariable(self, varName):
+    def stitchVariable(self, varName, dirPath):
         '''
         Stiches time-series together from set of pickles if pickles were created, otherwise, it serves back the
 
         :param varName: variable name to stitch
+        :param dirPath: path to the file where the variable file pickle is found
         :param snippetTotal: total number of snippets to look for
         :return:
         '''
@@ -248,7 +249,7 @@ class SystemOperations:
 
             firstIdx = 0
             for snippetIdx in range(0, self.snippetTotal):
-                fileName = varName + 'SnippetNo_' + str(snippetIdx) + '.pickle'
+                fileName = os.path.join(dirPath , varName + 'SnippetNo_' + str(snippetIdx) + '.pickle')
                 pFile = open(fileName, 'rb')
                 subVar = pickle.load(pFile)
                 lenSubVar = len(subVar)
@@ -290,10 +291,10 @@ class SystemOperations:
         self.futureSrc = TSVar([0], varLength, 'futureSRC')
         self.underSrc = TSVar([0], varLength, 'underSRC')
         self.outOfNormalBounds =TSVar([0],varLength, 'outOfNormalBounds')
-        self.outOfEfficientBounds = TSVar([0],varLength, 'outOfEfficeintBounds')
+        self.outOfEfficientBounds = TSVar([0],varLength, 'outOfEfficientBounds')
         self.wfSpilledWindFlag = TSVar([0],varLength,'wfSpilledWindFlag')
         self.genStartTime = TSVar([[None] * len(self.PH.generators)], varLength,'genStartTime')
-        self.genRunTime = TSVar([[None] * len(self.PH.generators)],varLength,'getRunTime')
+        self.genRunTime = TSVar([[None] * len(self.PH.generators)],varLength,'genRunTime')
         self.onlineCombinationID = TSVar([None],varLength,'onlineCombinationID')
 
     def runSimMainLoop(self):
