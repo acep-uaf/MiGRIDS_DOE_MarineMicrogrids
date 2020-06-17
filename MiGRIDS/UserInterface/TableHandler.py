@@ -92,13 +92,14 @@ class TableHandler():
             result = msg.exec()
 
             if result == 1024:
-                handler = UIHandler()
+
                 for r in selected:
                     model.removeRows(r.row(), 1)
 
                 # Delete the record from the database and refresh the tableview
-                model.submitAll()
-                print(model.lastError().text())
+                result = model.submitAll()
+                if (not result):
+                    print(model.lastError().text())
                 model.select()
 
         return
