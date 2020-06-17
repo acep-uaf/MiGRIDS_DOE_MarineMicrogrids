@@ -22,10 +22,11 @@ class readNCFile:
         self.value = rootgrp.variables['value']
 
         # sometimes variables get read as a list of np array
-        if type(self.time[0]) is np.ndarray or type(self.time[0]) is list:
-            self.time = self.time[0]
-        if type(self.value[0]) is np.ndarray or type(self.value[0]) is list:
-            self.value = self.value[0]
+        if len(np.asarray(self.time).shape) > 1:
+            self.time = np.asarray(self.time).squeeze()
+        if len(np.asarray(self.value).shape) > 1:
+            self.value = np.asarray(self.value).squeeze()
+
 
         # find all value attributes
         valueAttributes = rootgrp.variables['value'].ncattrs()
