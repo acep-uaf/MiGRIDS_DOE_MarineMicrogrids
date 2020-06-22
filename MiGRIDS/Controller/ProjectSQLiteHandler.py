@@ -1413,11 +1413,11 @@ class ProjectSQLiteHandler:
                               "JOIN component on set_components.component_id = component._id "
                               "JOIN set_ on set_components.set_id = set_._id "
                               "WHERE componentnamevalue || '.' || tag = ?) as tagvalues "
-"JOIN (SELECT run_id,group_concat(tag || ' ' || tag_value) as seriesname FROM run_attributes "
+"JOIN (SELECT run_id,group_concat(componentnamevalue || tag || ' ' || tag_value) as seriesname FROM run_attributes "
 "JOIN set_components ON run_attributes.set_component_id = set_components._id "
                               "JOIN component on set_components.component_id = component._id "
                               "JOIN set_ on set_components.set_id = set_._id "
- "WHERE componentnamevalue || '.' || tag = ? GROUP BY run_id) as seriesValues "
+ "WHERE componentnamevalue || '.' || tag != ? GROUP BY run_id) as seriesValues "
 "on tagvalues.run_id = seriesValues.run_id WHERE set_name = ? GROUP BY tagvalues.tag_value,seriesValues.seriesname ORDER BY CAST(tagvalues.tag_value as real) ASC",[tag,tag,setname]).fetchall()
 
         return dict_from_tuple(resultTuples,{})

@@ -56,7 +56,7 @@ class PlotCanvas(FigureCanvas):
     def onpick(self,event):
         legline = event.artist
         origline = self.lines[legline._label][0]
-        if (len(legline.get_xdata()) == 2) & (len(legline.get_xdata()) != len(origline.get_xdata())): #legend line was clicked
+        if (len(legline.get_xdata()) == 2) & (legline.get_xdata() != origline.get_xdata()): #legend line was clicked
             vis = not origline.get_visible() #swap the visibility
             origline.set_visible(vis)
             if vis:
