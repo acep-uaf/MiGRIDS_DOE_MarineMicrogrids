@@ -73,18 +73,22 @@ class DataClass:
         for i in range(len(self.fixed)):
             self.fixed[i] = self.dropEmpties(self.fixed[i],columns)
     def keepOverlapping(self,df):
-        componentColumns = [c.column_name for c in self.components]
-        df = df[pd.notnull(df[componentColumns]).all(axis=1)]
-        return df
+
+        first = max([df[c.column_name].first_valid_index() for c in self.components])
+        last = min([df[c.column_name].last_valid_index() for c in self.components])
+        return df[first:last]
+
     def dropEmpties(self,df,columns):
         df = df[pd.notnull(df[columns]).any(axis=1)]
+        df = self.keepOverlapping(df)
         return df
     def dropUnused(self):
+        #Drops total load and total power columns if they don't contain data.
         if len(self.df[pd.notnull(self.df[TOTALL])])<=0:
             self.df = self.df.drop(TOTALL,axis=1)
         if len(self.df[pd.notnull(self.df[TOTALP])]) <=0 :
             self.df = self.df.drop(TOTALP,axis=1)
-    #DataFrame, timedelta ->listOfDataFrame
+
     #splits a dataframe where data is missing that exceeds maxMissing
     def splitDataFrame(self,columns):
        if len(self.fixed) <= 0:
