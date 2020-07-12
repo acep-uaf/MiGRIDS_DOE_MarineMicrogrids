@@ -75,7 +75,7 @@ def fixBadData(data, setupDir, **kwargs):
            data.df = data.df.drop(reps.columns, axis=1)
            data.df = pd.concat([reps,data.df],join='outer',axis=1)
    except KeyError as e:
-       raise DataValidationError(2) #validation error 1 is missing power
+       raise DataValidationError(2) #validation error 2 is missing load
 
    #now e columns performed individually
    #nas produced from mismatched file timestamps get ignored during grouping - thus not replaced during fixbaddata
@@ -84,7 +84,7 @@ def fixBadData(data, setupDir, **kwargs):
        data.df = data.df.drop(reps.columns, axis=1) #drop the columns we are going to replace
        data.df = reps.join(data.df, how='outer') #add the replacement columns back in
 
-    # fill gen columns with a value if the system needs diesel to operate
+   # fill gen columns with a value if the system needs diesel to operate
    componentIterator = iter(data.components)
    if dieselNeeded(componentIterator,setupDir,data.powerComponents):
        data.fixGen(data.powerComponents)
@@ -95,22 +95,21 @@ def fixBadData(data, setupDir, **kwargs):
    data.totalPower()  # recalculate total power in case na's popped up
    data.totalLoad()
    data.dropUnused()
-   #data.df = data.keepOverlapping(data.df) #this is going to result in an empty dataframe if none of the components overlap in time
    # scale data based on units and offset in the component xml file
    data.scaleData(data.components)
    data.splitDataFrame(columns) #this sets data.fixed to a list of dataframes if times are not consecutive
-
    data.truncateAllDates()
    data.preserve(setupDir) #keep a copy of the fixed data in case we want to inspect or start over
    data.logBadData(setupDir) #write our baddata file
    return data
+
 def reallignSingleYear(df):
     '''identifies the temporal range that has data for all columns
     Not all rows need to have data, but there must be data in all columns within a 2 week temporal window - which is the maximum
     gap size allowed for data replacement.'''
 
     doy = df.index.dayofyear
-    tod = pd.Series(df.index.time)
+
     startYear = df.index[0].year
     date = (np.asarray(startYear, dtype='datetime64[Y]') - 1970) + (np.asarray(doy, dtype='timedelta64[D]') - 1)
     dt = pd.Series(date) + pd.to_timedelta(df.index.hour * 3600 + df.index.minute * 60 + df.index.second, unit='s')
@@ -122,9 +121,9 @@ def reallignSingleYear(df):
         s.index = s.index.drop_duplicates(keep='first')
         newdf = newdf.join(s,how="left")
     return newdf
+
 def fillComponentTypeLists(ListOfComponents):
     '''
-
     :param ListOfComponents: List of component objects
     :return:
     '''
@@ -136,15 +135,16 @@ def fillComponentTypeLists(ListOfComponents):
     # if it has a p attribute it is either a powercomponent or a load and has a min/max value
         if c.attribute == 'P':
             # Power components have a P attribute, but does not include load components
-            if c.component_name[0:4] != 'load':
+            if c.component_name[0:4] != 'load':  #TODO move away from assumption of component names
                 powerColumns.append(c.column_name)
             else:
                 loads.append(c.column_name)
         elif c.attribute in [e.name for e in EnvironmentAttributeTypes.EnvironmentAttributeTypes]:
             eColumns.append(c.column_name)
 
-            # store the power column list in the DataClass
+    #return the list of column names by component types
     return eColumns, loads, powerColumns
+
 def checkPowerComponents(components, setupDir, df,badDict):
     for c in components:
         try:
@@ -155,6 +155,7 @@ def checkPowerComponents(components, setupDir, df,badDict):
         except FileNotFoundError:
             print('Descriptor xml for %s not found' % c.column_name)
     return df, badDict
+
 # supporting functions for fixBadData
 def minMaxValid(min,max):
    try:
@@ -179,7 +180,7 @@ def dieselNeeded(myIterator, setupDir,powerComponents):
        return True
 
    if c.column_name in powerComponents:
-
+        #TODO path should be from lookup not hardcoded
        descriptorxmlpath = os.path.join(setupDir, '..', 'Components',
                                         ''.join([componentNameFromColumn(c.column_name), DESCXML]))
        try:

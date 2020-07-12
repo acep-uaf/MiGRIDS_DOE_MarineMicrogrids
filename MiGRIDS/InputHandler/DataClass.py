@@ -254,18 +254,21 @@ class DataClass:
                 #remove groups that were replaced
                 # find offline time blocks
                 #get groups based on column specific grouping column
-                groups = pd.Series(pd.to_datetime(df_to_fix.index),index=df_to_fix.index).groupby(df_to_fix['_'.join([columnToCompare,'grouping'])]).agg(['first','last'])
+                grouping = '_'.join([columnToCompare,'grouping'])
+                groups = pd.Series(pd.to_datetime(df_to_fix.index),index=df_to_fix.index).groupby(df_to_fix[grouping]).agg(['first','last'])
                 groups['size'] = groups['last']-groups['first']
 
                 #filter groups we replaced already from the grouping column
                 groups= groups[(groups['size'] >= pd.Timedelta(days=5)) |
                         groups.index.isin(notReplacedGroups[pd.notnull(notReplacedGroups)])]
+                df[columnToCompare][pd.notnull(df.join(df_to_fix[grouping])[grouping])] = np.nan
                 cuts = groups['size'].quantile([0.25, 0.5, 0.75,1])
                 cuts = list(set(cuts.tolist()))
                 cuts.sort()
                 print("%s groups of missing or inline data discovered for component named %s" %(len(groups), columnToCompare) )
                 #don't pass the grouping column to doReplaceData
-                df_to_fix = doReplaceData(groups, df_to_fix.loc[pd.notnull(df_to_fix[columnToCompare]),columnsToReplace], cuts,df.loc[pd.notnull(df[columnToCompare]),columnsToReplace])
+                #TODO need to drop na's from possible replacements
+                df_to_fix = doReplaceData(groups, df_to_fix.loc[pd.notnull(df_to_fix[columnToCompare]),columnsToReplace], cuts,df[columnsToReplace])
 
                 return df_to_fix.loc[pd.notnull(df_to_fix[columnToCompare]),columnsToReplace]
         else:

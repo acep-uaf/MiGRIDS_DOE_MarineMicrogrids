@@ -101,6 +101,7 @@ def removeChunk(df, i1, i2):
     :param i1 a pandas index that will be the location of the first split
     :param i2 a pandas index that will be the location of the second split'''
     newlist = [df[:i1][:-1],df[i2:][1:]]
+
     return newlist
 
 
@@ -128,7 +129,7 @@ def cutUpDataFrame(lod, loc):
     if len(loc)<=0:
         return lod
     else:
-        cuts = identifyCuts(lod, loc[0], pd.Timedelta(weeks=2),pd.Series())
+        cuts = identifyCuts(lod, loc[0], pd.Timedelta(days=2),pd.Series()) #the cutoff needs to be small or upsample will not work
         lod = makeCuts(lod,cuts)
         return cutUpDataFrame(lod,loc[1:])
 
@@ -140,8 +141,8 @@ def makeCut(lod, cut,newlist):
     else:
         #if (cut.index[0] in lod[0].index)
         #    newlist = removeChunk(lod[0], cut.index[0], cut[0]) + lod[1:] + newlist
-        if (cut[0] in lod[0].index):
-            newlist = removeChunk(lod[0], cut[0], cut[:1][0]) + lod[1:] + newlist
+        if (cut.index[0] in lod[0].index):
+            newlist = removeChunk(lod[0], cut.index[0], cut.index[0] + cut[0]) + lod[1:] + newlist
 
             return newlist
         else:
@@ -150,6 +151,12 @@ def makeCut(lod, cut,newlist):
 #cuts up a list of dataframes and the specified cuts and returns the new list of dataframes
 #listOfDataframes, Series -> listOfDataFrames
 def makeCuts(lod, cuts):
+    '''
+
+    :param lod: list of dataframes to cut up
+    :param cuts: a dataframe of timedeltas with datetime index
+    :return: list of dataframes cut into smaller dataframes with cut areas removed
+    '''
     if len(cuts) <= 0:
         return lod
     else:
@@ -260,8 +267,7 @@ def doReplaceData(groups, df_to_fix, cuts, possibleReplacementValues):
     :param groups: pandas.DataFrame with columns size, first and last, first is the first indixe in a block to replace, last is the last index to replace
     :param df_to_fix: DataFrame the dataframe to fix
     :param cuts: [listOf TimeDeltas] the duration of each block of missing data will fall into a cut timedelta
-    :param possibleReplacementValues: DataFrame where replacement values are drawn from. Can be larger than df_to_fix. If possibleReplacmentValues contains null
-    then values can be replaced with null
+    :param possibleReplacementValues: DataFrame where replacement values are drawn from. Can be larger than df_to_fix.
     :return: [DataFrame] with bad values replaced
     '''
 
@@ -280,13 +286,9 @@ def doReplaceData(groups, df_to_fix, cuts, possibleReplacementValues):
                 {'first': indicesOfInterest['first'].values, 'last': indicesOfInterest['last'].values},
                 index=indicesOfInterest.index)
 
-            searchSeries = pd.Series(possibleReplacementValues.index)
-            searchSeries.index = searchSeries.values
             #pos = indices.apply(lambda i: getPossibleStarts(i['first'],i['last'], searchSeries),axis=1)
-            indices['possibles'] = indices.apply(lambda i: getPossibleStarts(i['first'], i['last'], searchSeries),
+            indices['possibles'] = indices.apply(lambda i: getPossibleStarts(i['first'], i['last'], possibleReplacementValues.copy()),
                                                   axis=1)
-            #pos = pos['first']
-            #pos.name = 'possibles'
             indicesOfInterest = pd.concat([indicesOfInterest,indices['possibles']],axis=1)
             replacementStarts = indicesOfInterest.apply(lambda n: validReplacements(n, possibleReplacementValues), axis = 1)
             
@@ -370,7 +372,7 @@ def createSearchRange(s,timeRange):
     
     
 #find possible replacement starts
-def getPossibleStarts(missingIndexFirst,missingIndexLast,searchIndex):
+def getPossibleStarts(missingIndexFirst,missingIndexLast,possibleReplacements):
     ''' find the possible start indices for replacement data based in the indices of missing data and total duration of missing data.
     If there are multiple years represented in the dataset that possible starts are biassed towards previous years data.
 
@@ -379,8 +381,21 @@ def getPossibleStarts(missingIndexFirst,missingIndexLast,searchIndex):
     :param searchIndex: pandas.index of possible replacements
     :return: [ListOf datetimes] the datetime indices of records that could be used as the start point for replacement blocks
     '''
-    possibles = calculateStarts([missingIndexFirst,missingIndexLast], searchIndex)
-    #possibles get filtered 
+    # possibles get filtered by timedelta coverage
+    timedelta = missingIndexLast - missingIndexFirst
+
+    possibleReplacements['time'] = possibleReplacements.index
+    possibleReplacements.loc[possibleReplacements.isnull().any(axis=1), 'time'] = np.nan
+    possibleReplacements['timediff'] = possibleReplacements['time'].diff(periods=1).shift(-1)
+
+    possibleReplacements['cum'] = (possibleReplacements['timediff'].dt.total_seconds()).rolling(timedelta).sum()
+    possibleReplacements = possibleReplacements[pd.to_timedelta(possibleReplacements['cum'],unit='s') >= timedelta]
+    possibleReplacements = possibleReplacements.drop(['timediff', 'time', 'cum'], axis=1)
+
+    searchSeries = pd.Series(possibleReplacements.index)
+    searchSeries.index = searchSeries.values
+    possibles = calculateStarts([missingIndexFirst,missingIndexLast], searchSeries)
+
     return possibles.tolist()
 
 
@@ -426,10 +441,11 @@ def getStartYear(smallBlock, firstMissingIndex,searchIndex):
 
 def calculateStarts(missingIndex,searchSeries):
     '''
-    [], n['smallBlock'], n['startyear'],n['missingIndex'], n['searchIndex']
+
     finds the possible start points for replacement blocks for a given block of missing data
      :return: [ListOf DatetimeIndices]
     '''
+
     searchExcluded = pd.concat([searchSeries[:missingIndex[0]], searchSeries[missingIndex[-1]:]], axis=0)
     searchExcluded = searchExcluded[searchExcluded.index.dayofweek == missingIndex[0].dayofweek]
     searchExcluded = searchExcluded.between_time((missingIndex[0] - pd.to_timedelta('3 h')).time(),(missingIndex[0] + pd.to_timedelta('3 h')).time())

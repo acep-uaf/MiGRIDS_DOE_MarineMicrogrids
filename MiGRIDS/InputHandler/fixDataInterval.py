@@ -86,11 +86,13 @@ def fixDataFrameInterval(dataframe, interval, fixColumns, loadColumns, powerColu
 
     for f in flag_columns:
         completeDataFrame.loc[pd.isnull(completeDataFrame[f]), f] = 4
+
     completeDataFrame = spreadFixedSeries(TOTALLOAD,loadColumns,completeDataFrame)
     completeDataFrame = spreadFixedSeries( TOTALPOWER, powerColumns,completeDataFrame)
     completeDataFrame = completeDataFrame.loc[data1.index]
     completeDataFrame = truncateDataFrame(completeDataFrame)
     return completeDataFrame
+
 def truncateDataFrame(df):
     '''retains the longest continuous sections of data within a dataframe
     :param df: a pandas dataframe with or without na's
@@ -102,10 +104,23 @@ def truncateDataFrame(df):
     newdf = df[first_valid_loc:last_valid_loc]
     #split up the dataframe if there are remaining gaps in data
     NAs = newdf[pd.isnull(newdf).any(axis=1)].index #list of bad indices
-    if len(NAs) >0:
-        lod = makeCuts([df],NAs)
+    #group up the nas into timedeltas of contiuous time period with bad data
+    NATime = pd.Series(pd.to_datetime(NAs), index=NAs)
+    NATime.name = 'natime'
+    if len(NATime) > 0:
+        dfTime = pd.Series(pd.to_datetime(df[min(NATime.index):max(NATime.index)].index),
+                           index=df[min(NATime.index):max(NATime.index)].index)
+        dfTime.name = 'dftime'
+        bothTime = pd.concat([NATime, dfTime], axis=1)
+
+        mask = bothTime.natime.notna()
+        d = bothTime.index.to_series()[mask].groupby((~mask).cumsum()[mask]).agg(['first', 'last'])
+        newcuts = pd.Series((d['last'] - d['first']))
+        newcuts.index = d['first']
+        lod = makeCuts([df],newcuts)
         newdf = returnLargest(lod)
     return newdf
+
 def returnLargest(lod):
     '''returns the dataframe with the most rows from a list of dataframes'''
     df = lod[0]
@@ -119,10 +134,12 @@ def returnLargest(lod):
 def fixSeriesInterval_mp(startingSeries,reSampledSeries,interval,result):
     resultdf = fixSeriesInterval(startingSeries,reSampledSeries,interval)
     result.put(resultdf)
+
 def spreadFixedSeries(col, spreadColumns,df):
     if (col in df.columns):
         df = calculateSubColumns(col,spreadColumns,df)
     return df
+
 def fixSeriesInterval(startingSeries, reSampledSeries,interval):
     '''
     up or downsample a series to reflect the desired interval
@@ -152,8 +169,10 @@ def fixSeriesInterval(startingSeries, reSampledSeries,interval):
         sigma = scaleSigma(sigma)
         simulatedValues = upsample(startingSeries[pd.notnull(startingSeries)],sigma)
     #put modified columns in result
+    simulatedValues.loc[simulatedValues<0] = 0
     reSampledSeries = matchToOriginal(reSampledSeries,simulatedValues,interval)
     return reSampledSeries
+
 def scaleSigma(sigma):
     '''Calculates the standard deviation using a rolling window'''
     WINDOW = 5
@@ -166,6 +185,7 @@ def scaleSigma(sigma):
     #sigma gets arbitrarily scaled to the minute level if records have greater than 1 minute time gaps.
     sigma = np.divide(sigma,records)
     return sigma
+
 def matchToOriginal(originalSeries,simulatedSeries, interval):
     '''
     Matches the indices of two series, replacing the values in the first series where they are na.
@@ -194,6 +214,7 @@ def matchToOriginal(originalSeries,simulatedSeries, interval):
     # fill na's for column with simulated values
     newDF.loc[pd.isnull(newDF[originalSeries.name]), originalSeries.name] = newDF['value']
     return newDF[originalSeries.name]
+
 def upsample(series, sigma):
     '''fills in a 1 second timesteps between time indices with values estimated using a simulation equation.
     The current (1/1/2020) implementation uses langevin for simulation. The value in series is the starting value for the simulated values
@@ -212,6 +233,7 @@ def upsample(series, sigma):
     simulatedSeries = simulatedSeries[~simulatedSeries.index.duplicated(keep='first')]
 
     return simulatedSeries
+
 def estimateDistribution(series, sigma):
     try:
         #return an array of arrays of values
@@ -222,6 +244,7 @@ def estimateDistribution(series, sigma):
         print("Memory Error: re-attempting to process.")
 
         return
+
 def getValues(start, sigma):
     '''
     Uses the Langevin equation to estimate records based on provided start value and standard deviation.
@@ -327,6 +350,7 @@ def getValues(start, sigma):
     del tr
 
     return t,v
+
 def estimateLangValues(timestep, mu, sigma, start, T):
     '''
     :param timestep: integer timestep value
@@ -353,6 +377,7 @@ def estimateLangValues(timestep, mu, sigma, start, T):
         x[:, i + 1] = x[:, i] + timestep * (-(x[:, i] - mu) / tau) + (np.multiply(
             sigma_bis * sqrtdt, np.random.randn(len(start))))
     return x
+
 def calculateSubColumns(total_column, spreadColumns, df):
     '''
     Calculates na values for a list of columns based on the average (calculated with a rolling window) proportion that each column makes up
