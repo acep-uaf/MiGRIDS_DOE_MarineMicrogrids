@@ -353,8 +353,16 @@ class ProjectSQLiteHandler:
 
         self.connection.commit()
     def clearTable(self,table):
+        '''removes all records from a table'''
         self.cursor.execute("Delete From " + table)
         self.connection.commit()
+    def removeRecord(self, table, id):
+        '''removes a record from a table
+        :param: String name of the table
+        :param: int id of the record to delete'''
+        self.cursor.execute("DELETE FROM " + table + " WHERE _id = ?", [id])
+        self.connection.commit()
+        return
     def getSetupDateRange(self):
         '''
 

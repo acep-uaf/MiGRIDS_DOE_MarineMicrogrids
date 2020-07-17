@@ -24,8 +24,8 @@ class PlotCanvas(FigureCanvas):
 
 
     def makePlot(self, data):
-        '''Plots all the x, y values in data on a single plot
-        :param data is a dictionary with x, y for each key. Series labels are keys. '''
+        '''Plots all the x, y values in data on a single plot   
+        :param: data is a dictionary with x, y for each key. Series labels are keys. '''
         ax = self.axes
         ax.clear()
         if data is not None:

@@ -8,7 +8,7 @@ import os
 from MiGRIDS.UserInterface.BaseForm import BaseForm
 from MiGRIDS.UserInterface.GridFromXML import GridFromXML
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
-from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
+from MiGRIDS.UserInterface.makeButton import makeButton
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIHandler import UIHandler
 from MiGRIDS.Optimizer.optimize import optimize
@@ -53,7 +53,7 @@ class FormOptimize(BaseForm):
     def fillButtonBlock(self):
         buttonLayout = QtWidgets.QHBoxLayout()
 
-        runButton = makeButtonBlock(self, self.startOptimize, text='START', icon=None, hint='Start optimization process')
+        runButton = makeButton(self, self.startOptimize, text='START', icon=None, hint='Start optimization process')
         #stopButton = makeButtonBlock(self, None, text='STOP', icon=None, hint='Stop optimization process')
         buttonLayout.addWidget(runButton)
         #buttonLayout.addWidget(stopButton)

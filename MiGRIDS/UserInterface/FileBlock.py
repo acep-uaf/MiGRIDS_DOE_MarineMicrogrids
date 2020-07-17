@@ -12,7 +12,7 @@ from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.gridLayoutSetup import setupGrid
 from MiGRIDS.Controller.Exceptions.NoValidFilesError import NoValidFilesError
-from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
+
 from MiGRIDS.Controller.DirectoryPreview import DirectoryPreview
 from PyQt5 import QtWidgets,QtCore,QtSql
 

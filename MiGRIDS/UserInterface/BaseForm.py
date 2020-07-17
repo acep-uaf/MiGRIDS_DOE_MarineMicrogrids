@@ -46,20 +46,20 @@ class BaseForm(QtWidgets.QWidget):
         msg.exec()
 
     def refreshDataPlot(self):
-        '''called to refresh the diplay on the data plot within the resultForm'''
+        '''called to refresh the display on the data plot within the resultForm'''
         resultDisplay = self.parent().findChild(self.resultForm)
         if resultDisplay != None:
             resultDisplay.setData(self.controller.inputData)
             resultDisplay.defaultPlot()
 
-    def eventFilter(self, ob: 'QObject', ev: 'QEvent'):
-        '''used to filter events during project switching, or any time the database is closed'''
-        if ev.type() == QtCore.QEvent.MouseButtonPress:
-            print("index changed")
-            return True
-        else:
-            print("event")
-            return False
+    # def eventFilter(self, ob: 'QObject', ev: 'QEvent'):
+    #     '''used to filter events during project switching, or any time the database is closed'''
+    #     if ev.type() == QtCore.QEvent.MouseButtonPress:
+    #         print("index changed")
+    #         return True
+    #     else:
+    #         print("event")
+    #         return False
 
     def clear(self):
         '''

@@ -31,12 +31,6 @@ class ComponentTableView(customAlternateTableView):
     def __init__(self, *args, **kwargs):
         super(ComponentTableView, self).__init__()
         self.hiddenColumns = [0]
-        # column 1 gets autfilled with filedir
-        #self.tabPosition = kwargs.get('position')
-        #QtWidgets.QTableView.__init__(self, *args)
-        #self.dbhandler = ProjectSQLiteHandler()
-       # self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
-        #self.resizeColumnsToContents()
 
         fields = []
 

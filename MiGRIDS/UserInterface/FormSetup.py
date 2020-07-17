@@ -23,7 +23,7 @@ from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
 from MiGRIDS.UserInterface.DetailsWidget import DetailsWidget
 from MiGRIDS.UserInterface.TableHandler import TableHandler
 from MiGRIDS.UserInterface.WizardPages import WizardPage, TextWithDropDown, ComponentSelect, TwoDatesDialog
-from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
+from MiGRIDS.UserInterface.makeButton import makeButton
 from MiGRIDS.UserInterface.ResultsSetup import  ResultsSetup
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.Resources.SetupWizardDictionary import *
@@ -74,7 +74,7 @@ class FormSetup(BaseForm):
         gb = QtWidgets.QGroupBox(title)
 
         tableGroup = QtWidgets.QVBoxLayout()
-        tableGroup.addWidget(self.dataButtons(table))
+        tableGroup.addWidget(self.makeTableButtons(table))
         if table == 'components':
 
             self.ComponentTable = T.ComponentTableView(self)
@@ -143,12 +143,12 @@ class FormSetup(BaseForm):
         #layout object name
         hlayout.setObjectName('buttonLayout')
         #add the button to load a setup xml
-        hlayout.addWidget(makeButtonBlock(self, self.functionForLoadButton,
+        hlayout.addWidget(makeButton(self, self.functionForLoadButton,
                                  'Load Existing Project', None, 'Load a previously created project files.','loadProject'))
 
         #add button to launch the setup wizard for setting up the setup xml file
         hlayout.addWidget(
-            makeButtonBlock(self,self.functionForCreateButton,
+            makeButton(self, self.functionForCreateButton,
                                  'New Project', None, 'Start the setup wizard to create a new setup file','createProject'))
         #force the buttons to the left side of the layout
         hlayout.addStretch(1)
@@ -579,9 +579,11 @@ class FormSetup(BaseForm):
             resultsForm.defaultPlot()#getting called first time here
 
         return values
-    # close event is triggered when the form is closed
-    #called by FormContainer
+
     def closeEvent(self, event):
+        ''' closeEvent is triggered when the form is closed
+        called by FormContainer
+        :param: qt event'''
         if self.controller.projectFolder != None:
             # close the fileblocks
             #make sure database is up to date with fileblock data
@@ -592,7 +594,7 @@ class FormSetup(BaseForm):
             self.ComponentTable.model().submit()
             #Write the setup file - don't overwrite descriptors
             self.controller.setupHandler.makeSetup(self.controller.project, self.controller.setupFolder) #The setup form always contains information for set0
-            #self.controller.dbhandler.closeDatabase()
+
 
 
     def newTab(self,i=0):
@@ -609,7 +611,7 @@ class FormSetup(BaseForm):
     def createLoadNetcdfButton(self):
         '''
         Create a button to initiate the creation of netcdf files for model input
-        :return:
+        :return: QtWidget.QPushButton
         '''
         button = QtWidgets.QPushButton()
         button.setText("Load netCDF inputs")
@@ -623,7 +625,7 @@ class FormSetup(BaseForm):
     def createSubmitButton(self):
         '''
         Create a button to initiate the creation of netcdf files for model input
-        :return:
+        :return:  QtWidget.QPushButton
         '''
         button = QtWidgets.QPushButton()
         button.setText("Generate netCDF inputs")
@@ -652,16 +654,11 @@ class FormSetup(BaseForm):
         '''warns the user the setup file is not valid and re-opens the setup wizard so inputs can be corrected.'''
         self.showAlert("Setup file invalid","Please correct your setup input")
         self.prePopulateSetupWizard()
-    # def refreshTable(self):
-    #     self.ComponentTable.model().select()
-    #     return
-    def functionForLoadDescriptor(self, table):
+
+    def functionForLoadDescriptor(self):
         '''load a descriptor file for a component and populate the project_manager database with its values
         '''
-        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, 'Load Descriptor',
-                                    'If the component descriptor file you are loading has the same name as an existing component it will not load')
-        msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
-        msg.exec()
+
         # identify the xml
         descriptorFile = QtWidgets.QFileDialog.getOpenFileName(self, "Select a descriptor file", None, "*xml")
         if (descriptorFile == ('', '')) | (descriptorFile is None):
@@ -675,18 +672,32 @@ class FormSetup(BaseForm):
             filedir = self.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
             self.saveInput()
             id = self.controller.dbhandler.getId('input_files', ['inputfiledirvalue'], [filedir])
-            tableHandler.functionForNewRecord(table, fields=[1,
+            component_id = self.controller.dbhandler.getId('component',
+                                            ['componentnamevalue'], [
+                                                self.getComponentNameFromDescriptor(
+                                                    descriptorFile[0])])
+            #if a field name was provided
+            if ((fieldName is not None) & (fieldName != '') & (component_id == -1)):
+                #new component with a fieldname in the dataframe
+                recordValues = [id,fieldName,self.controller.dbhandler.inferComponentType(
+                                                          self.getComponentNameFromDescriptor(descriptorFile[0])),
+                                                      component_id]
+
+                tableHandler.functionForNewRecord('components', fields=[1,
                                                              T.ComponentFields.headernamevalue.value,
                                                              T.ComponentFields.componenttype.value,
                                                              T.ComponentFields.component_id.value],
-                                              values=[id,
-                                                      fieldName,
-                                                      self.controller.dbhandler.inferComponentType(
-                                                          self.getComponentNameFromDescriptor(descriptorFile[0])),
-                                                      self.controller.dbhandler.getId('component',
-                                                                                      ['componentnamevalue'], [
-                                                                                          self.getComponentNameFromDescriptor(
-                                                                                              descriptorFile[0])])])
+                                              values=recordValues)
+            elif (component_id == -1):
+                #new component
+                tableView = self.findChild((QtWidgets.QTableView),'components')
+                model = tableView.model()
+                self.controller.dbhandler.insertRecord('component',['componentnamevalue'],[self.getComponentNameFromDescriptor(
+                                                    descriptorFile[0])])
+                model.select()
+            else:
+                #existing component, just replacing the fieldname and descriptor file
+                self.controller.dbhandler.updateRecord("component_files",["component_id"],[component_id], ["headernamevalue"],[fieldName])
             # copy the file
             self.controller.setupHandler.copyDescriptor(descriptorFile[0],
                                                         getFilePath('Components',
@@ -740,6 +751,8 @@ class FormSetup(BaseForm):
                                                           projectFolder=self.controller.dbhandler.getProjectPath())
                             self.controller.setupHandler.removeDescriptor(model.data(model.index(r.row(), 3)),
                                                                           componentFolder)
+                            #remove from component table, will be removed from component_files by model
+                            self.controller.dbhandler.removeRecord('component',self.controller.dbhandler.getId("component", ["componentnamevalue"],[model.data(model.index(r.row(), 4))]))
                         removedRows.append(r.row())
                         self.controller.dbhandler.closeDatabase()
                         model.removeRows(r.row(), 1)
@@ -749,7 +762,7 @@ class FormSetup(BaseForm):
                 print(model.lastError().text())
                 model.select()
 
-    def dataButtons(self, table):
+    def makeTableButtons(self, table):
         '''
         creates buttons associated with table behavior
         :param table: String the name of the table buttons actions are for
@@ -759,15 +772,15 @@ class FormSetup(BaseForm):
         buttonRow = QtWidgets.QHBoxLayout()
 
         if table == 'components':
-            buttonRow.addWidget(makeButtonBlock(self, lambda: self.functionForLoadDescriptor(table),
-                                                None, 'SP_DialogOpenButton',
+            buttonRow.addWidget(makeButton(self, lambda: self.functionForLoadDescriptor(),
+                                           None, 'SP_DialogOpenButton',
                                                 'Load a previously created component xml file.'))
 
-        buttonRow.addWidget(makeButtonBlock(self, lambda: self.functionForNewRecord(table),
+        buttonRow.addWidget(makeButton(self, lambda: self.functionForNewRecord(table),
                                             '+', None,
                                             'Add a component', 'newComponent'))
-        buttonRow.addWidget(makeButtonBlock(self, lambda: self.functionForDeleteRecord(table),
-                                            None, 'SP_TrashIcon',
+        buttonRow.addWidget(makeButton(self, lambda: self.functionForDeleteRecord(table),
+                                       None, 'SP_TrashIcon',
                                             'Delete a component', 'deleteComponent'))
         buttonRow.addStretch(3)
         self.ComponentButtonBox.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)

@@ -88,14 +88,14 @@ class MainForm(QtWidgets.QMainWindow):
 
         self.data = [
             ('Setup', [
-                ('Setup File',[]),
-                ('Input Files',[]),
-                ('Components',[])
+                ('Setup File',[]),      #starts setup wizard filled with existing data
+                ('Load Component',[]), #Starts function to load a descriptor file
+                ('Edit Components',[])  #Sets the focus on the component edit table
             ]),
             ('Model Runs', [
-                ('Sets',[]),
-                ('Runs',[]),
-                ('Results',[])
+                ('Edit Set',[]),      #sets the focus on the attribute edit table
+
+                ('Export Result',[])
 
             ]),
             # ('Optimize',[
@@ -103,12 +103,12 @@ class MainForm(QtWidgets.QMainWindow):
             # ])
         ]
         self.focusObjects = {'Setup File':FormSetup.prePopulateSetupWizard,
-                             'Input Files':'fileInput',
-                             'Components':'components',
+                             'Load Component':FormSetup.functionForLoadDescriptor,
+                             'Edit Components':'components',
 
-                             'Sets':'modelSets',
-                             'Runs':'runResults',
-                             'Results':'modelResults'
+                             'Edit Set':'sets',
+
+                             'Export Result':FormModelRun.exportResults,
 
         }
 
@@ -159,7 +159,8 @@ class MainForm(QtWidgets.QMainWindow):
 
             if type(focusObject) is str:
                 focusWidget = self.pageBlock.currentWidget().findChild(QtWidgets.QWidget,focusObject)
-                focusWidget.setFocus(True)
+                if (focusWidget is not None):
+                    focusWidget.setFocus(True)
             else:
 
                 #find and launch the method

@@ -37,6 +37,10 @@ class BaseEditorTab(QtWidgets.QGroupBox):
     def makeForm(self):
         #make all the input fields and tables and buttons
         pass
+    def makeDataButtons(self, table):
+        '''set up buttons that will be displayed and used to manipulate data contained in the form
+        :param: String name of the database table that buttons will affect'''
+        pass
     @QtCore.pyqtSlot()
     def onClick(self, buttonFunction):
         '''calls the specified function connected to a button onClick event'''

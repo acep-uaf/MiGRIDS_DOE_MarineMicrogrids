@@ -18,7 +18,7 @@ from MiGRIDS.UserInterface.TableHandler import TableHandler
 from MiGRIDS.UserInterface.XMLEditor import XMLEditor
 from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
-from MiGRIDS.UserInterface.makeButtonBlock import makeButtonBlock
+from MiGRIDS.UserInterface.makeButton import makeButton
 from MiGRIDS.UserInterface.qdateFromString import qdateFromString
 
 
@@ -61,7 +61,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         tableGroup.addWidget(self.infoBox, 0, 0, 1, 10)
 
         # buttons for adding and deleting component attribute edits - edits to descriptor files
-        tableGroup.addWidget(self.dataButtons('sets'), 1, 0, 1, 3)
+        tableGroup.addWidget(self.makeDataButtons('sets'), 1, 0, 1, 3)
 
         # table of descriptor file changes to be made
         # the table view filtered to the specific set for each tab
@@ -89,31 +89,15 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         tableGroup.addWidget(self.xmlEditor, 2, 4, 8, 6)
         self.setLayout(tableGroup)
 
-        # make the run result table
-        # tableGroup.addWidget(self.createRunTable(str(self.setId)), 11, 0, 10,
-        #                      10)  # Set Id will be negative 1 at creation
-        # self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        # self.fillSetInfo(str(self.tabPosition))
-    def updateDateWidgets(self):
-    #     for i in range(3,5):
-    #         wid = self.infoBox.findChild(QtWidgets.QWidget, self.set_model.record().fieldName(i))
-    #         wid.setDate(qdateFromString(self.set_model.data(self.set_model.index(0, i))))
-        return
+
     def updateForm(self):
         '''refreshes data displayed in form based on any changes made in database or xml model files'''
         self.refreshSetModel()
         self.setValidators() #update the validators tied to inputs
         self.mapper.toLast() #make sure the mapper is on the actual record (1 per tab)
-        #self.setModel.submit() #submit any data that was changed
-        #print(self.setModel.lastError().text())
         self.updateComponentLineEdit(self.controller.dbhandler.getComponentNames()) # update the clickable line edit to show current components
-        #self.updateComponentDelegate(self.controller.dbhandler.getComponentNames())
-
         self.set_componentsModel.select()
-
         self.xmlEditor.updateWidget() #this relies on xml files, not the database
-        #self.run_Model.refresh(self.setId)
-        #self.rehide(self.findChild(QtWidgets.QTableView,'runs'),[0,1,26])
         self.rehide(self.findChild(QtWidgets.QTableView,'sets'), [0,1])
         return
 
@@ -121,16 +105,12 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         self.setId = self.controller.dbhandler.getSetId(str(self.tabPosition))
         self.set_model.setFilter('set_._id = ' + str(self.setId))
         self.set_model.select()  # update the set data inputs
-        self.updateDateWidgets()
         return
 
     def rehide(self,tview,loc):
         for i in loc:
             tview.hideColumn(i)
     def submitData(self):
-        #result = self.setModel.submitAll()
-        #print(self.setModel.lastError().text())
-        #result = self.set_componentsModel.submitTable()
         result = self.set_componentsModel.submitAll()
         if not result:
             print(self.set_componentsModel.lastError().text())
@@ -205,11 +185,6 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         return infoBox
 
     def loadSetData(self):
-        # load and update from set setup file
-        # self.controller.runHandler.loadExistingProjectSet(self.setName)
-        # load and update from attributeXML
-        # load and update from xml resources
-
         #update the runtimesteps to match the setup file if they are outside the bounds
         self.updateRunTimeSteps()
         self.updateForm()
@@ -234,7 +209,8 @@ class SetsAttributeEditorBlock(BaseEditorTab):
 
 
     def setValidators(self):
-        #timesteps need to be equal to or greater than te setup timestep
+        '''validator values used set when the form is updated'''
+        #timesteps need to be equal to or greater than the setup timestep
         minSeconds = self.controller.dbhandler.getFieldValue('setup','timestepvalue','_id',1)
         units = self.controller.dbhandler.getFieldValue('setup','timestepunit','_id',1)
         if units.lower() != 's':
@@ -269,7 +245,6 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         else:
             self.controller.dbhandler.updateFromDictionaryRow('set_',dict, ['_id'],[self.setId])
         return
-
     def mapWidgets(self):
         '''
         create a widget mapper object to tie fields to data in database tables
@@ -305,7 +280,8 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         infoRowModel.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         return infoRowModel
     def componentSelector(self):
-
+        '''makes the component selection widget
+        :return: ClickableLineEdit widget'''
         #if components are not provided use the default list
 
         allcomponents = self.controller.dbhandler.getComponentNames()
@@ -318,8 +294,13 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         widg.clicked.connect(lambda: self.componentCellClicked())
         return widg
     def fillSetInfo(self,setName = '0'):
-
-        setInfo = self.controller.dbhandler.getSetInfo('set' + str(setName))
+        '''
+        fills the unmapped form fields with set information found in the database
+        :param setName: String name or number of the set
+        :return: None
+        '''
+        setid = self.controller.dbhandler.getSetId(setName)
+        setInfo = self.controller.dbhandler.getSetInfo(self.controller.dbhandler.getFieldValue('_set','set_name','_id',setid))
         if setInfo != None:
             if type(setInfo[COMPONENTNAMES]) == str:
                 self.defaultComponents = setInfo[COMPONENTNAMES].split(',')
@@ -334,12 +315,11 @@ class SetsAttributeEditorBlock(BaseEditorTab):
             self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'startDate'))
             self.setDateSelectorProperties(self.findChild(QtWidgets.QDateEdit, 'endDate'),False)
             self.findChild(QtWidgets.QLineEdit,'componentNames').setText(','.join(self.defaultComponents))
-            #self.updateComponentDelegate(self.componentDefault)
 
         return
     @QtCore.pyqtSlot()
     def componentCellClicked(self):
-
+        '''Display a list of displaying values from the clicked widget and update the database with the result'''
         # get the cell, and open a listbox of checked components for this project
         listDialog = ComponentSetListForm(self.setName)
 
@@ -350,8 +330,10 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         widg = self.findChild(QtWidgets.QLineEdit,'componentNames')
         widg.setText(str1)
         self.controller.dbhandler.updateSetComponents(self.setName,components)
-        #self.updateComponentDelegate(components)
+
         self.set_componentsModel.select()
+        return
+
     #Boolean -> QDateEdit
     def makeDateSelector(self, start=True):
         widg = QtWidgets.QDateTimeEdit()
@@ -373,18 +355,20 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         widg.setCalendarPopup(True)
         return widg
     # string -> QGroupbox
-    def dataButtons(self, table):
-        handler = TableHandler(self)
+    def makeDataButtons(self, table):
+        '''makes the button objects associated with the table in the form
+        :param String name of the database table buttons will affect
+        :return Groupbox containing buttons'''
         buttonBox = QtWidgets.QGroupBox()
         buttonRow = QtWidgets.QHBoxLayout()
 
-        buttonRow.addWidget(makeButtonBlock(self, lambda: self.functionForNewRecord(table),
+        buttonRow.addWidget(makeButton(self, lambda: self.functionForNewRecord(table),
                                             '+', None,
                                             'Add a component change'))
-        buttonRow.addWidget(makeButtonBlock(self, lambda: self.functionForDeleteRecord(table),
-                                            None, 'SP_TrashIcon',
+        buttonRow.addWidget(makeButton(self, lambda: self.functionForDeleteRecord(table),
+                                       None, 'SP_TrashIcon',
                                             'Delete a component change'))
-        buttonRow.addWidget(makeButtonBlock(self, lambda: self.runModels(),
+        buttonRow.addWidget(makeButton(self, lambda: self.runModels(),
                                             'Run', None,
                                             'Run Set'))
         buttonRow.addStretch(3)
