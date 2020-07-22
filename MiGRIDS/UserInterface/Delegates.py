@@ -138,6 +138,7 @@ class TextDelegate(QtWidgets.QItemDelegate):
 #combo boxes for tables with foreign keys
 class RelationDelegate(QtSql.QSqlRelationalDelegate):
     componentNameChanged = QtCore.pyqtSignal(str)
+    itemChanged = QtCore.pyqtSignal(str,str)
 
     def __init__(self, parent,name,**kwargs):
         QtSql.QSqlRelationalDelegate.__init__(self,parent)
@@ -186,10 +187,8 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
     def currentIndexChanged(self):
         #i = index
         self.commitData.emit(self.sender())
-        if self.name == 'componentname':
-            currentSelected = self.sender().currentText()
-
-            self.componentNameChanged.emit(currentSelected)
+        currentSelected = self.sender().currentText()
+        self.itemChanged.emit(self.name, currentSelected)
         return
 
 
