@@ -38,8 +38,6 @@ class ResultsSetup(ResultsPlot):
             return df0
         self.data = {'raw':data.raw,'fixed':mergedDF(data.fixed)}
 
-
-
     def getPlotData(self):
         #The data class object can have lots of NA's in the raw data surrounded by actual values.
         #These NA's will not get plotted unless we use a fill method to create atleast 2 consecutive points.

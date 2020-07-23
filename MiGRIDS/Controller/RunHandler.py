@@ -283,8 +283,10 @@ class RunHandler(UIHandler):
         self.makeRunDescriptors(setComponentIds, "Run" + str(run), setName)
 
         #insert the run into the run table
-        run_id = self.dbhandler.insertRecord('run',['run_num','set_id'],[run,self.dbhandler.getSetId(setName)])
-        #and the run_attributes table
+        run_id = self.dbhandler.getId('run', ['run_num','set_id'], [run,self.dbhandler.getSetId(setName)])
+        if run_id == -1:
+            run_id = self.dbhandler.insertRecord('run',['run_num','set_id'],[run,self.dbhandler.getSetId(setName)])
+            #and the run_attributes table
         loi = list(setComponentIds)
         [self.dbhandler.insertRecord('run_attributes', ['run_id', 'set_component_id'],[run_id, x]) for x in loi]
     def getNextRun(self,setName):

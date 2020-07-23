@@ -11,7 +11,7 @@ from MiGRIDS.UserInterface.Delegates import ComboDelegate
 
 from enum import Enum
 
-from MiGRIDS.UserInterface.ModelRunTable import  customAlternateTableView
+from MiGRIDS.UserInterface.CustomAlternateTableView import CustomAlternateTableView
 
 
 class ComponentFields(Enum):
@@ -27,23 +27,30 @@ class ComponentFields(Enum):
     customize = 9
 
 #QTableView for displaying component information
-class ComponentTableView(customAlternateTableView):
+class ComponentTableView(CustomAlternateTableView):
     def __init__(self, *args, **kwargs):
         super(ComponentTableView, self).__init__()
         self.hiddenColumns = [0]
-
         fields = []
 
         #combo columns
         self.setItemDelegateForColumn(ComponentFields.inputfile_id.value,ComboRelationDelegate(self,'input_files','_id','inputfiledirvalue','inputfiledirvalue'))
         self.setItemDelegateForColumn(ComponentFields.headernamevalue.value,ComboDelegate(self,QtCore.QStringListModel(fields),'headernamevalue'))
         self.setItemDelegateForColumn(ComponentFields.component_id.value, ComboRelationDelegate(self, 'component','_id','componentnamevalue','componentnamevalue'))
-
-        self.setItemDelegateForColumn(ComponentFields.componenttype.value, RelationDelegate(self, 'componenttype'))
+        cdel = RelationDelegate(self, 'componenttype')
+        cdel.itemChanged.connect(self.typeChanged)
+        self.setItemDelegateForColumn(ComponentFields.componenttype.value, cdel)
         self.setItemDelegateForColumn(ComponentFields.componentattributevalue.value, RelationDelegate(self, 'componentattributevalue'))
         self.setItemDelegateForColumn(ComponentFields.componentattributeunit.value, RelationDelegate(self, 'componentattributeunit'))
         self.setItemDelegateForColumn(ComponentFields.customize.value, ComponentFormOpenerDelegate(self, '+'))
 
+
+    def typeChanged(self,field,value):
+        if field == 'componenttype':
+            currentRow = self.currentIndex().row()
+            self.model().componentTypeSelected(currentRow, value)
+
+        return
 #data model to fill component table
 class ComponentTableModel(QtSql.QSqlRelationalTableModel):
     def __init__(self, parent):
@@ -69,7 +76,8 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         # set the dropdowns
         self.createRelations()
         # database gets updated when fields are changed
-        self.setEditStrategy(QtSql.QSqlTableModel.OnRowChange)
+        #self.setEditStrategy(QtSql.QSqlTableModel.OnRowChange)
+        self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         self.select()
 
     def createRelations(self):
@@ -106,4 +114,19 @@ class ComponentTableModel(QtSql.QSqlRelationalTableModel):
         self.createRelations()
 
         return success
+
+    def componentTypeSelected(self, row, value):
+       # make sure there is a name to match the type in the name dropdowns
+       #parent is FormSetup
+       if value != '':
+           componentnamecount = self.parent().getComponentNameCount(value)
+           typecount = 0 #typecount comes from the displayed data not the database
+           for r in range(self.rowCount()):
+               if self.data(self.index(r, ComponentFields.componenttype.value), QtCore.Qt.DisplayRole) == value:
+                   typecount += 1
+
+           if typecount > componentnamecount:
+              self.parent().addName(value,componentnamecount)
+
+       return
 

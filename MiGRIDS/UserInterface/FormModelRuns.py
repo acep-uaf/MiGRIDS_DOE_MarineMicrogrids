@@ -80,12 +80,15 @@ class FormModelRun(BaseForm):
             else:
                  m.select()
     def closeForm(self):
+        attr = self.findChildren(SetsAttributeEditorBlock)
+        for a in attr:
+            a.closeForm()
         tables = self.findChildren(QtWidgets.QTableView)
         for t in tables:
             m = t.model()
             if not isinstance(m,RunTableModel): #runtable model doesn't have a submitall method
-                m.submitAll()
-                print(m.lastError().text())
+                if not (m.submitAll()):
+                    print(m.lastError().text())
 
     def projectLoaded(self):
         tab_count = len(self.controller.dbhandler.getAllRecords('set_'))

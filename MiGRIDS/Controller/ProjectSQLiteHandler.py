@@ -1098,12 +1098,22 @@ class ProjectSQLiteHandler:
 
     def getComponentByType(self,mytype):
         '''
-
+        returns a list of components of a specific type from the component table
         :param mytype:
-        :return:
+        :return: list of tuples containing id and name
         '''
         codes = self.cursor.execute("select _id, componentnamevalue from component WHERE componenttype = ?", [mytype]).fetchall()
         return codes
+
+    def getComponentFilesByType(self, componentType):
+        '''
+            returns a list of components of a specific type from the component_files table
+            :param mytype:
+            :return: list of tuples containing id and name
+            '''
+        components = self.cursor.execute("select component_id, componentnamevalue from component INNER JOIN component_files on component_files.component_id = component._id WHERE component.componenttype = ?", [componentType]).fetchall()
+        return components
+
     def getAllRecords(self,table):
         return self.cursor.execute("select * from " + table).fetchall()
 

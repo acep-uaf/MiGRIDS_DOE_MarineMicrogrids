@@ -185,9 +185,10 @@ class RelationDelegate(QtSql.QSqlRelationalDelegate):
         return
     @QtCore.pyqtSlot()
     def currentIndexChanged(self):
-        #i = index
+        '''emits a signal that the data in a specific combo box has been changed'''
         self.commitData.emit(self.sender())
         currentSelected = self.sender().currentText()
+        g = self.senderSignalIndex()
         self.itemChanged.emit(self.name, currentSelected)
         return
 
@@ -267,7 +268,7 @@ class QueryCheckBoxDelegate(QtWidgets.QStyledItemDelegate):
 
 
     def paint(self, painter, option, index):
-        modelValue = index.model().data(index, QtCore.Qt.DisplayRole)
+
         checked = bool(index.model().data(index, QtCore.Qt.DisplayRole))
         opt = QtWidgets.QStyleOptionButton()
 

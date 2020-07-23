@@ -11,9 +11,11 @@ In the case of a windspeed file a windspeed netcdf file will be generated and po
 on each wtg components descriptor file.'''
 import os
 import datetime
+from glob import glob
+
 from PyQt5 import QtWidgets, QtCore
-from glob2 import glob
-import MiGRIDS.UserInterface.ModelComponentTable as T
+
+from MiGRIDS.UserInterface.ComponentTableBlock import ComponentTableBlock
 from MiGRIDS.UserInterface.FormModelRuns import FormModelRun
 from MiGRIDS.UserInterface.BaseForm import BaseForm
 from MiGRIDS.UserInterface.FileBlock import FileBlock
@@ -27,7 +29,7 @@ from MiGRIDS.UserInterface.makeButton import makeButton
 from MiGRIDS.UserInterface.ResultsSetup import  ResultsSetup
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.Resources.SetupWizardDictionary import *
-import pandas as pd
+
 
 BASESET ='Set0'
 
@@ -54,8 +56,8 @@ class FormSetup(BaseForm):
         self.createTopButtonBlock()
         windowLayout.addWidget(self.ButtonBlock)
         self.makeTabs(windowLayout)
-        self.makeTableBlock('Components', 'components', self.assignComponentBlock)
-        windowLayout.addWidget(self.componentBlock,stretch=6)
+        self.makeTableBlock()
+        windowLayout.addWidget(self.tableBlock,stretch=6)
         #list of dictionaries containing information for wizard
         #this is the information that is not input file specific.
         self.WizardTree = self.buildWizardTree(dlist)
@@ -70,35 +72,42 @@ class FormSetup(BaseForm):
         self.grantPermissions()
         #show the form
         self.showMaximized()
-    def makeTableBlock(self,title,table,fn):
-        gb = QtWidgets.QGroupBox(title)
+        return
 
-        tableGroup = QtWidgets.QVBoxLayout()
-        tableGroup.addWidget(self.makeTableButtons(table))
-        if table == 'components':
-
-            self.ComponentTable = T.ComponentTableView(self)
-            self.ComponentTable.setObjectName('components')
-            m = T.ComponentTableModel(self)
-            self.ComponentTable.hideColumn(1)
-            self.ComponentTable.setModel(m)
-            #self.ComponentTable.hideColumn(0)
-            self.ComponentTable.reFormat()
-            self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
-            #self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-            self.ComponentTable.model().beforeUpdate.connect(self.controller.validateInput)
-            #self.ComponentTable.model().beforeUpdate.connect(self.controller.validateInput)
-            tableGroup.addWidget(self.ComponentTable, 1)
-            tableHandler = TableHandler(self)
-            try:
-                self.updateComponentDelegate(self.preview, tableHandler)
-            except AttributeError as a:
-                pass
+    def makeTableBlock(self):
+        self.tableBlock = ComponentTableBlock(self)
+        try:
+            self.updateComponentDelegate(self.preview, self.tableHandler)
+        except AttributeError as a:
+            pass
+        # gb = QtWidgets.QGroupBox(title)
+        #
+        # tableGroup = QtWidgets.QVBoxLayout()
+        # tableGroup.addWidget(self.makeTableButtons(table))
+        # if table == 'components':
+        #
+        #     self.ComponentTable = T.ComponentTableView(self)
+        #     self.ComponentTable.setObjectName('components')
+        #     m = T.ComponentTableModel(self)
+        #     self.ComponentTable.hideColumn(1)
+        #     self.ComponentTable.setModel(m)
+        #     #self.ComponentTable.hideColumn(0)
+        #     self.ComponentTable.reFormat()
+        #     self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
+        #     #self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        #     self.ComponentTable.model().beforeUpdate.connect(self.controller.validateInput)
+        #     #self.ComponentTable.model().beforeUpdate.connect(self.controller.validateInput)
+        #     tableGroup.addWidget(self.ComponentTable, 1)
+        #     tableHandler = TableHandler(self)
+        #     try:
+        #         self.updateComponentDelegate(self.preview, tableHandler)
+        #     except AttributeError as a:
+        #         pass
 
         # self.filterTables()
-        gb.setLayout(tableGroup)
-        gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        fn(gb)
+        # gb.setLayout(tableGroup)
+        # gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
         return
     def tabChanged(self,index):
         if self.tabs.currentWidget() != None:
@@ -259,7 +268,8 @@ class FormSetup(BaseForm):
             self.tabs.setEnabled(True)
             #FileBlock mapper needs to be set to a new records so information can be saved
             self.findChild(QtWidgets.QLabel, 'projectTitle').setText(self.controller.project)
-
+        self.tableBlock.tableModel.select()
+        return
     def validateProjectSwitch(self):
         '''
         launches a dialog to make sure the user wants to switch projects
@@ -465,8 +475,9 @@ class FormSetup(BaseForm):
                 for i in range(0,cnt):
                     comp_id = self.controller.dbhandler.insertRecord('component',['componentnamevalue','componenttype'],[t[0] + str(i),t[0]])
 
-                    #the delegate for componentname in the component table should also be updated
+                    #the delegate for componentname in the component table should also be updated and record should be inserted into inputfiles
                     if comp_id != -1:
+                        file_id = self.controller.dbhandler.insertRecord('component_files',['component_id','componenttype'],[comp_id,t[0]])
                         loFileBlock = self.findChildren(FileBlock)
                         for f in loFileBlock:
                            self.updateComponentNameList()
@@ -591,7 +602,7 @@ class FormSetup(BaseForm):
                 page = self.tabs.widget(i)
                 page.close()
             #make sure database is up to date with component table data
-            self.ComponentTable.model().submit()
+            self.tableBlock.tableModel.submit()
             #Write the setup file - don't overwrite descriptors
             self.controller.setupHandler.makeSetup(self.controller.project, self.controller.setupFolder) #The setup form always contains information for set0
 
@@ -620,7 +631,6 @@ class FormSetup(BaseForm):
     def readNetcdf(self):
         self.controller.loadNetcdfs()
         return
-
 
     def createSubmitButton(self):
         '''
@@ -655,177 +665,63 @@ class FormSetup(BaseForm):
         self.showAlert("Setup file invalid","Please correct your setup input")
         self.prePopulateSetupWizard()
 
-    def functionForLoadDescriptor(self):
-        '''load a descriptor file for a component and populate the project_manager database with its values
-        '''
 
-        # identify the xml
-        descriptorFile = QtWidgets.QFileDialog.getOpenFileName(self, "Select a descriptor file", None, "*xml")
-        if (descriptorFile == ('', '')) | (descriptorFile is None):
-            return
 
-        fieldName, ok = QtWidgets.QInputDialog.getText(self, 'Field Name',
-                                                       'Enter the name of the channel that contains data for this component.')
-        # if a field was entered add it to the table model and database
-        if ok:
-            tableHandler = TableHandler(self)
-            filedir = self.findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
-            self.saveInput()
-            id = self.controller.dbhandler.getId('input_files', ['inputfiledirvalue'], [filedir])
-            component_id = self.controller.dbhandler.getId('component',
-                                            ['componentnamevalue'], [
-                                                self.getComponentNameFromDescriptor(
-                                                    descriptorFile[0])])
-            #if a field name was provided
-            if ((fieldName is not None) & (fieldName != '') & (component_id == -1)):
-                #new component with a fieldname in the dataframe
-                recordValues = [id,fieldName,self.controller.dbhandler.inferComponentType(
-                                                          self.getComponentNameFromDescriptor(descriptorFile[0])),
-                                                      component_id]
-
-                tableHandler.functionForNewRecord('components', fields=[1,
-                                                             T.ComponentFields.headernamevalue.value,
-                                                             T.ComponentFields.componenttype.value,
-                                                             T.ComponentFields.component_id.value],
-                                              values=recordValues)
-            elif (component_id == -1):
-                #new component
-                tableView = self.findChild((QtWidgets.QTableView),'components')
-                model = tableView.model()
-                self.controller.dbhandler.insertRecord('component',['componentnamevalue'],[self.getComponentNameFromDescriptor(
-                                                    descriptorFile[0])])
-                model.select()
-            else:
-                #existing component, just replacing the fieldname and descriptor file
-                self.controller.dbhandler.updateRecord("component_files",["component_id"],[component_id], ["headernamevalue"],[fieldName])
-            # copy the file
-            self.controller.setupHandler.copyDescriptor(descriptorFile[0],
-                                                        getFilePath('Components',
-                                                                    projectFolder=self.controller.dbhandler.getProjectPath()))
-
-        return
-
-    def getComponentNameFromDescriptor(self, descriptorFilePath):
-        fileName = os.path.basename(descriptorFilePath)
-        return fileName.replace('Descriptor.xml', '')
-
-    def functionForNewRecord(self, table):
-        # add an empty record to the table
-        tableHandler = TableHandler(self)
-
-        filedir = self.tabs.currentWidget().findChild(QtWidgets.QWidget, 'inputfiledirvalue').text()
-        self.saveInput()
-        id = self.controller.dbhandler.getId('input_files', ['inputfiledirvalue'], [filedir])
-        self.controller.dbhandler.closeDatabase()
-        tableHandler.functionForNewRecord(table, fields=[1], values=[id])
-        self.controller.createDatabaseConnection()
-
-        return
-    def functionForDeleteRecord(self, table):
-        '''Deletes a selected record'''
-        # get selected rows
-        tableView = self.findChild((QtWidgets.QTableView), table)
-        model = tableView.model()
-        # selected is the indices of the selected rows
-        selected = tableView.selectionModel().selection().indexes()
-        if len(selected) == 0:
-            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, 'Select Rows',
-                                        'Select rows before attempting to delete')
-            msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
-            msg.exec()
-        else:
-            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, 'Confirm Delete',
-                                        'Are you sure you want to delete the selected records?')
-            msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
-
-            result = msg.exec()
-
-            if result == QtWidgets.QMessageBox.Ok:
-
-                removedRows = []
-                for r in selected:
-                    if r.row() not in removedRows:
-                        if table == 'components':
-                            # remove the xml files too
-                            componentFolder = getFilePath('Components',
-                                                          projectFolder=self.controller.dbhandler.getProjectPath())
-                            self.controller.setupHandler.removeDescriptor(model.data(model.index(r.row(), 3)),
-                                                                          componentFolder)
-                            #remove from component table, will be removed from component_files by model
-                            self.controller.dbhandler.removeRecord('component',self.controller.dbhandler.getId("component", ["componentnamevalue"],[model.data(model.index(r.row(), 4))]))
-                        removedRows.append(r.row())
-                        self.controller.dbhandler.closeDatabase()
-                        model.removeRows(r.row(), 1)
-                        self.controller.createDatabaseConnection()
-                # Delete the record from the database and refresh the tableview
-                model.submitAll()
-                print(model.lastError().text())
-                model.select()
-
-    def makeTableButtons(self, table):
-        '''
-        creates buttons associated with table behavior
-        :param table: String the name of the table buttons actions are for
-        :return: QHBoxLayout
-        '''
-        self.ComponentButtonBox = QtWidgets.QGroupBox()
-        buttonRow = QtWidgets.QHBoxLayout()
-
-        if table == 'components':
-            buttonRow.addWidget(makeButton(self, lambda: self.functionForLoadDescriptor(),
-                                           None, 'SP_DialogOpenButton',
-                                                'Load a previously created component xml file.'))
-
-        buttonRow.addWidget(makeButton(self, lambda: self.functionForNewRecord(table),
-                                            '+', None,
-                                            'Add a component', 'newComponent'))
-        buttonRow.addWidget(makeButton(self, lambda: self.functionForDeleteRecord(table),
-                                       None, 'SP_TrashIcon',
-                                            'Delete a component', 'deleteComponent'))
-        buttonRow.addStretch(3)
-        self.ComponentButtonBox.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.ComponentButtonBox.setLayout(buttonRow)
-        # when created buttons are not enabled
-        self.ComponentButtonBox.setEnabled(True)
-        return self.ComponentButtonBox
-
-    def assignComponentBlock(self, value):
-        self.componentBlock = value
     def saveTables(self):
         '''get data from component and environment tables and update the setupInformation model
         components within a single directory are seperated with commas
         component info comes from the database not the tableview
         component names, units, scale, offset, attribute, fieldname get saved'''
 
-        self.ComponentTable.model.submitAll()
-        print(self.ComponentTable.model.lastError().text())
+        self.tableBlock.tableModel.submitAll()
+        print(self.tableBlock.tableModel.lastError().text())
 
         #loC = [makeNewComponent(df['component_name'],x['original_field_name'],
         #                             x['units'],x['attribute'],x['component_type']) for i,x in df.iterrows()]
         return #loC
-
 
     def updateComponentDelegates(self, preview):
 
         self.updateComponentHeaders(preview)
         self.updateComponentFiles()
         self.updateComponentNameList()
-        self.ComponentTable.model().makeModel()
+        self.tableBlock.tableModel.makeModel()
 
     def updateComponentFiles(self):
 
-        tableHandler = TableHandler(self)
-        tableHandler.updateComponentDelegate(None, self.ComponentTable, 'inputfiledirvalue')
-        self.ComponentTable.model().makeModel()
+        self.tableBlock.updateComponentDelegate(None, self.tableBlock.tableView, 'inputfiledirvalue')
+        self.tableBlock.tableModel.makeModel()
         return
     def updateComponentHeaders(self, preview):
-        tableHandler = TableHandler(self)
-        tableHandler.updateComponentDelegate(preview.header, self.ComponentTable, 'headernamevalue')
+        self.tableBlock.updateComponentDelegate(preview.header, self.tableBlock.tableView, 'headernamevalue')
 
     def updateComponentNameList(self):
 
-        tableHandler = TableHandler(self)
         # tableHandler.updateComponentDelegate(self.controller.dbhandler.getAsRefTable('component', '_id', 'componentnamevalue'),
         #                                      self.ComponentTable, 'componentnamevalue')
-        tableHandler.updateComponentDelegate(None, self.ComponentTable, 'componentnamevalue')
-        self.ComponentTable.setModel(T.ComponentTableModel(self))
+        self.tableBlock.updateComponentDelegate(None, self.tableBlock.tableView, 'componentnamevalue')
+        self.tableBlock.displayData()
+    def loadDescriptor(self):
+        self.tableBlock.functionForLoadDescriptor()
+
+    def getNextName(self,componentType):
+        '''returns the id of the next component name to use for a specified component type
+        Returns none if not component names are left
+        :param componentType String type of component
+        :return integer or none'''
+        allNames = set(self.controller.dbhandler.getComponentByType(componentType)) #returns tuples of id and name
+        usedNames = set(self.controller.dbhandler.getComponentFilesByType(componentType))#returns tuples of id and name
+        unusedNames = allNames.difference(usedNames) #return list of unused componentNames
+        if len(unusedNames)>0:
+            return list(unusedNames)[0][1] #return the name of the first unused name
+
+        return
+    def getComponentNameCount(self, componentType):
+        allNames = set(self.controller.dbhandler.getComponentByType(componentType))
+        return len(allNames)
+    def getComponentTypeCount(self, componentType):
+        return self.controller.dbhandler.getTypeCount(componentType)
+    def addName(self,componentType,currentCount):
+
+        self.controller.dbhandler.insertRecord('component',['componenttype','componentnamevalue'],[componentType,componentType + str(currentCount)])
+        self.updateComponentNameList()

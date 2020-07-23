@@ -77,7 +77,7 @@ class ResultsModel(ResultsPlot):
         setName = setRun.split(' ')[0]
 
         runName = setRun.split(' ')[1]
-        projectDir = self.dbhandler.getProjectPath()
+        projectDir = self.controller.dbhandler.getProjectPath()
         setDir = getFilePath(setName,projectFolder=projectDir)
         runDir = getFilePath(runName, set=setDir)
         return runDir
@@ -90,7 +90,7 @@ class ResultsModel(ResultsPlot):
         if (tag =='')|(metric==''):
             return
         else:
-            return self.dbhandler.getRunXYValues(tag,METADATANAMES[metric]) #[run1:40,run2:100,run3:20]
+            return self.controller.dbhandler.getRunXYValues(tag,METADATANAMES[metric]) #[run1:40,run2:100,run3:20]
 
 
 

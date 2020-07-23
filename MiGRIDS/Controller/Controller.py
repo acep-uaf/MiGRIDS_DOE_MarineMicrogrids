@@ -2,8 +2,7 @@
 # Created by: T.Morgan # Created on: 11/15/2019
 import os
 from PyQt5 import QtCore, QtGui
-from qtpy import QtWidgets
-
+from PyQt5 import QtWidgets
 from MiGRIDS.Controller.GenericSender import GenericSender
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.RunHandler import RunHandler

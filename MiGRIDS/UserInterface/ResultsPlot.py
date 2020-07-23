@@ -4,6 +4,7 @@ import os
 
 from PyQt5 import QtWidgets, QtCore, QtSql
 
+from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from MiGRIDS.UserInterface.PlotCanvas import PlotCanvas
@@ -15,7 +16,8 @@ class ResultsPlot(QtWidgets.QWidget):
         self.init(plotName)
     #initialize the form
     def init(self,plotName):
-        self.dbhandler = ProjectSQLiteHandler()
+        #self.dbhandler = ProjectSQLiteHandler()
+        self.controller = Controller()
         self.layout = QtWidgets.QGridLayout()
         self.setObjectName(plotName)
         self.plotName = plotName
@@ -54,7 +56,6 @@ class ResultsPlot(QtWidgets.QWidget):
         combo.setObjectName(name)
         #combo.currentIndexChanged.connect(self.updatePlotData)
         return combo
-
 
     def updatePlotData(self):
         #data is the data object
@@ -117,20 +118,7 @@ class ResultsPlot(QtWidgets.QWidget):
         self.data = data
         return
 
-    def set_X(self, v):
-        # each item in x is vector representing a series
-        if isinstance(v, list):
-            self.y = [i for i in v]
-        else:
-            self.y[0] = v
-        return
-    def set_Y(self, v):
-        # each item in y is vector representing a series
-        if isinstance(v, list):
-            self.y = [i for i in v]
-        else:
-            self.y[0] = v
-        return
+
     def set_XCombo(self, v):
         '''set the drop down options for the x axis'''
         if isinstance(v,QtSql.QSqlQueryModel):

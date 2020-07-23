@@ -31,8 +31,8 @@ class FileBlock(BaseEditorTab):
 
         windowLayout = QtWidgets.QVBoxLayout()
         self.createTopBlock('Setup',self.assignFileBlock)
-        l = self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name)
-        windowLayout.addWidget(self.FileBlock)
+        l = self.FieldGroup.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name)
+        windowLayout.addWidget(self.FieldGroup)
 
         #self.createTableBlock('Components', 'components', self.assignComponentBlock)
 
@@ -52,9 +52,9 @@ class FileBlock(BaseEditorTab):
             #self.filterTables()
 
             try:
-                self.createPreview(self.FileBlock.findChild(ClickableLineEdit,F.InputFileFields.inputfiledirvalue.name).text(),
-                                   self.FileBlock.findChild(QtWidgets.QComboBox,
-                                                            F.InputFileFields.inputfiletypevalue.name).currentText())
+                self.createPreview(self.FieldGroup.findChild(ClickableLineEdit, F.InputFileFields.inputfiledirvalue.name).text(),
+                                   self.FieldGroup.findChild(QtWidgets.QComboBox,
+                                                             F.InputFileFields.inputfiletypevalue.name).currentText())
             except AttributeError as a:
                 print(a)
 
@@ -67,9 +67,9 @@ class FileBlock(BaseEditorTab):
 
             try:
                 self.createPreview(
-                    self.FileBlock.findChild(ClickableLineEdit, F.InputFileFields.inputfiledirvalue.name).text(),
-                    self.FileBlock.findChild(QtWidgets.QComboBox,
-                                             F.InputFileFields.inputfiletypevalue.name).currentText())
+                    self.FieldGroup.findChild(ClickableLineEdit, F.InputFileFields.inputfiledirvalue.name).text(),
+                    self.FieldGroup.findChild(QtWidgets.QComboBox,
+                                              F.InputFileFields.inputfiletypevalue.name).currentText())
             except AttributeError as a:
                 print(a)
 
@@ -137,7 +137,7 @@ class FileBlock(BaseEditorTab):
         '''
         def setBox(name):
 
-            wid = self.FileBlock.findChild(QtWidgets.QComboBox, name)
+            wid = self.FieldGroup.findChild(QtWidgets.QComboBox, name)
             BaseForm.reconnect(wid.currentIndexChanged, None,self.saveInput) #disconnect the signal so validate isn't called here
             wid.addItems(["", "index"] + list(preview.header))
 
@@ -181,7 +181,6 @@ class FileBlock(BaseEditorTab):
         fileBlockModel.setJoinMode(QtSql.QSqlRelationalTableModel.LeftJoin)
 
 
-        #fileBlockModel.select();
         file_id = self.controller.dbhandler.getIDByPosition('input_files',self.tabPosition-1)
         fileBlockModel.setFilter('input_files._id = ' + str(file_id))
         fileBlockModel.select()
@@ -274,17 +273,16 @@ class FileBlock(BaseEditorTab):
 
 
     def assignFileBlock(self,value):
-        self.FileBlock = value
-        #self.FileBlock.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.FileBlock.sizePolicy().retainSizeWhenHidden()
-        self.FileBlock.setObjectName('fileInput')
+        self.FieldGroup = value
+        self.FieldGroup.sizePolicy().retainSizeWhenHidden()
+        self.FieldGroup.setObjectName('fileInput')
 
     def getSetupInfoFromFileBlock(self):
         '''reads data from an file input top block and returns a list of fields and values'''
         fieldNames = ['_id']
 
         values=[self.tabPosition]
-        for child in self.FileBlock.findChildren((QtWidgets.QLineEdit, QtWidgets.QComboBox)):
+        for child in self.FieldGroup.findChildren((QtWidgets.QLineEdit, QtWidgets.QComboBox)):
 
             if type(child) is QtWidgets.QLineEdit:
                 fieldNames.append(child.objectName())

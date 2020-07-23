@@ -14,6 +14,7 @@ from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
 from MiGRIDS.UserInterface.DialogComponentList import ComponentSetListForm
 from MiGRIDS.UserInterface.ModelSetTable import SetTableView, SetTableModel
 from MiGRIDS.UserInterface.ResultsModel import ResultsModel
+from MiGRIDS.UserInterface.SetTableBlock import SetTableBlock
 from MiGRIDS.UserInterface.TableHandler import TableHandler
 from MiGRIDS.UserInterface.XMLEditor import XMLEditor
 from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
@@ -59,30 +60,12 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         # setup info for a set
         self.setInfo = self.makeSetInfoCollector()  # edits on setup attributes
         tableGroup.addWidget(self.infoBox, 0, 0, 1, 10)
+        self.tableBlock = SetTableBlock(self, self.tabPosition)
 
-        # buttons for adding and deleting component attribute edits - edits to descriptor files
-        tableGroup.addWidget(self.makeDataButtons('sets'), 1, 0, 1, 3)
+        tableGroup.addWidget(self.tableBlock, 2, 0, 8, 4)
 
-        # table of descriptor file changes to be made
-        # the table view filtered to the specific set for each tab
-        tv = SetTableView(self, position=self.tabPosition)
-        tv.setObjectName('sets')
-
-        self.set_componentsModel = SetTableModel(self, self.tabPosition)
-        self.set_componentsModel.setFilter('set_id = ' + str(self.tabPosition + 1) + " and tag != 'None'")
-        tv.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
         self.updateComponentLineEdit(
-            self.controller.dbhandler.getComponentNames())  # update the clickable line edit to show current components
-
-        self.set_componentsModel.select()
-
-        tv.setModel(self.set_componentsModel)
-
-        # hide the id column
-        tv.hiddenColumns = [0, 1]
-        tv.reFormat()
-
-        tableGroup.addWidget(tv, 2, 0, 8, 4)
+        self.controller.dbhandler.getComponentNames())  # update the clickable line edit to show current components
 
         # xmlEditing block
         self.xmlEditor = XMLEditorHolder(self, self.tabPosition)
@@ -96,7 +79,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         self.setValidators() #update the validators tied to inputs
         self.mapper.toLast() #make sure the mapper is on the actual record (1 per tab)
         self.updateComponentLineEdit(self.controller.dbhandler.getComponentNames()) # update the clickable line edit to show current components
-        self.set_componentsModel.select()
+        self.tableBlock.tableModel.select()
         self.xmlEditor.updateWidget() #this relies on xml files, not the database
         self.rehide(self.findChild(QtWidgets.QTableView,'sets'), [0,1])
         return
@@ -111,9 +94,9 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         for i in loc:
             tview.hideColumn(i)
     def submitData(self):
-        result = self.set_componentsModel.submitAll()
+        result = self.tableBlock.tableModel.submitAll()
         if not result:
-            print(self.set_componentsModel.lastError().text())
+            print(self.tableBlock.tableModel.lastError().text())
     def updateComponentLineEdit(self,listNames):
         '''component line edit is unbound so it gets called manually to update'''
         lineedit = self.infoBox.findChild(ClickableLineEdit,'componentNames')
@@ -331,7 +314,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         widg.setText(str1)
         self.controller.dbhandler.updateSetComponents(self.setName,components)
 
-        self.set_componentsModel.select()
+        self.tableBlock.tableModel.select()
         return
 
     #Boolean -> QDateEdit
@@ -354,27 +337,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         widg.setDisplayFormat('yyyy-MM-dd HH:mm:ss')
         widg.setCalendarPopup(True)
         return widg
-    # string -> QGroupbox
-    def makeDataButtons(self, table):
-        '''makes the button objects associated with the table in the form
-        :param String name of the database table buttons will affect
-        :return Groupbox containing buttons'''
-        buttonBox = QtWidgets.QGroupBox()
-        buttonRow = QtWidgets.QHBoxLayout()
 
-        buttonRow.addWidget(makeButton(self, lambda: self.functionForNewRecord(table),
-                                            '+', None,
-                                            'Add a component change'))
-        buttonRow.addWidget(makeButton(self, lambda: self.functionForDeleteRecord(table),
-                                       None, 'SP_TrashIcon',
-                                            'Delete a component change'))
-        buttonRow.addWidget(makeButton(self, lambda: self.runModels(),
-                                            'Run', None,
-                                            'Run Set'))
-        buttonRow.addStretch(3)
-
-        buttonBox.setLayout(buttonRow)
-        return buttonBox
     def makeSetFolder(self):
         path = self.controller.dbhandler.getProjectPath()
         setFolder = getFilePath(self.setName, projectFolder = path)
@@ -423,13 +386,12 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         #make sure all set attribute entries are entered
         result = self.set_model.submit()
         self.controller.dbhandler.getAllRecords('set_components')
-        #self.set_componentsModel.submitTable()
-        result = self.set_componentsModel.submitAll()
+
+        result = self.tableBlock.tableModel.submitAll()
         if not result:
-            print(self.set_componentModel.lastError().text())
+            print(self.tableBlock.tableModel.lastError().text())
         self.controller.dbhandler.getAllRecords('set_components')
 
-        #self.setModel.submitAll()
         # calculate the run matrix
         runs = self.calculateRuns()
         # create a folder for each run
@@ -446,26 +408,16 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         return runs
     def revalidate(self):
         return True
-    def functionForDeleteRecord(self,table):
-        self.controller.dbhandler.closeDatabase()
-        handler = TableHandler(self)
-        handler.functionForDeleteRecord(table)
-        self.controller.createDatabaseConnection()
 
-    def functionForNewRecord(self,table):
-        self.controller.dbhandler.closeDatabase()
-        handler = TableHandler(self)
-        handler.functionForNewRecord(table, fields=[1], values=[self.tabPosition + 1])
-        self.controller.createDatabaseConnection()
     def runModels(self):
         #make sure data is up to date in the database
         self.saveSet()
         self.controller.dbhandler.getAllRecords(("set_components"))
-        # self.set_componentsModel.submitTable()
-        result = self.set_componentsModel.submitAll()
+        # self.tableBlock.tableModel.submitTable()
+        result = self.tableBlock.tableModel.submitAll()
 
         if not result:
-            print(self.set_componentsModel.lastError().text())
+            print(self.tableBlock.tableModel.lastError().text())
         if len(self.controller.dbhandler.getSetComponents(self.setId))> 0: #won't run models unless tags have been set
             #cretae the required xml files and set directory
             self.setupSet()
@@ -496,11 +448,8 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         return
 
 
-
-
-
     def closeForm(self):
-         self.submitData()
+         self.tableBlock.tableModel.submit()
          self.setupSet() #write all the xml files required to restart the project later
 
 

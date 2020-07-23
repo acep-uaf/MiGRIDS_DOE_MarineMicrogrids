@@ -103,7 +103,7 @@ class MainForm(QtWidgets.QMainWindow):
             # ])
         ]
         self.focusObjects = {'Setup File':FormSetup.prePopulateSetupWizard,
-                             'Load Component':FormSetup.functionForLoadDescriptor,
+                             'Load Component':FormSetup.loadDescriptor,
                              'Edit Components':'components',
 
                              'Edit Set':'sets',

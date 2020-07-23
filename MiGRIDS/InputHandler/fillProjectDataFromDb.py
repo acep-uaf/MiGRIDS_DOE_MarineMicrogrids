@@ -4,7 +4,7 @@
 #fill project xml files
 
 from MiGRIDS.Controller.Controller import Controller
-
+import shlex
 
 def fillProjectDataFromDb():
     '''

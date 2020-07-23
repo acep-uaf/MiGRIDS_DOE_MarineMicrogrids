@@ -7,7 +7,7 @@ from MiGRIDS.Analyzer.DataRetrievers.readXmlTag import splitAttribute
 from MiGRIDS.Controller.Controller import Controller
 
 from MiGRIDS.UserInterface.Delegates import TextDelegate, ComboDelegate, RelationDelegate
-from MiGRIDS.UserInterface.ModelRunTable import  customAlternateTableView
+from MiGRIDS.UserInterface.CustomAlternateTableView import CustomAlternateTableView
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 
 
@@ -28,7 +28,7 @@ class SetFields(Enum):
     timestepunit=6
 
 #subclass of QTableView for displaying set information
-class SetTableView(customAlternateTableView):
+class SetTableView(CustomAlternateTableView):
     def __init__(self, *args, **kwargs):
         super(SetTableView, self).__init__()
         self.tabPosition = kwargs.get('position')
@@ -39,24 +39,25 @@ class SetTableView(customAlternateTableView):
         # needs to be called componentname for delegate signal
         cdel = RelationDelegate(self, 'componentname',filter="_id in (SELECT component_id from set_components WHERE set_id = " + str(self.tabPosition + 1) + ")") #"_id in ('1')", "_id in (SELECT component_id from set_components)"
 
-        cdel.componentNameChanged.connect(self.updateTagList)
+        cdel.itemChanged.connect(self.updateTagList)
         #cdel.componentNameChanged.connect(QtWidgets.QApplication.aboutQt)
         self.setItemDelegateForColumn(SetComponentFields.component_id.value, cdel)
 
         #attributes (column 3)get updated when component Name gets selected (column 2)
         self.setItemDelegateForColumn(SetComponentFields.tag.value, ComboDelegate(self, attributes,'componentAttribute'))
 
-    def updateTagList(self,compname):
-        if compname != '':
-            projectFolder = self.controller.dbhandler.getProjectPath()
-            componentFolder = getFilePath('Components', projectFolder=projectFolder)
-            myBox = [c for c in self.findChildren(ComboDelegate) if c.name == 'componentAttribute'][0]
-            if compname.isnumeric():
-                compname = self.controller.dbhandler.getFieldValue('component','componentnamevalue','_id',compname)
+    def updateTagList(self,field, compname):
+        if field == 'componentname':
+            if compname != '':
+                projectFolder = self.controller.dbhandler.getProjectPath()
+                componentFolder = getFilePath('Components', projectFolder=projectFolder)
+                myBox = [c for c in self.findChildren(ComboDelegate) if c.name == 'componentAttribute'][0]
+                if compname.isnumeric():
+                    compname = self.controller.dbhandler.getFieldValue('component','componentnamevalue','_id',compname)
 
-              # the current selected component, and the folder with component xmls are passed used to generate tag list
-             #the combo box that contains possible tags to edit
-            myBox.items = QtCore.QStringListModel(self.controller.setupHandler.getComponentAttributesAsList(compname, componentFolder))
+                  # the current selected component, and the folder with component xmls are passed used to generate tag list
+                 #the combo box that contains possible tags to edit
+                myBox.items = QtCore.QStringListModel(self.controller.setupHandler.getComponentAttributesAsList(compname, componentFolder))
 
 class SetTableModel(QtSql.QSqlRelationalTableModel):
     def __init__(self, parent,position):
@@ -75,6 +76,7 @@ class SetTableModel(QtSql.QSqlRelationalTableModel):
         '''Edit Strategy needs to be on row change because multi-field unique id. 
         Submission before unique constraint fields filled in result in relations showing id field not display field'''
         self.setEditStrategy(QtSql.QSqlTableModel.OnRowChange)
+        #self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         self.select()
 
 
@@ -89,15 +91,3 @@ class SetTableModel(QtSql.QSqlRelationalTableModel):
             return QtCore.QVariant(self.header[section])
         return QtCore.QVariant()
 
-    # def submitTable(self):
-    #     for r in range(self.rowCount()):
-    #         if len(self.data(self.index(r,SetComponentFields.value.value)).split(',')) > 1:
-    #             lov = self.data(self.index(r,SetComponentFields.value.value)).split(',')
-    #         else:
-    #             lov = [self.data(self.index(r,SetComponentFields.value.value))]
-    #             t,a = splitAttribute(self.data(self.index(r,SetComponentFields.tag.value)))
-    #         self.controller.dbhandler.insertTagRecord(
-    #             (self.data(self.index(r,SetComponentFields.component_id.value)),
-    #              t,a,
-    #              lov),
-    #             self.data(self.index(r,SetComponentFields.set_id.value)))

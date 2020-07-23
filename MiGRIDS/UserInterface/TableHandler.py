@@ -2,10 +2,10 @@
 # Created by: T. Morgan # Created on: 11/1/2019
 
 from PyQt5 import QtWidgets, QtSql
-from qtpy import QtCore
+from PyQt5 import QtCore
 
 import MiGRIDS
-from MiGRIDS.Controller.UIHandler import UIHandler
+
 
 class TableHandler():
 
@@ -13,12 +13,11 @@ class TableHandler():
         self.parent = parent
     #create a new empty record in the specified table
     #String -> None
-    def functionForNewRecord(self, table, **kwargs):
+    def functionForNewRecord(self, tableView, **kwargs):
 
         # add an empty record to the table
 
         # get the model
-        tableView = self.parent.findChild((QtWidgets.QTableView), table)
         model = tableView.model()
         model.submitAll()
 
@@ -39,40 +38,16 @@ class TableHandler():
                 tableView.model().setData(model.index(model.rowCount()-1, n), values[i],QtCore.Qt.EditRole)
 
         result = model.submitAll()
-        if result == False:
-            print(model.lastError().text())
+        # if result == False:
+        #     print(model.lastError().text())
 
         return
-    # update the component drop down in the set table to include the selected or default components
-    def updateComponentDelegate(self, loi,tv,cmbName):
-        '''
-        Update the list of possible values for a combobox that uses a ComboDelegate
-        :param loi: A list of items to submit as the new combo list
-        :param tv: a table view that contains a combo delegate
-        :param cmbName: the objectName of the combo delegate
-        :return:
-        '''
-        from MiGRIDS.UserInterface.Delegates import ComboDelegate, ComponentFormOpenerDelegate
-        # find the appropriate drop down and replace the list of values
-        cbs =[c for c in tv.findChildren(QtWidgets.QItemDelegate) if 'name' in c.__dict__.keys()]
-        cbs = [c for c in cbs if c.name == cmbName]
-        for c in cbs:
-
-            lm = c.items
-            if isinstance(lm, QtSql.QSqlQueryModel):
-                c.updateContent()
-            elif isinstance(lm,MiGRIDS.UserInterface.Delegates.RefTableModel):
-                lm.updateModel(loi)
-            else:
-
-                #cbs.addItems(["", "index"] + list(loi))
-                lm.setStringList([''] + list(loi))
-
+    
     #removes selected records from the table and its underlying sql table
     #String -> None
-    def functionForDeleteRecord(self, table):
+    def functionForDeleteRecord(self, tableView):
         # get selected rows
-        tableView = self.parent.findChild((QtWidgets.QTableView), table)
+
         model = tableView.model()
         # selected is the indices of the selected rows
         selected = tableView.selectionModel().selection().indexes()
