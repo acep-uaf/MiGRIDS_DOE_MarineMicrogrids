@@ -1,1 +1,0 @@
-[predictWind1](/acep-uaf/MiGRIDS/blob/master/MiGRIDS/Model/Controls/predictWind1.py) takes the average wind power over the past 10 min as the predicted wind power. This is risky, as it can result in over predicting the amount of wind power that will be available. 
