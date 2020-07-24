@@ -1,0 +1,1 @@
+[genDispatch0](/acep-uaf/MiGRIDS/blob/master/MiGRIDS/Model/Controls/genDispatch0.py) proportionally charges and discharges each [diesel generator](Generator-Class) based on their maximum available power. 

@@ -1,0 +1,2 @@
+# Introduction
+[eesDispatch1](/acep-uaf/MiGRIDS/blob/master/MiGRIDS/Model/Controls/eesDispatch1.py) charges and discharges each [EES](ElectricalEnergyStorage-Class) in the order they are listed. So if the `EES` input into the [EESS](ElectricalEnergyStorageSystem-Class) is the order: [`ees0`,`ees1`], then `ees0` will be charged and discharged first. After `ees0` is fully charged or discharged, then `ees1` will be charged or discharged, respectively. This is to represent a system where `ees0` can be cycled more frequently and `ees1` should not be cycled as much.   

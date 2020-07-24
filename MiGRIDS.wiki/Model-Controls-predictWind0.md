@@ -1,0 +1,1 @@
+[predictWind0](/acep-uaf/MiGRIDS/blob/master/MiGRIDS/Model/Controls/predictWind0.py) takes the minimum of the past 10 min and past 10 sec average wind power as the predicted future wind power. Choosing a conservative value is beneficial to avoid over predicting and switching to too low of a generator combination capacity. 
