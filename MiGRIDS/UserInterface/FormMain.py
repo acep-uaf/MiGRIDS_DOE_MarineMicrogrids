@@ -71,7 +71,7 @@ class MainForm(QtWidgets.QMainWindow):
         if self.screen.width() != self.window().geometry().width():
 
             self.screen = self.window().geometry()
-            #self.pageBlock.makeSize(self.screen)
+
             print("screen moved")
             print(self.screen.width())
             #re-creating everything looses attributes

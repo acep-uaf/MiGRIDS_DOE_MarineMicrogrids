@@ -33,7 +33,7 @@ def dir2data(dirDict):
     df = pd.concat(result, axis=0)
     return df
 
-def readInputData_mp(inputDict, **kwargs):
+def readInputData(inputDict, **kwargs):
     '''
     cycle through the directories in inputDict[inputfiledir.value], loading the data in each directory into a compbined dataframe
     :param inputDict: A import dictionary as produced from ProjectSqlite.getSetUpInfo

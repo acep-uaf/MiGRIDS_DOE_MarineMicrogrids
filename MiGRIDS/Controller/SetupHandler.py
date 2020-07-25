@@ -8,7 +8,7 @@ from MiGRIDS.InputHandler.InputFields import *
 from MiGRIDS.InputHandler.buildProjectSetup import buildProjectSetup
 from MiGRIDS.InputHandler.fillProjectData import fillProjectData
 from MiGRIDS.InputHandler.fixBadData import fillComponentTypeLists
-from MiGRIDS.InputHandler.readData import readInputData_mp
+from MiGRIDS.InputHandler.readData import readInputData
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.InputHandler.createComponentDescriptor import createComponentDescriptor
 
@@ -68,7 +68,7 @@ class SetupHandler(UIHandler):
         # read time series data, combine with wind data if files are seperate.
         #updates are performed by the sender
         self.sender.update(1, 'Reading data')  # second update
-        df, listOfComponents = readInputData_mp(inputDictionary, sender = self.sender)
+        df, listOfComponents = readInputData(inputDictionary, sender = self.sender)
 
         # check the timespan of the dataset. If its more than 1 year look for limiting dates
         minDate = min(df.index)

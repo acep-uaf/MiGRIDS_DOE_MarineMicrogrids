@@ -42,7 +42,8 @@ def processInputDataFrame(inputDict):
                 df['DATE'] = pd.to_datetime(df[inputDict['dateChannel.value']],
                                             infer_datetime_format=True, errors='coerce')
                 #add in the time column
-                df['DATE'] = df['DATE'] + df[inputDict['timeChannel.value']].apply(pd.to_timedelta, errors='coerce')
+                if ((inputDict['timeChannel.value'] != 'None') & (inputDict['timeChannel.value'] != inputDict['dateChannel.value'])):
+                    df['DATE'] = df['DATE'] + df[inputDict['timeChannel.value']].apply(pd.to_timedelta, errors='coerce')
             # remove rows that did not work
             df = df.drop(df.index[pd.isnull(df['DATE'])])
         if inputDict['dateChannel.value'] != 'DATE':

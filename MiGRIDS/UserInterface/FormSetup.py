@@ -80,33 +80,6 @@ class FormSetup(BaseForm):
             self.updateComponentDelegate(self.preview, self.tableHandler)
         except AttributeError as a:
             pass
-        # gb = QtWidgets.QGroupBox(title)
-        #
-        # tableGroup = QtWidgets.QVBoxLayout()
-        # tableGroup.addWidget(self.makeTableButtons(table))
-        # if table == 'components':
-        #
-        #     self.ComponentTable = T.ComponentTableView(self)
-        #     self.ComponentTable.setObjectName('components')
-        #     m = T.ComponentTableModel(self)
-        #     self.ComponentTable.hideColumn(1)
-        #     self.ComponentTable.setModel(m)
-        #     #self.ComponentTable.hideColumn(0)
-        #     self.ComponentTable.reFormat()
-        #     self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
-        #     #self.ComponentTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        #     self.ComponentTable.model().beforeUpdate.connect(self.controller.validateInput)
-        #     #self.ComponentTable.model().beforeUpdate.connect(self.controller.validateInput)
-        #     tableGroup.addWidget(self.ComponentTable, 1)
-        #     tableHandler = TableHandler(self)
-        #     try:
-        #         self.updateComponentDelegate(self.preview, tableHandler)
-        #     except AttributeError as a:
-        #         pass
-
-        # self.filterTables()
-        # gb.setLayout(tableGroup)
-        # gb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
         return
     def tabChanged(self,index):
@@ -164,7 +137,6 @@ class FormSetup(BaseForm):
 
         self.ButtonBlock.setLayout(hlayout)
 
-        #self.ButtonBlock.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
         projectTitlewdg = QtWidgets.QLabel()
         projectTitlewdg.setObjectName('projectTitle')
         hlayout.addWidget(projectTitlewdg)
@@ -496,9 +468,9 @@ class FormSetup(BaseForm):
                                         "Please fill in all required fields before generating input files.")
 
             return
-        result = self.ComponentTable.model().submit()
+        result = self.tableBlock.tableModel.submit()
         if not result:
-            print(self.ComponentTable.model().lastError().text())
+            print(self.tableBlock.tableModel.lastError().text())
         #make sure everything is in the setup file
         self.controller.setupHandler.makeSetup(self.controller.project, self.controller.setupFolder)
 

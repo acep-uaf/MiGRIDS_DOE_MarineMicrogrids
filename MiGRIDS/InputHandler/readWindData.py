@@ -116,14 +116,11 @@ def readIndividualWindFile(inputDict):
     DATETIME = inputDict['dateChannel.value'].strip('\'')
     with open(os.path.join(inputDict['inputFileDir.value'],inputDict['fileName.value']), 'r', errors='ignore') as file:
         # read the header information of each file
-
         headerDict = {}
-
         headerDict, names = readAsHeader(file, headerDict, None, inputDict)
 
         # read the data from each file
         fileData = readAsData(file, names)
-
         timeZone = pytz.timezone(inputDict['timeZone.value'])
         fileData[DATETIME] = pd.to_datetime((fileData[DATETIME]))
         fileData[DATETIME] = fileData[DATETIME].apply(lambda d: timeZone.localize(d, is_dst=inputDict['inputDST.value']))
@@ -230,8 +227,6 @@ def fillWindRecords(df, channels,inputDict):
 
         newdf['date'] = pd.to_datetime(newdf.index)
 
-
-
         #turn the df records into windrecords
         ListOfWindRecords = newdf.apply(lambda x: WindRecord(x['SD'], x['Avg'], x['Min'], x['Max'], x['date']), 1)
         logging.info(len(ListOfWindRecords))
@@ -276,11 +271,6 @@ def fillWindRecords(df, channels,inputDict):
     winddf = winddf[channels]
     return winddf
 
-# def readWindData_mp(individualDict, result):
-#     print("sending", individualDict['fileName.value'])
-#     df = readIndividualWindFile(individualDict)
-#     result.put(df)
-
 # a data class for estimating and storing windspeed data collected at intervals
 class WindRecord():
     def __init__(self, sigma=25, mu=250, minws = 0, maxws = 20, datetime = None):
@@ -299,6 +289,9 @@ class WindRecord():
     def getStart(self, duration, df):
         #find the wind record immediately prior to current windrecord
         previousrecordtime = self.getDatetime() - duration
+        if len(df) > 0:
+            if df['time'].iloc[0].tzinfo is None:
+                previousrecordtime = previousrecordtime.replace(tzinfo=None)
         sorteddf = df.sort_values('time')
         myvalue = sorteddf['values'][sorteddf['time'] < previousrecordtime][-1:]
         if len(myvalue) > 1:

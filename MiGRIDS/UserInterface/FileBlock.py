@@ -61,9 +61,8 @@ class FileBlock(BaseEditorTab):
     def folderChanged(self,selectedFolder = None):
         '''called when the selected directory changes. Preview changes based on files found in the newly designated directory'''
         if not self.BLOCKED:
-            print("Input folder %s is %s" %(self.tabPosition,selectedFolder))
             self.saveInput()
-            #self.filterTables()
+
 
             try:
                 self.createPreview(
@@ -334,7 +333,7 @@ class FileBlock(BaseEditorTab):
                 self.updateComponentDelegates.emit(self.preview)
             except AttributeError as a:
                 pass
-                #print('attempted to set component table items before component table was created')
+
 
     def makeForm(self):
         windowLayout = self.createFileTab()
@@ -382,28 +381,6 @@ class FileBlock(BaseEditorTab):
             self.validated = False
             return False
 
-    # def filterTables(self):
-    #     '''filter tables to only show values associated with specific input directories'''
-    #     tables = self.findChildren(QtWidgets.QTableView)
-    #     filedir = self.FileBlock.findChild(QtWidgets.QWidget, F.InputFileFields.inputfiledirvalue.name).text()
-    #     id = self.controller.dbhandler.getId("input_files",['inputfiledirvalue'],[filedir])
-    #     #self.filter = filedir
-    #     #for t in tables:
-    #         #m = t.model()
-    #         #m.setFilter("inputfile_id" + " = " + str(id) + "")
-
-    # def saveTables(self):
-    #     '''get data from component and environment tables and update the setupInformation model
-    #     components within a single directory are seperated with commas
-    #     component info comes from the database not the tableview
-    #     component names, units, scale, offset, attribute, fieldname get saved'''
-    #
-    #     self.ComponentTable.model.submitAll()
-    #     print(self.ComponentTable.model.lastError().text())
-    #
-    #     #loC = [makeNewComponent(df['component_name'],x['original_field_name'],
-    #     #                             x['units'],x['attribute'],x['component_type']) for i,x in df.iterrows()]
-    #     return #loC
 
     def close(self):
         if 'projectFolder' in self.__dict__.keys():
