@@ -15,7 +15,7 @@ from MiGRIDS.InputHandler.fixBadData import fixBadData, fillComponentTypeLists
 from MiGRIDS.InputHandler.fixDataInterval import fixDataInterval
 from MiGRIDS.InputHandler.dataframe2netcdf import dataframe2netcdf
 from MiGRIDS.InputHandler.getSetupInformation import setupToDictionary, getSetupInformation
-from MiGRIDS.InputHandler.readData import readInputData_mp
+from MiGRIDS.InputHandler.readData import readInputData
 from MiGRIDS.InputHandler.readSetupFile import readSetupFile
 import pandas as pd
 
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     # read time series data, combine with wind data if files are seperate.
     # updates are performed by the sender
 
-    df, listOfComponents = readInputData_mp(inputDictionary)
+    df, listOfComponents = readInputData(inputDictionary)
 
     # check the timespan of the dataset. If its more than 1 year the dataset should have runTimesteps set
     minDate = min(df.index)

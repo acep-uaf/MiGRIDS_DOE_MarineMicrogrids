@@ -680,9 +680,12 @@ class ProjectSQLiteHandler:
 
     def getRuns(self,set_id):
         componentsInSet = self.getSetComponents(set_id)
-        sqlStatement = self.createStatements(componentsInSet,set_id)
-        set_component_combos = self.cursor.execute(sqlStatement).fetchall()
-        return set_component_combos
+        if len(componentsInSet) > 0:
+            sqlStatement = self.createStatements(componentsInSet,set_id)
+            set_component_combos = self.cursor.execute(sqlStatement).fetchall()
+            return set_component_combos
+        else:
+            return None
     def getAllSetComponents(self,set_id):
 
         '''produces a list of component id's for a given set'''

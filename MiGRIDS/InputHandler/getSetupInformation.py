@@ -33,15 +33,16 @@ def setupToDictionary(soup,setupXML):
             pass
     finally:
         # get children
-        children = soup.findChildren()  # get all children
-        #find all the children and assign them to the setupInfo model
-        for i in range(len(children)):
-            #the project tag is different so skip it here
-            if children[i].name != 'project':
-                setupInfo[children[i].name] = children[i].name
-                if children[i].attrs is not None:
-                    for k in children[i].attrs.keys():
-                        setupInfo[children[i].name + "." + k]= children[i][k]
+        if soup != None:
+            children = soup.findChildren()  # get all children
+            #find all the children and assign them to the setupInfo model
+            for i in range(len(children)):
+                #the project tag is different so skip it here
+                if children[i].name != 'project':
+                    setupInfo[children[i].name] = children[i].name
+                    if children[i].attrs is not None:
+                        for k in children[i].attrs.keys():
+                            setupInfo[children[i].name + "." + k]= children[i][k]
 
 
         setupInfo['projectPath'] = os.path.realpath(os.path.join(os.path.dirname(setupXML),'..','..'))
