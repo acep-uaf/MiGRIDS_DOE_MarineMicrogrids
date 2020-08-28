@@ -16,6 +16,7 @@ from MiGRIDS.InputHandler.badDictAdd import badDictAdd
 import pandas as pd
 import numpy as np
 import multiprocessing as mp
+from scipy.stats import pearson3
 
 from MiGRIDS.InputHandler.isInline import makeCuts
 
@@ -337,22 +338,114 @@ def estimateLangValues(timestep, mu, sigma, start, T):
 
     :return: a matrix of T/t values per start value - shape is (len(start), T/t)
     '''
-    mu = mu.values.reshape(len(start),)
-    sigma = sigma.values.reshape(len(start),)
-    start = start.values.reshape(len(start),)
 
-    tau = T * 0.2  # tau affects how much noise and variation between timesteps and how quickly the mu value is reached
+    #from scipy.interpolate import interp1d
+
+    start[start<1] = 1
+    ##T=600
     n = int(T / timestep)
 
-    sigma_bis = sigma * np.sqrt(2. / tau)
-    sqrtdt = np.sqrt(timestep)
-    x = np.zeros(n * len(start))
-    x = x.reshape(len(start),n)
-    x[:, 0] = start
-    for i in range(n - 1):  #
-        x[:, i + 1] = x[:, i] + timestep * (-(x[:, i] - mu) / tau) + (np.multiply(
-            sigma_bis * sqrtdt, np.random.randn(len(start))))
-    return x
+    Method = 'R'
+    print('LangEvals')
+    print(T)
+    print('len Start')
+    print(len(start))
+    #print(np.mean(start))
+
+
+    ######### R Langevin
+    #############
+    if Method == 'R':
+        import sys
+        sys.setrecursionlimit(1000) ## default is 1000, set to 10'000 to overwrite nan filler (not good, though)
+        #initial = start.resample('1s').mean().interpolate(method='time')
+        #length = len(initial)
+        #if len(initial)==1:
+        #    length = 600
+
+        #T = 601
+        from scipy import interpolate
+        x_Lin = (np.linspace(0, 1, 2))
+        y=np.zeros((len(start),2))
+        y[:,0] = start.values
+        y[:,1] = mu.values  ####[[0,1,2],[3,4,5],[7,8,3]]
+        f = interpolate.interp1d(x_Lin, y, axis=1)
+        LinInterp = f(np.linspace(0, 1, n))
+        if 'load' in start.name:
+            print('load')
+            Langevin_Divide = pd.read_pickle("C:/Users/michelechamberlin/PycharmProjects/MiGRIDS_V2.0/MiGRIDS/Load_Generic_Division_1s_Min.pkl")
+            print('End Load')
+        elif 'wtg' in start.name:
+            print('wtg')
+            Langevin_Divide = pd.read_pickle("C:/Users/michelechamberlin/PycharmProjects/MiGRIDS_V2.0/MiGRIDS/Wind_Generic_Division_1s_Min.pkl")
+            print('End wtg')
+
+        # 'replicate' R Langevin coefficients, if the dataset is longer than the simulated Langevin coefficients
+        if len(start)*n > len(Langevin_Divide):
+            print('Langevin coefficients duplicated to fit dataset length (data upsampling)')
+            stretch = round((len(start)*n)/len(Langevin_Divide))+1
+            Langevin_Divide = pd.concat([Langevin_Divide]*stretch, ignore_index = True)
+
+
+        Langevin_Divide = pd.DataFrame(Langevin_Divide[0:(len(start)*n)])
+        Langevin_Divide = (Langevin_Divide / 0.58)+1## Create the equation to correct for d10s to 1s and to correct for input sampling frequency 10 Min
+        Lang_Div = Langevin_Divide.values.reshape(len(start),n)
+        ### !!! Correction for input sampling frequency still missing!!!!!!!!!
+        x= np.multiply(LinInterp,Lang_Div)
+        x[x<0]=0
+        #x = x[0:-1]
+        #x=x.reshape(len(start),n-1)
+        #mu_2 = start.values.reshape(len(start),1)
+        #x = np.append(x,mu_2,axis=1)
+
+        return x # x has shape (length of uploaded dataset)x(time resolution dataset /  Desired time resolution)
+
+###### PEARSON3 Implementation
+    if Method == 'Pearson':
+        skew =  1.5*np.ones(len(start))
+        loc =  start * 0.0058 * (0.38 + (T / 60) * 0.0103) / 0.48  # The second part adjusts the param for the (rolling) window size, where 10Min is the '1' normalization level, hence the division by 0.48, which corresponds to the 10Min rolling window value
+        scale = start * 0.004 * (0.365 + (T / 60) * 0.01) / 0.46
+        tau = T * 0.3  # tau affects how much noise and variation between timesteps and how quickly the mu value is reached
+        #####sigma = pearson3.rvs(skew, loc=loc, scale=scale, size=(len(start), n))
+        sigma = np.zeros((len(start),int(T)))
+        for i in range(int(T)):
+            sigma[:,i] = pearson3.rvs(skew, loc=loc, scale=scale)
+        sigma[sigma < 1] = 1
+        sigma = sigma *1.1 # Correction for sigma from 10s resolution to 1s resolution (This process defaults to 1s, irrespective of desire upsampling rate)
+        sigma_bis = sigma * np.sqrt(2. / tau)
+        sqrtdt = np.sqrt(timestep)
+        x = np.zeros(n * len(start))
+        x = x.reshape(len(start), n)
+        x[:, 0] = start
+        for i in range(n - 1):  #
+            x[:, i + 1] = x[:, i] + timestep * (-(x[:, i] - mu) / tau) + (np.multiply(
+                sigma_bis[:, i] * sqrtdt, np.random.randn(len(start))))
+        return x
+###############################
+
+#################### OLD LANGEVIN
+
+    if Method == 'OLD':
+        mu = mu.values.reshape(len(start), )
+        sigma = sigma.values.reshape(len(start), )
+        start = start.values.reshape(len(start), )
+        #### tau 0.3 changed by Michele from 0.2, as discussed with JBV that this is a better transition to next sample point
+        tau = T * 0.3  # tau affects how much noise and variation between timesteps and how quickly the mu value is reached
+        n = int(T / timestep)
+        #### from scipy.stats import pearson3
+
+        sigma_bis = sigma * np.sqrt(2. / tau)
+        sqrtdt = np.sqrt(timestep)
+        x = np.zeros(n * len(start))
+        x = x.reshape(len(start),n)
+        x[:, 0] = start
+        for i in range(n - 1):  #
+            x[:, i + 1] = x[:, i] + timestep * (-(x[:, i] - mu) / tau) + (np.multiply(
+                sigma_bis * sqrtdt, np.random.randn(len(start))))
+
+        print(start)
+        print(x)
+        return x
 def calculateSubColumns(total_column, spreadColumns, df):
     '''
     Calculates na values for a list of columns based on the average (calculated with a rolling window) proportion that each column makes up
