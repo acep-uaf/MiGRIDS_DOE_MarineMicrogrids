@@ -12,6 +12,7 @@ import datetime
 from MiGRIDS.InputHandler.badDictAdd import badDictAdd
 
 MAXSMALLBLOCKDURATION = 1209600
+MAXALLOWABLEINLINE = 2 #this is the number of acceptable repeated values within a dataset.
 def checkDataGaps(s):
     '''checkDataGaps looks for gaps in the timestamp index that is greater than the median sampling interval
      new records will have NA for values.
@@ -85,8 +86,8 @@ def isInline(s):
         #group values that repeat over sampling intervals 
         grouping = s.diff().ne(0).cumsum()
        
-        #we are only interested in the groups that have more than 1 record or are null
-        groups = grouping.groupby(grouping).filter(lambda x: (sum(x) <= 0) or len(x) > 1)
+        #we are only interested in the groups that have more than 2 records or are null
+        groups = grouping.groupby(grouping).filter(lambda x: (sum(x) <= 0) or len(x) > MAXALLOWABLEINLINE)
         
         #return na values
         s = s.replace(-99999, np.nan)
@@ -256,6 +257,7 @@ def dropIndices(df, listOfRanges):
        l = removeChunk(df, listOfRanges['first'].iloc[0], listOfRanges['last'].iloc[0])
        if len(l)>1:
            df = l[0].append(l[1])
+
        return dropIndices(df,listOfRanges.iloc[1:])
    
 #
@@ -484,16 +486,16 @@ def yearlyBreakdown(df):
     :param df: [pandas.DataFrame]
     :return: [pandas.DataFrame] a dataframe indicating dateranges within df that have previous years of data within the same dataframe
     '''
-    yearlies =df.index.to_series().groupby(df.index.year).agg(['first','last'])
+    yearlies =df.index.to_series(keep_tz=True).groupby(pd.Grouper(freq='A')).agg(['first','last'])
     #find the closest offset
     yearlies['offset']= pd.Timedelta(days=7)
     yplus1= yearlies.shift(-1)
     yminus1=yearlies.shift(1)
     y = pd.concat([yearlies,yplus1.add_prefix('plus'),yminus1.add_prefix('minus')], axis=1)
-    monthlies = df.index.to_series().groupby([df.index.year,df.index.month]).agg(['first','last'])
+    monthlies = df.index.to_series(keep_tz=True).groupby(pd.Grouper(freq='M')).agg(['first','last'])
     y.index.rename('year', True)
-    monthlies.index = monthlies.index.set_names(['year','month'])
     y = y.join(monthlies.add_prefix('month'), how='outer')
+    y['offset']= pd.Timedelta(days=7) #default it to look 1 week away
     #adjust years to match index years
     y.plusfirst = y.plusfirst + pd.Timedelta(days=-365)
     y.pluslast = y.pluslast + pd.Timedelta(days=-365)
@@ -510,7 +512,7 @@ def yearlyBreakdown(df):
     & ((y.monthlast >= y.plusfirst) &
       (y.monthlast <=y.pluslast)), 'offset'] = pd.Timedelta(days=-365)
     
-    f=y.monthfirst.groupby(y.offset).agg(['first','last'])
+    f= y.monthfirst.groupby(y.offset).agg(['first','last'])
     l= y.monthlast.groupby(y.offset).agg(['first','last'])
     f['offset'] = f.index
     l['offset'] = l.index

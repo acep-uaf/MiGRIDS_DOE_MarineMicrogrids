@@ -47,11 +47,14 @@ def fixBadData(data, setupDir, **kwargs):
    #totalp is for all power component columns
    #ecolumns and load columns are treated individually
    if (len(data.powerComponents)>0) & (len(data.loads) > 0):
-      columns = data.ecolumns + [TOTALL] + [TOTALP]
+      #columns = data.ecolumns + [TOTALL] + [TOTALP]
+      columns = [TOTALL] + [TOTALP]
    elif (len(data.powerComponents) > 0) & (len(data.loads) == 0):
-       columns = data.ecolumns + [TOTALP]
+       #columns = data.ecolumns + [TOTALP]
+       columns = [TOTALP]
    elif (len(data.powerComponents) == 0) & (len(data.loads) > 0):
-       columns = data.ecolumns + [TOTALL]
+       #columns = data.ecolumns + [TOTALL]
+        columns = [TOTALL]
 
    groupings = data.df[columns].apply(lambda c: isInline(c), axis=0)
    #set the yearsplits attribute for the data class
@@ -79,10 +82,10 @@ def fixBadData(data, setupDir, **kwargs):
 
    #now e columns performed individually
    #nas produced from mismatched file timestamps get ignored during grouping - thus not replaced during fixbaddata
-   for c in data.df[data.ecolumns].columns:
-       reps= data.fixOfflineData(c,[c], groupings[c])
-       data.df = data.df.drop(reps.columns, axis=1) #drop the columns we are going to replace
-       data.df = reps.join(data.df, how='outer') #add the replacement columns back in
+   # for c in data.df[data.ecolumns].columns:
+   #     reps= data.fixOfflineData(c,[c], groupings[c]) #TODO this needs to follow a different fixing path
+   #     data.df = data.df.drop(reps.columns, axis=1) #drop the columns we are going to replace
+   #     data.df = reps.join(data.df, how='outer') #add the replacement columns back in
 
    # fill gen columns with a value if the system needs diesel to operate
    componentIterator = iter(data.components)

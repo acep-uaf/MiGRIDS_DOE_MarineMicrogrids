@@ -395,7 +395,9 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         # calculate the run matrix
         runs = self.calculateRuns()
         # create a folder for each run
-        [self.controller.runHandler.createRun(r,i,self.setName) for i,r in enumerate(runs)]
+        if runs != None:
+            [self.controller.runHandler.createRun(r,i,self.setName) for i,r in enumerate(runs)]
+        return
     def calculateRuns(self):
         '''calculates a dictionary of run possibilities. Each key is the name of a run folder from Run0...Run#
         The number of runs is based on the number of possible combination for component tag changes
@@ -427,8 +429,6 @@ class SetsAttributeEditorBlock(BaseEditorTab):
             pass
         return
 
-
-
     def startModeling(self):
         #post a progress dialog box
         pbox = CustomProgressBar("Running Simulations")
@@ -446,7 +446,6 @@ class SetsAttributeEditorBlock(BaseEditorTab):
            self.controller.runHandler.sender.update(10, "complete")
 
         return
-
 
     def closeForm(self):
          self.tableBlock.tableModel.submit()
