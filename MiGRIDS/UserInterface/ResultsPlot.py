@@ -149,7 +149,11 @@ class ResultsPlot(QtWidgets.QWidget):
     def revalidate(self):
         pass
     def pickColor(self,starter):
-        r = (starter/10) * 2
+        if starter > 15:
+            starter = starter -15
+        r = starter/30 * 2
+        if r > 1:
+            r = 1
         bg = 1 - r
         b = 0.5 * bg
         g = 0.5 * bg
