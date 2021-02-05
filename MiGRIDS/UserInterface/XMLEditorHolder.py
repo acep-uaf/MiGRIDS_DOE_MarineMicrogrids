@@ -113,12 +113,12 @@ class XMLEditorHolder(QtWidgets.QWidget):
         def addTo(file):
             resourceType = pattern.search(file).group(1)  # group 1 is the part of the file name indicated in the pattern by ([a-z]*)
             if xmltype.lower() in XMLs.keys():
-                if resourceType.lower()in XMLs[xmltype.lower()].keys():
-                    XMLs[xmltype.lower()][resourceType.lower()].append(file[len(self.PREFIX):len(self.PREFIX) +1].lower() + file[len(self.PREFIX) +1:len(file)-len(self.SUFFIX)])
+                if resourceType.lower() in XMLs[xmltype.lower()].keys():
+                    XMLs[xmltype.lower()][resourceType.lower()].append(file[len(self.PREFIX):len(self.PREFIX) ].lower() + file[len(self.PREFIX) + 0:len(file)-len(self.SUFFIX)])
                 else:
-                    XMLs[xmltype.lower()][resourceType.lower()] = [file[len(self.PREFIX):len(self.PREFIX) +1].lower() + file[len(self.PREFIX) +1:len(file)-len(self.SUFFIX)]]
+                    XMLs[xmltype.lower()][resourceType.lower()] = [file[len(self.PREFIX):len(self.PREFIX) ].lower() + file[len(self.PREFIX) + 0:len(file)-len(self.SUFFIX)]]
             else:
-                XMLs[xmltype.lower()] = {resourceType.lower():[file[len(self.PREFIX):len(self.PREFIX) +1].lower() + file[len(self.PREFIX) +1:len(file)-len(self.SUFFIX)]]}
+                XMLs[xmltype.lower()] = {resourceType.lower():[file[len(self.PREFIX):len(self.PREFIX)].lower() + file[len(self.PREFIX) + 0:len(file)-len(self.SUFFIX)]]}
         list(map(addTo,fileList))
 
         return XMLs

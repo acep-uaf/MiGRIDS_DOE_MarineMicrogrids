@@ -110,7 +110,8 @@ class ThreadedProjectLoad(QtCore.QThread):
             # load Sets - this loads attribute xmls, set setups, set descriptors, setmodel selectors and run result metadata
         sets = getAllSets(getFilePath('OutputData', setupFolder=os.path.dirname(setupFile)))
         self.updateAttribute('Controller','sets',sets)
-        [self.runHandler.loadExistingProjectSet(os.path.dirname(s).split('\\')[-1],self.dbHandler) for s in sets]
+
+        [self.runHandler.loadExistingProjectSet(os.path.dirname(s).split(os.sep)[-1],self.dbHandler) for s in sets]
         self.updateProgress(3, 'Validating Data')
 
        # get input data object

@@ -342,7 +342,7 @@ class FormSetup(BaseForm):
             self.controller.createDatabaseConnection()
 
         #launch file navigator to identify setup file
-        setupFile = QtWidgets.QFileDialog.getOpenFileName(self,"Select your setup file", os.path.join(os.path.dirname(__file__),'..','..','MiGRIDSProjects'), "*xml" )
+        setupFile = QtWidgets.QFileDialog.getOpenFileName(self,"Select your setup file", os.path.join(os.path.dirname(__file__),'..','..','MiGRIDSProjects'), "*xml" ,options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if (setupFile == ('','')) | (setupFile is None):
             return
         self.controller.setupFile = setupFile
