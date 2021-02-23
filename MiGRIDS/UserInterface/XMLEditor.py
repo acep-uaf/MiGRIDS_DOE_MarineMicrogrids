@@ -93,7 +93,7 @@ class XMLEditor(QtWidgets.QWidget):
 
         mainLayout.addWidget(self.xmlform)
 
-        self.formStack.setCurrentWidget([self.formStack.widget(i) for i in range(self.formStack.count()) if self.formStack.widget(i).objectName() == self.default][0])
+        self.formStack.setCurrentWidget([self.formStack.widget(i) for i in range(self.formStack.count()) if self.formStack.widget(i).objectName().lower() == self.default.lower()][0])
         self.xmlform.setVisible(False)
         return mainLayout
     def makeStack(self):
@@ -115,7 +115,7 @@ class XMLEditor(QtWidgets.QWidget):
     def makeForm(self,selectedXML):
         ''' Makes an editable xml form based on a designated file'''
         F = XMLForm(selectedXML)
-        F.setObjectName(selectedXML[0].lower() + selectedXML[1:]) #make sure the first letter is lowercase so it matches
+        F.setObjectName(selectedXML[0] + selectedXML[1:]) #make sure the first letter is lowercase so it matches
         F.setVisible(False)
         return F
     def writeXML(self, setName=None):

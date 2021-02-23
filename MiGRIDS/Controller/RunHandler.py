@@ -279,7 +279,7 @@ class RunHandler(UIHandler):
         # make the run directory
         os.makedirs(getFilePath("Run" + str(run), Set=setName, projectFolder=self.dbhandler.getProjectPath()),exist_ok=True)
 
-        # move Descriptors with eddited attributes to the correct run folders
+        # move Descriptors with edited attributes to the correct run folders
         self.makeRunDescriptors(setComponentIds, "Run" + str(run), setName)
 
         #insert the run into the run table
