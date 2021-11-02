@@ -152,12 +152,22 @@ class Powerhouse:
         self.genCombinationsUpperNormalLoadingMaxIdx = int(np.argmax(np.asarray(self.genCombinationsUpperNormalLoading)))
         loading = list(range(0, int(max(self.genCombinationsUpperNormalLoading)+1)))
         self.lkpGenCombinationsUpperNormalLoading = {}
+        self.lkpMinFuelConsumption = []
+        self.lkpMinFuelConsumptionGenID = []
         for load in loading:
             combList = np.array([], dtype=int)
+            fuelList = np.array([], dtype=int)
+            fuelCombList = np.array([], dtype=int)
             for idy, genComb in enumerate(self.genCombinationsUpperNormalLoading):
                 if load <= genComb:
                     combList = np.append(combList, idy)
+                if load < len(self.genCombinationsFCurve[idy]):
+                    fuelList = np.append(fuelList, self.genCombinationsFCurve[idy][load][1])
+                    fuelCombList = np.append(fuelCombList, idy)    
             self.lkpGenCombinationsUpperNormalLoading[load] = combList
+            minFuelIDX = np.argmin(fuelList)
+            self.lkpMinFuelConsumption.append(fuelList[minFuelIDX])
+            self.lkpMinFuelConsumptionGenID.append(fuelCombList[minFuelIDX])
 
         # CALCULATE AND SAVE THE MAXIMUM GENERATOR START TIME
         # this is used in the generator scheduling.

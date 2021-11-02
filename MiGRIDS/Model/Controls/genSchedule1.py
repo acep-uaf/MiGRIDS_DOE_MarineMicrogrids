@@ -1,7 +1,8 @@
 
 # Project: GBS Tool
 # Author: Jeremy VanderMeer, jbvandermeer@alaska.edu, Alaska Center for Energy and Power
-# Date: October 1, 2018
+#         Nathan Green, njgreen3@alaska.edu, Alaska Center for Energy and Power
+# Date: October 18, 2021
 # License: MIT License (see LICENSE file of this package for more information)
 
 # imports
@@ -14,6 +15,8 @@ class genSchedule:
     def __init__(self,args):
         # whether to try to minimize fuel consumption or maximize RE contribution (by minimizing MOL of generators)
         self.minimizeFuel = args['minimizeFuel']
+        self.userDefinedGenList = args['userDefinedGenList']
+        
     def runSchedule(self, ph, futureLoad, futureRE, scheduledSRCSwitch, scheduledSRCStay, powerAvailToSwitch, powerAvailToStay, underSRC):
         # scheduled load is the difference between load and RE, the min of what needs to be provided by gen or ess
         scheduledLoad = max(futureLoad - futureRE,0)
