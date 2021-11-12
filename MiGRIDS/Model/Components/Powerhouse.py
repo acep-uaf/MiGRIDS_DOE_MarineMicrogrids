@@ -5,6 +5,8 @@
 
 import itertools
 import sys
+import os
+import csv
 import numpy as np
 from MiGRIDS.Model.Components.Generator import Generator
 from MiGRIDS.Analyzer.CurveAssemblers.genFuelCurveAssembler import GenFuelCurve
@@ -150,10 +152,11 @@ class Powerhouse:
         # Max combination will be needed during lookups as default value to revert to if there is no list of available
         # combinations for a lookup key, i.e., if the load is greater than the max upper normal loading of any gen comb.
         self.genCombinationsUpperNormalLoadingMaxIdx = int(np.argmax(np.asarray(self.genCombinationsUpperNormalLoading)))
-        loading = list(range(0, int(max(self.genCombinationsUpperNormalLoading)+1)))
+        # loading = list(range(0, int(max(self.genCombinationsUpperNormalLoading)+1)))
+        loading = list(range(0, int(self.genPMax)))
         self.lkpGenCombinationsUpperNormalLoading = {}
-        self.lkpMinFuelConsumption = []
-        self.lkpMinFuelConsumptionGenID = []
+        self.lkpMinFuelConsumption = {}
+        self.lkpMinFuelConsumptionGenID = {}
         for load in loading:
             combList = np.array([], dtype=int)
             fuelList = np.array([], dtype=int)
@@ -165,10 +168,10 @@ class Powerhouse:
                     fuelList = np.append(fuelList, self.genCombinationsFCurve[idy][load][1])
                     fuelCombList = np.append(fuelCombList, idy)    
             self.lkpGenCombinationsUpperNormalLoading[load] = combList
-            minFuelIDX = np.argmin(fuelList)
-            self.lkpMinFuelConsumption.append(fuelList[minFuelIDX])
-            self.lkpMinFuelConsumptionGenID.append(fuelCombList[minFuelIDX])
-
+            # fuelSort = np.argsort(fuelList)
+            self.lkpMinFuelConsumption[load] = fuelList#[fuelSort]
+            self.lkpMinFuelConsumptionGenID[load] = fuelCombList#[fuelSort]
+        
         # CALCULATE AND SAVE THE MAXIMUM GENERATOR START TIME
         # this is used in the generator scheduling.
         self.maxStartTime = 0
@@ -286,5 +289,22 @@ class Powerhouse:
         for genID in GenSwOn:
             self.generators[self.genIDS.index(genID)].genState = 1  # running but offline
 
-
+    def exportMinFuelComboList(self, saveDir, fileName='minFuelGenSchedule.csv'):
+        #saves the minimum fuel usage ranges as a csv
+        
+        prevGenID = -1
+        with open(os.path.join(saveDir, fileName)) as fn:
+            csvfile = csv.writer(fn)
+            # iterate through power steps in fuel consumption dict
+            for pwr, FCompList in self.lkpMinFuelConsumption.items():
+                minFuelIDX = np.argmin(FCompList)
+                genID = self.lkpMinFuelConsumptionGenID[pwr][minFuelIDX]
+                # Check if 0 power or change in genID of minimum fuel usage
+                if (not pwr) or (not np.equal(prevGenID, genID)):
+                    # print('Gen Combo', genID, 'starts at', pwr, 'kW')
+                    csvfile.writerow(self.genCombinationsID[genID], pwr)
+                    prevGenID = genID
+                
+                
+                
 
