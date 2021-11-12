@@ -71,7 +71,7 @@ class genSchedule:
         genSwOn = [] # the generators to be switched on for each possible combination
         genSwOff = [] # the generators to be switched off for each possible combination
         timeToSwitch = [None]*lenIndInBounds # the time switch for each in bounds generator combination
-        fuelCons = [None]*lenIndInBounds # the predicted fuel consumption for each combination
+        # fuelCons = [None]*lenIndInBounds # the predicted fuel consumption for each combination
         for ind, idx in enumerate(np.atleast_1d(indInBounds)): # for each combination that is in bounds
             # inititiate the generators to be switched on for this combination to all generators in the combination
             genSwOn.append(list(ph.genCombinationsID[idx]))
@@ -95,19 +95,19 @@ class genSchedule:
                 SwitchTime = max(SwitchTime, turnOffTime[ph.genIDS.index(genID)]) # check if there is a higher turn off time
             timeToSwitch[ind] = SwitchTime
 
-            if self.minimizeFuel:
-                # get the generator fuel consumption at this loading for this combination
-                FCpower, FCcons = zip(*ph.genCombinationsFCurve[idx]) # separate out the consumptio n and power
-                # check if this is the online combination. If so, use the power available to stay online to calculate the
-                # the load required by the generator
-                if idx == ph.onlineCombinationID:
-                    useScheduledLoad = int(max([scheduledLoad - powerAvailToStay, ph.genCombinationsMOL[idx]]))
-                else:
-                    useScheduledLoad = int(max([scheduledLoad - powerAvailToSwitch, ph.genCombinationsMOL[idx]]))
-                indFCcons = getIntListIndex(useScheduledLoad, FCpower)
+            # if self.minimizeFuel:
+            #     # get the generator fuel consumption at this loading for this combination
+            #     FCpower, FCcons = zip(*ph.genCombinationsFCurve[idx]) # separate out the consumptio n and power
+            #     # check if this is the online combination. If so, use the power available to stay online to calculate the
+            #     # the load required by the generator
+            #     if idx == ph.onlineCombinationID:
+            #         useScheduledLoad = int(max([scheduledLoad - powerAvailToStay, ph.genCombinationsMOL[idx]]))
+            #     else:
+            #         useScheduledLoad = int(max([scheduledLoad - powerAvailToSwitch, ph.genCombinationsMOL[idx]]))
+            #     indFCcons = getIntListIndex(useScheduledLoad, FCpower)
 
-                fuelCons[ind] = FCcons[indFCcons]
-                # TODO: Add cost of switching generators
+            #     fuelCons[ind] = FCcons[indFCcons]
+            #     # TODO: Add cost of switching generators
 
 
 
@@ -115,10 +115,15 @@ class genSchedule:
         # if the most efficient option can't be switched, start warming up generators
         # order fuel consumptions
         if self.minimizeFuel:
+            # get the fuel consumption of possible gen combos at current capReq
+            fuelCons = ph.lkpMinFuelConsumption.get(capReq, ph.genCombinationsUpperNormalLoadingMaxIdx)
             indSort = np.argsort(fuelCons)
+            # indSort = np.asarray(ph.lkpMinFuelConsumption.get(capReq, ph.genCombinationsUpperNormalLoadingMaxIdx), dtype=int)
+
         else:
             indSort = np.argsort(ph.genCombinationsMOL[indInBounds])
 
+        print(fuelCons.shape, ph.genCombinationsMOL[indInBounds].shape)
         # if the most efficient can be switched on now, switch to it
         if timeToSwitch[indSort[0]] <= 0:
             # update online generator combination
