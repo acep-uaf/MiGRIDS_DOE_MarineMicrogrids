@@ -52,7 +52,7 @@ def returnObjectValue(obj):
     elif isfloat(obj):
         return float(obj)
     elif isbool(obj):
-        if obj.lower == 'true':
+        if obj.lower() == 'true':
             return True
         else:
             return False
