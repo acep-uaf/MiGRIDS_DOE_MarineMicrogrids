@@ -294,7 +294,7 @@ class Powerhouse:
         #saves the minimum fuel usage ranges as a csv
         
         prevGenID = -1
-        with open(os.path.join(saveDir, fileName)) as fn:
+        with open(os.path.join(saveDir, fileName), 'w') as fn:
             csvfile = csv.writer(fn)
             # iterate through power steps in fuel consumption dict
             for pwr, FCompList in self.lkpMinFuelConsumption.items():
@@ -303,7 +303,7 @@ class Powerhouse:
                 # Check if 0 power or change in genID of minimum fuel usage
                 if (not pwr) or (not np.equal(prevGenID, genID)):
                     # print('Gen Combo', genID, 'starts at', pwr, 'kW')
-                    csvfile.writerow(self.genCombinationsID[genID], pwr)
+                    csvfile.writerow([self.genCombinationsID[genID], pwr])
                     prevGenID = genID
                 
                 
