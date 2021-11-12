@@ -441,6 +441,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
             print(e)
             print("Could not complete model simulations")
         except Exception as e:
+            print(e)
             print("Could not complete model simulations")
         finally:
            self.controller.runHandler.sender.update(10, "complete")
