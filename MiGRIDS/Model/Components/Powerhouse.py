@@ -8,6 +8,7 @@ import sys
 import os
 import csv
 import numpy as np
+from ast import literal_eval
 from MiGRIDS.Model.Components.Generator import Generator
 from MiGRIDS.Analyzer.CurveAssemblers.genFuelCurveAssembler import GenFuelCurve
 from MiGRIDS.Model.Operational.loadControlModule import loadControlModule
@@ -157,6 +158,7 @@ class Powerhouse:
         self.lkpGenCombinationsUpperNormalLoading = {}
         self.lkpMinFuelConsumption = {}
         self.lkpMinFuelConsumptionGenID = {}
+        self.lkpUserDefinedGenSchedule = {}
         for load in loading:
             combList = np.array([], dtype=int)
             fuelList = np.array([], dtype=int)
@@ -171,8 +173,9 @@ class Powerhouse:
             # fuelSort = np.argsort(fuelList)
             self.lkpMinFuelConsumption[load] = fuelList#[fuelSort]
             self.lkpMinFuelConsumptionGenID[load] = fuelCombList#[fuelSort]
-        self.exportMinFuelComboList(saveDir=os.path.split(genDescriptor[0])[0])
-        
+        self.exportMinFuelSchedule(saveDir=os.path.split(genDescriptor[0])[0])
+        if getattr(self.genSchedule, 'userDefinedGenList', False):
+            self.importUserDefinedSchedule(readDir=os.path.split(genScheduleInputsFile)[0])
         # CALCULATE AND SAVE THE MAXIMUM GENERATOR START TIME
         # this is used in the generator scheduling.
         self.maxStartTime = 0
@@ -290,14 +293,14 @@ class Powerhouse:
         for genID in GenSwOn:
             self.generators[self.genIDS.index(genID)].genState = 1  # running but offline
 
-    def exportMinFuelComboList(self, saveDir, fileName='minFuelGenSchedule.csv'):
+    def exportMinFuelSchedule(self, saveDir, fileName='minFuelGenSchedule.csv'):
         #saves the minimum fuel usage ranges as a csv
         
         prevGenID = -1
-        with open(os.path.join(saveDir, fileName), 'w') as fn:
+        with open(os.path.join(saveDir, fileName), 'w', newline='') as fn:
             csvfile = csv.writer(fn)
             # iterate through power steps in fuel consumption dict
-            for pwr, FCompList in self.lkpMinFuelConsumption.items():
+            for pwr, FCompList in sorted(self.lkpMinFuelConsumption.items()):
                 minFuelIDX = np.argmin(FCompList)
                 genID = self.lkpMinFuelConsumptionGenID[pwr][minFuelIDX]
                 # Check if 0 power or change in genID of minimum fuel usage
@@ -306,6 +309,21 @@ class Powerhouse:
                     csvfile.writerow([self.genCombinationsID[genID], pwr])
                     prevGenID = genID
                 
-                
-                
-
+    def importUserDefinedSchedule(self, readDir, fileName='userDefinedGenSchedule.csv'):
+        # reads file from readDir/fileName and converts data to lookup table dict
+        genSetPoints = {}
+        prevPower = 0
+        prevGenID = 0
+        with open(os.path.join(readDir, fileName), 'r') as fn:
+            csvfile = csv.DictReader(fn, fieldnames=['gens', 'pwr'])
+            for row in csvfile:
+                # read row in as string - interpret pwr as int and evaluate gens to tuple
+                genSetPoints[int(row['pwr'])] = literal_eval(row['gens'])
+            
+                for lkpPower in range(prevPower, int(row['pwr'])):
+                    self.lkpUserDefinedGenSchedule[lkpPower] = np.array([prevGenID])
+                prevGenID = self.genCombinationsID.index(literal_eval(row['gens']))
+                prevPower = int(row['pwr'])
+        for lkpPower in range(prevPower, int(self.genPMax)):
+            self.lkpUserDefinedGenSchedule[lkpPower] = np.array([prevGenID])
+            
