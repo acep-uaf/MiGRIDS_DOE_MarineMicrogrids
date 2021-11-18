@@ -43,11 +43,9 @@ class genSchedule:
             indSort = ph.lkpUserDefinedGenSchedule.get(capReq, np.array([ph.genCombinationsUpperNormalLoadingMaxIdx]))
                         
         elif self.minimizeFuel:
-            # get the fuel consumption of possible gen combos at current capReq
-            # order gen combos by fuel consumption rate
-            fuelCons = ph.lkpMinFuelConsumption.get(capReq, np.array([0]))
-            fuelIDs = ph.lkpMinFuelConsumptionGenID.get(capReq, np.array([ph.genCombinationsUpperNormalLoadingMaxIdx]))
-            indSort = fuelIDs[np.argsort(fuelCons)]
+            # get the ID of most efficient fuel consumption combination at current capReq
+            # predetermined in powerhouse init
+            indSort = ph.lkpMinFuelConsumptionGenID.get(capReq, np.array([ph.genCombinationsUpperNormalLoadingMaxIdx]))
         else:
             # get the MOL of possible gen combos at current capReq
             # order gend combos by MOL
