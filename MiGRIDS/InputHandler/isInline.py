@@ -54,7 +54,8 @@ def checkDataGaps(s):
 
     if len(missingIndices) > 0:
         #make the indices into a list of dataframes to be concatonated
-        indices = missingIndices.apply(lambda i:pd.DataFrame(data = None,index = pd.DatetimeIndex(i[0]))).tolist()
+        #indices = missingIndices.apply(lambda i:pd.DataFrame(data = None,index = pd.DatetimeIndex(i[0]))).tolist()
+        indices = missingIndices.apply(lambda i: pd.DataFrame(data=None, index=pd.DatetimeIndex(i))).tolist()
         s = s.append(pd.concat(indices))
 
         #only keep the colums we started with (return df to its original dimensions)
