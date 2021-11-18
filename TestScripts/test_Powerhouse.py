@@ -48,20 +48,20 @@ if __name__ == '__main__':
     # ph.genSchedule.minimizeFuel = True
         
     
-    for futureLoad in range(432):
-        for idx, gen in enumerate(ph.generators):
-            gen.genRunTimeAct = 5600  # Run time since last start [s]
-            gen.genRunTimeTot = 5600  # Cummulative run time since model start [s]
-            gen.genStartTimeAct = 30  # the amount of time spent warming up
-            gen.genState=genStates[idx]
-            gen.updateGenPAvail()
-            gen.checkOperatingConditions()
-        ph.onlineCombinationID = onlineID
-        ph.runGenDispatch(futureLoad - futureRE, 0)
-        ph.runGenSchedule(futureLoad, futureRE, scheduledSRCSwitch, scheduledSRCStay,
-                          powerAvailToSwitch, powerAvailToStay,underSRC)
+    # for futureLoad in range(432):
+    #     for idx, gen in enumerate(ph.generators):
+    #         gen.genRunTimeAct = 5600  # Run time since last start [s]
+    #         gen.genRunTimeTot = 5600  # Cummulative run time since model start [s]
+    #         gen.genStartTimeAct = 30  # the amount of time spent warming up
+    #         gen.genState=genStates[idx]
+    #         gen.updateGenPAvail()
+    #         gen.checkOperatingConditions()
+    #     ph.onlineCombinationID = onlineID
+    #     ph.runGenDispatch(futureLoad - futureRE, 0)
+    #     ph.runGenSchedule(futureLoad, futureRE, scheduledSRCSwitch, scheduledSRCStay,
+    #                       powerAvailToSwitch, powerAvailToStay,underSRC)
     
-    print([gen.genState for gen in ph.generators])
+    # print([gen.genState for gen in ph.generators])
     
     if plotFuelCurves:
         for idx in ph.combinationsID:

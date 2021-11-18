@@ -7,12 +7,15 @@
 
 <!-- This file describes the inputs for the class 'genSchedule1'. -->
 <!-- Root tag is 'genScheduleName' -->
-<genScheduleName name = 'genSchedule0'>
+<genScheduleName name = 'genSchedule1'>
     <!-- 'minimizeFuel' is a bool that indicates whether the generator schedule will try to minimize fuel or maximize
      renewble energy contribution ( by minimizing the online generator MOL). Default is False. -->
     <minimizeFuel value = 'False'/>
-    <!-- 'userDefinedGenList' is a bool that indicates whether the user will specify the list of generator setpoints
-    in the SetX folder to be applied to all runs. An auto generated list is used when false. Default is False. -->
+    <!-- 'userDefinedGenList' is a bool that indicates whether the user will specify the list of generator setpoints.
+     An auto generated list is used when false. Default is False. -->
     <userDefinedGenList value = 'False'/>
+    <!-- 'userDefinedGenListPath' is a file path string pointing to the location of the user generated generator
+     setpoints. Default is an empty string. -->
+    <userDefinedGenListPath value = ''/>
 </genScheduleName>
 <!-- EOF -->

@@ -166,16 +166,17 @@ class Powerhouse:
             for idy, genComb in enumerate(self.genCombinationsUpperNormalLoading):
                 if load <= genComb:
                     combList = np.append(combList, idy)
-                if load < len(self.genCombinationsFCurve[idy]):
-                    fuelList = np.append(fuelList, self.genCombinationsFCurve[idy][load][-1])
-                    fuelCombList = np.append(fuelCombList, idy)    
+                    if load < len(self.genCombinationsFCurve[idy]):
+                        fuelList = np.append(fuelList, self.genCombinationsFCurve[idy][load][-1])
+                        fuelCombList = np.append(fuelCombList, idy)
+            fuelList, fuelCombList = self.selectMinFuelOption(load, fuelList, fuelCombList)
             self.lkpGenCombinationsUpperNormalLoading[load] = combList
             # fuelSort = np.argsort(fuelList)
             self.lkpMinFuelConsumption[load] = fuelList#[fuelSort]
             self.lkpMinFuelConsumptionGenID[load] = fuelCombList#[fuelSort]
         self.exportMinFuelSchedule(saveDir=os.path.split(genDescriptor[0])[0])
         if getattr(self.genSchedule, 'userDefinedGenList', False):
-            self.importUserDefinedSchedule(readDir=os.path.split(genScheduleInputsFile)[0])
+            self.importUserDefinedSchedule(readDir=self.genSchedule.userDefinedGenListPath)
         # CALCULATE AND SAVE THE MAXIMUM GENERATOR START TIME
         # this is used in the generator scheduling.
         self.maxStartTime = 0
@@ -301,8 +302,11 @@ class Powerhouse:
             csvfile = csv.writer(fn)
             # iterate through power steps in fuel consumption dict
             for pwr, FCompList in sorted(self.lkpMinFuelConsumption.items()):
-                minFuelIDX = np.argmin(FCompList)
-                genID = self.lkpMinFuelConsumptionGenID[pwr][minFuelIDX]
+                if FCompList.size==0:
+                    genID = self.genCombinationsUpperNormalLoadingMaxIdx
+                else:
+                    # minFuelIDX = np.argmin(FCompList)
+                    genID = self.lkpMinFuelConsumptionGenID[pwr]#[minFuelIDX]
                 # Check if 0 power or change in genID of minimum fuel usage
                 if (not pwr) or (not np.equal(prevGenID, genID)):
                     # print('Gen Combo', genID, 'starts at', pwr, 'kW')
@@ -311,10 +315,15 @@ class Powerhouse:
                 
     def importUserDefinedSchedule(self, readDir, fileName='userDefinedGenSchedule.csv'):
         # reads file from readDir/fileName and converts data to lookup table dict
+        if os.path.isdir(readDir) and fileName is not None:
+            fullPath = os.path.join(readDir, fileName)
+        elif os.path.isfile(readDir):
+            fullPath = readDir
+            
         genSetPoints = {}
         prevPower = 0
         prevGenID = 0
-        with open(os.path.join(readDir, fileName), 'r') as fn:
+        with open(fullPath, 'r') as fn:
             csvfile = csv.DictReader(fn, fieldnames=['gens', 'pwr'])
             for row in csvfile:
                 # read row in as string - interpret pwr as int and evaluate gens to tuple
@@ -327,3 +336,24 @@ class Powerhouse:
         for lkpPower in range(prevPower, int(self.genPMax)):
             self.lkpUserDefinedGenSchedule[lkpPower] = np.array([prevGenID])
             
+    def selectMinFuelOption(self, pwr, fuelList, fuelCombList, threshold=0.01):
+        #returns fuel consumption and generator combination ID of combination that
+        # least amount of fuel in fuel list. 
+        # Selects the option of the previous load step if lowest option and 
+        # previous option are within fractional threshold input
+        
+        # If starting with an empty list, return an empty list
+        if not len(fuelList):
+            return fuelList, fuelCombList
+        
+        
+        indSort = np.argsort(fuelList)
+        minFuel = min(fuelList)
+        minFuelID = fuelCombList[indSort[0]]
+        
+        prevFuel = self.lkpMinFuelConsumption.get(pwr-1, 0)
+        if pwr and abs(minFuel-prevFuel)/minFuel < threshold:
+            minFuel = prevFuel
+            minFuelID = self.lkpMinFuelConsumptionGenID.get(pwr-1, 0)
+        
+        return np.array(minFuel), np.array(minFuelID)

@@ -16,6 +16,7 @@ class genSchedule:
         # whether to try to minimize fuel consumption or maximize RE contribution (by minimizing MOL of generators)
         self.minimizeFuel = args['minimizeFuel']
         self.userDefinedGenList = args['userDefinedGenList']
+        self.userDefinedGenListPath = args['userDefinedGenListPath']
         
     def runSchedule(self, ph, futureLoad, futureRE, scheduledSRCSwitch, scheduledSRCStay, powerAvailToSwitch, powerAvailToStay, underSRC):
         # scheduled load is the difference between load and RE, the min of what needs to be provided by gen or ess
