@@ -49,7 +49,7 @@ if __name__ == '__main__':
     # ph.genSchedule.minimizeFuel = True
         
     
-    for futureLoad in range(2500):
+    for futureLoad in range(400):
         for idx, gen in enumerate(ph.generators):
             gen.genRunTimeAct = 5600  # Run time since last start [s]
             gen.genRunTimeTot = 5600  # Cummulative run time since model start [s]

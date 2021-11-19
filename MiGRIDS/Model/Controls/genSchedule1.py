@@ -47,16 +47,9 @@ class genSchedule:
             # predetermined in powerhouse init
             indSort = ph.lkpMinFuelConsumptionGenID.get(capReq, np.array(ph.genCombinationsUpperNormalLoadingMaxIdx))
         else:
-            # get the MOL of possible gen combos at current capReq
-            # order gend combos by MOL
-            indCap = np.asarray(ph.lkpGenCombinationsUpperNormalLoading.get(capReq, ph.genCombinationsUpperNormalLoadingMaxIdx), dtype=int)
-            # check if the current online combination is capable of supplying the projected load minus the power available to
-            # help the current generator combination stay online
-            if ph.onlineCombinationID not in indCap and not (True in ph.outOfNormalBounds) and not underSRC: # keep current generating combingation in the mix unless has gone out of bounds for allotted amount
-                # do not add the current generating option if it is diesel-off and it does not have enough SRC
-                indCap = np.append(indCap,ph.onlineCombinationID)
-            indSort = indCap[np.argsort(ph.genCombinationsMOL[indCap])][0]
-        
+            # get the combo ID of lowest possible MOL at current capReq
+            indSort = ph.lkpGenCombinationsUpperNormalLoading.get(capReq, ph.genCombinationsUpperNormalLoadingMaxIdx)
+            
         # inititiate the generators to be switched on for this combination to all generators in the combination
         genSwOn = list(ph.genCombinationsID[indSort])
         # initiate the generators to be switched off for this combination to all generators currently online
