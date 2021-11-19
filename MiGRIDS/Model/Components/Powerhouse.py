@@ -169,8 +169,8 @@ class Powerhouse:
                     if load < len(self.genCombinationsFCurve[idy]):
                         fuelList = np.append(fuelList, self.genCombinationsFCurve[idy][load][-1])
                         fuelCombList = np.append(fuelCombList, idy)
-            
-            combList = combList[np.argsort(self.genCombinationsMOL[combList])][0]
+            if len(combList) > 0:
+                combList = np.asarray(combList[np.argsort(self.genCombinationsMOL[combList])][0])
             fuelList, fuelCombList = self.selectMinFuelOption(load, fuelList, fuelCombList)
             self.lkpGenCombinationsUpperNormalLoading[load] = combList
             # fuelSort = np.argsort(fuelList)
