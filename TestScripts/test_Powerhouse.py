@@ -11,15 +11,16 @@ from MiGRIDS.Model.Components.Powerhouse import Powerhouse
 
 if __name__ == '__main__':
     plotFuelCurves = False
-    projectName = 'XYZ'
-    setNum = 'Set2'
+    projectName = 'userGenScheduleDemo'
+    setNum = 'Set3'
     runNum = 'Run0'
     currentPath = os.path.dirname(os.path.abspath(__file__))
     projectPath = os.path.abspath(os.path.join(currentPath, '..',
-                                               'MiGRIDSProjects', 'XYZ'))
+                                               'MiGRIDSProjects', projectName))
     filePath = os.path.join(currentPath, '..', 'MiGRIDS', 'Model', 'Controls')
-    genIDS = list(range(3))
-    genStates = [2, 2, 0]
+    # genIDS = list(range(3))
+    genIDS = ['0', '1', '2']
+    genStates = [1, 0, 0]
     onlineID = 4
     timeStep = 10
     genDescriptor = [os.path.join(projectPath, 'OutputData', setNum, runNum, 'Components',
@@ -48,18 +49,18 @@ if __name__ == '__main__':
     # ph.genSchedule.minimizeFuel = True
         
     
-    # for futureLoad in range(432):
-    #     for idx, gen in enumerate(ph.generators):
-    #         gen.genRunTimeAct = 5600  # Run time since last start [s]
-    #         gen.genRunTimeTot = 5600  # Cummulative run time since model start [s]
-    #         gen.genStartTimeAct = 30  # the amount of time spent warming up
-    #         gen.genState=genStates[idx]
-    #         gen.updateGenPAvail()
-    #         gen.checkOperatingConditions()
-    #     ph.onlineCombinationID = onlineID
-    #     ph.runGenDispatch(futureLoad - futureRE, 0)
-    #     ph.runGenSchedule(futureLoad, futureRE, scheduledSRCSwitch, scheduledSRCStay,
-    #                       powerAvailToSwitch, powerAvailToStay,underSRC)
+    for futureLoad in range(2500):
+        for idx, gen in enumerate(ph.generators):
+            gen.genRunTimeAct = 5600  # Run time since last start [s]
+            gen.genRunTimeTot = 5600  # Cummulative run time since model start [s]
+            gen.genStartTimeAct = 30  # the amount of time spent warming up
+            gen.genState=genStates[idx]
+            gen.updateGenPAvail()
+            gen.checkOperatingConditions()
+        ph.onlineCombinationID = onlineID
+        ph.runGenDispatch(futureLoad - futureRE, 0)
+        ph.runGenSchedule(futureLoad, futureRE, scheduledSRCSwitch, scheduledSRCStay,
+                          powerAvailToSwitch, powerAvailToStay,underSRC)
     
     # print([gen.genState for gen in ph.generators])
     
@@ -81,6 +82,5 @@ if __name__ == '__main__':
     #     prevgencombo = gencombo
     # ph.importUserDefinedSchedule(os.path.join(projectPath, 'OutputData', setNum, runNum, 'Components'),
     #                              fileName='minFuelGenSchedule.csv')
-    
     
     

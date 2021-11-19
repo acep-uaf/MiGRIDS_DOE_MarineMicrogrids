@@ -40,12 +40,12 @@ class genSchedule:
         # find desired generation combination
         if self.userDefinedGenList:
             # single generator combination ID in a list (user defined)
-            indSort = ph.lkpUserDefinedGenSchedule.get(capReq, np.array([ph.genCombinationsUpperNormalLoadingMaxIdx]))
+            indSort = ph.lkpUserDefinedGenSchedule.get(capReq, np.array(ph.genCombinationsUpperNormalLoadingMaxIdx))
                         
         elif self.minimizeFuel:
             # get the ID of most efficient fuel consumption combination at current capReq
             # predetermined in powerhouse init
-            indSort = ph.lkpMinFuelConsumptionGenID.get(capReq, np.array([ph.genCombinationsUpperNormalLoadingMaxIdx]))
+            indSort = ph.lkpMinFuelConsumptionGenID.get(capReq, np.array(ph.genCombinationsUpperNormalLoadingMaxIdx))
         else:
             # get the MOL of possible gen combos at current capReq
             # order gend combos by MOL
@@ -55,10 +55,10 @@ class genSchedule:
             if ph.onlineCombinationID not in indCap and not (True in ph.outOfNormalBounds) and not underSRC: # keep current generating combingation in the mix unless has gone out of bounds for allotted amount
                 # do not add the current generating option if it is diesel-off and it does not have enough SRC
                 indCap = np.append(indCap,ph.onlineCombinationID)
-            indSort = indCap[np.argsort(ph.genCombinationsMOL[indCap])]
+            indSort = indCap[np.argsort(ph.genCombinationsMOL[indCap])][0]
         
         # inititiate the generators to be switched on for this combination to all generators in the combination
-        genSwOn = list(ph.genCombinationsID[indSort[0]])
+        genSwOn = list(ph.genCombinationsID[indSort])
         # initiate the generators to be switched off for this combination to all generators currently online
         genSwOff = list(ph.genCombinationsID[ph.combinationsID.index(ph.onlineCombinationID)])
         # find common elements between switch on and switch off lists
@@ -85,7 +85,7 @@ class genSchedule:
         # if the most efficient can be switched on now, switch to it
         if timeToSwitch <= 0:
             # update online generator combination
-            ph.onlineCombinationID = ph.combinationsID[indSort[0]]
+            ph.onlineCombinationID = ph.combinationsID[indSort]
             ph.switchGenComb(genSwOn, genSwOff)  # switch generators
             for idx in range(len(ph.genIDS)):
                 # update genPAvail

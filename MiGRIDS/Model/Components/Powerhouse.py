@@ -330,11 +330,11 @@ class Powerhouse:
                 genSetPoints[int(row['pwr'])] = literal_eval(row['gens'])
             
                 for lkpPower in range(prevPower, int(row['pwr'])):
-                    self.lkpUserDefinedGenSchedule[lkpPower] = np.array([prevGenID])
+                    self.lkpUserDefinedGenSchedule[lkpPower] = np.array(prevGenID)
                 prevGenID = self.genCombinationsID.index(literal_eval(row['gens']))
                 prevPower = int(row['pwr'])
         for lkpPower in range(prevPower, int(self.genPMax)):
-            self.lkpUserDefinedGenSchedule[lkpPower] = np.array([prevGenID])
+            self.lkpUserDefinedGenSchedule[lkpPower] = np.array(prevGenID)
             
     def selectMinFuelOption(self, pwr, fuelList, fuelCombList, threshold=0.01):
         #returns fuel consumption and generator combination ID of combination that
