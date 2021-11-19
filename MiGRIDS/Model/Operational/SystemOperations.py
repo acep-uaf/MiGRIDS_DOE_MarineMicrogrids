@@ -306,6 +306,7 @@ class SystemOperations:
 
         # Little helpers
         sumPHgenPAvail = sum(self.PH.genPAvail)  # summation is used six times in code, do once
+        sumPHgenMOL = sum(self.PH.genMolAvail)
 
         # get available wind power
         # FUTUREFEATURE: do the same for solar etc.
@@ -318,11 +319,13 @@ class SystemOperations:
         self.getMinSrc.getMinSrc(self)
         srcMin = [self.getMinSrc.minSrcToStay, self.getMinSrc.minSrcToSwitch]
 
-        # discharge the eess to cover the difference between load and generation
+        # discharge the eess to cover the difference between load and generation TODO: charge for MOL
         eessDis = min([max([self.P - self.reDispatch.wfPimport - sumPHgenPAvail, 0]), sum(self.EESS.eesPoutAvail)])
+        eessCh = min([max([-self.P + self.reDispatch.wfPimport + sumPHgenMOL, 0]), sum(self.EESS.eesPinAvail)])
+        eessPower = eessDis - eessCh
 
         # get the diesel power output, the difference between demand and supply
-        phP = self.P - self.reDispatch.wfPimport - eessDis
+        phP = self.P - self.reDispatch.wfPimport - eessPower
         # find the remaining ability of the EESS to supply SRC not supplied by the diesel generators
         eessSrcRequested = max([srcMin[0] - sumPHgenPAvail + phP, 0])
 
@@ -350,7 +353,7 @@ class SystemOperations:
             phPch = min(sum(self.EESS.eesPinAvail) - self.reDispatch.wfPch, phPch)
 
         # dispatch the eess
-        self.EESS.runEesDispatch(eessDis - self.reDispatch.wfPch - phPch, 0, eessSrcRequested, self.masterIdx)
+        self.EESS.runEesDispatch(eessPower - self.reDispatch.wfPch - phPch, 0, eessSrcRequested, self.masterIdx)
         # read what eess managed to do
         eessP = sum(self.EESS.eesP[:])
         # recalculate generator power required
@@ -393,9 +396,9 @@ class SystemOperations:
         self.genRunTime.var[self.idx] = genRunTime[:]  # .append(genRunTime[:])
 
         ## If conditions met, schedule units
-        # check if out of bounds opperation
+        # check if out of bounds opperation or a fully charged EESS
         if True in self.EESS.underSRC or True in self.EESS.outOfBoundsReal or True in self.PH.outOfNormalBounds or \
-                True in self.PH.outOfEfficientBounds or True in self.WF.wtgSpilledWindFlag:
+                sum(self.EESS.eesPinAvail) <= 0:
             # predict what load will be
             # the previous 24 hours. 24hr * 60min/hr * 60sec/min = 86400 sec.
             self.predictLoad.loadPredict(self)
