@@ -9,13 +9,20 @@
 <!-- Root tag is 'genScheduleName' -->
 <genScheduleName name = 'genSchedule1'>
     <!-- 'minimizeFuel' is a bool that indicates whether the generator schedule will try to minimize fuel or maximize
-     renewble energy contribution ( by minimizing the online generator MOL). Default is False. -->
-    <minimizeFuel value = 'False'/>
+     renewble energy contribution ( by minimizing the online generator MOL). Default is True. -->
+    <minimizeFuel value = 'True'/>
     <!-- 'userDefinedGenList' is a bool that indicates whether the user will specify the list of generator setpoints.
      An auto generated list is used when false. Default is False. -->
     <userDefinedGenList value = 'True'/>
     <!-- 'userDefinedGenListPath' is a file path string pointing to the location of the user generated generator
      setpoints. Default is an empty string. -->
+<<<<<<< HEAD
     <userDefinedGenListPath value = 'C:\Users\Nathan Green\Documents\MiGRIDS_V2.0\MiGRIDSProjects\JanuaryScheduleTest\InputData\Setup\userDefinedGenSchedule.csv'/>
+=======
+    <userDefinedGenListPath value = ''/>
+    <!-- 'switchGenDelay' is the amount of time in seconds that the gen schedule will wait before switching to another
+    generator combination, as long as other constraints are met. Default is 300. -->
+    <switchGenDelay value = '300'/>
+>>>>>>> cb55fa9110a6c622c0ae83889b71c84f9a166bf9
 </genScheduleName>
 <!-- EOF -->
