@@ -176,9 +176,9 @@ class Powerhouse:
             # fuelSort = np.argsort(fuelList)
             self.lkpMinFuelConsumption[load] = fuelList#[fuelSort]
             self.lkpMinFuelConsumptionGenID[load] = fuelCombList#[fuelSort]
-        self.exportMinFuelSchedule(saveDir=os.path.split(genDescriptor[0])[0])
         if getattr(self.genSchedule, 'userDefinedGenList', False):
             self.importUserDefinedSchedule(readDir=self.genSchedule.userDefinedGenListPath)
+        self.exportGenSchedule(saveDir=os.path.split(genDescriptor[0])[0])
         # CALCULATE AND SAVE THE MAXIMUM GENERATOR START TIME
         # this is used in the generator scheduling.
         self.maxStartTime = 0
@@ -296,9 +296,17 @@ class Powerhouse:
         for genID in GenSwOn:
             self.generators[self.genIDS.index(genID)].genState = 1  # running but offline
 
-    def exportMinFuelSchedule(self, saveDir, fileName='minFuelGenSchedule.csv'):
-        #saves the minimum fuel usage ranges as a csv
+    def exportGenSchedule(self, saveDir, fileName='genSchedule.csv'):
+        #saves the gen schedule ranges to be used as a csv
         
+        lkpToExport = {}
+        if getattr(self.genSchedule, 'userDefinedGenList', False):
+            lkpToExport = self.lkpUserDefinedGenSchedule.copy()
+        elif getattr(self.genSchedule, 'userDefinedGenList', False):
+            lkpToExport = self.lkpMinFuelConsumptionGenID.copy()     
+        else:
+            lkpToExport = self.lkpGenCombinationsUpperNormalLoading.copy()
+            
         prevGenID = -1
         with open(os.path.join(saveDir, fileName), 'w', newline='') as fn:
             csvfile = csv.writer(fn)
@@ -308,7 +316,7 @@ class Powerhouse:
                     genID = self.genCombinationsUpperNormalLoadingMaxIdx
                 else:
                     # minFuelIDX = np.argmin(FCompList)
-                    genID = self.lkpMinFuelConsumptionGenID[pwr]#[minFuelIDX]
+                    genID = lkpToExport[pwr]#[minFuelIDX]
                 # Check if 0 power or change in genID of minimum fuel usage
                 if (not pwr) or (not np.equal(prevGenID, genID)):
                     # print('Gen Combo', genID, 'starts at', pwr, 'kW')
