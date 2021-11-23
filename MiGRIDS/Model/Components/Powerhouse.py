@@ -158,6 +158,7 @@ class Powerhouse:
         self.lkpGenCombinationsUpperNormalLoading = {}
         self.lkpMinFuelConsumption = {}
         self.lkpMinFuelConsumptionGenID = {}
+        self.lkpMinMOLGenID = {}
         self.lkpUserDefinedGenSchedule = {}
         for load in loading:
             combList = np.array([], dtype=int)
@@ -170,9 +171,10 @@ class Powerhouse:
                         fuelList = np.append(fuelList, self.genCombinationsFCurve[idy][load][-1])
                         fuelCombList = np.append(fuelCombList, idy)
             if len(combList) > 0:
-                combList = np.asarray(combList[np.argsort(self.genCombinationsMOL[combList])][0])
+                minMOLComb = np.asarray(combList[np.argsort(self.genCombinationsMOL[combList])][0])
             fuelList, fuelCombList = self.selectMinFuelOption(load, fuelList, fuelCombList)
             self.lkpGenCombinationsUpperNormalLoading[load] = combList
+            self.lkpMinMOLGenID[load] = minMOLComb
             # fuelSort = np.argsort(fuelList)
             self.lkpMinFuelConsumption[load] = fuelList#[fuelSort]
             self.lkpMinFuelConsumptionGenID[load] = fuelCombList#[fuelSort]
@@ -305,7 +307,7 @@ class Powerhouse:
         elif getattr(self.genSchedule, 'userDefinedGenList', False):
             lkpToExport = self.lkpMinFuelConsumptionGenID.copy()     
         else:
-            lkpToExport = self.lkpGenCombinationsUpperNormalLoading.copy()
+            lkpToExport = self.lkpMinMOLGenID.copy()
             
         prevGenID = -1
         with open(os.path.join(saveDir, fileName), 'w', newline='') as fn:

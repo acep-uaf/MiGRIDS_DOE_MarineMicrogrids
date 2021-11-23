@@ -43,8 +43,8 @@ class genSchedule:
         else:
             # get the MOL of possible gen combos at current capReq
             # order gend combos by MOL
-            indSortSwitch = ph.lkpGenCombinationsUpperNormalLoading.get(capReqSwitch, ph.genCombinationsUpperNormalLoadingMaxIdx)
-            indSortStay = ph.lkpGenCombinationsUpperNormalLoading.get(capReqStay, ph.genCombinationsUpperNormalLoadingMaxIdx)
+            indSortSwitch = ph.lkpMinMOLGenID.get(capReqSwitch, ph.genCombinationsUpperNormalLoadingMaxIdx)
+            indSortStay = ph.lkpMinMOLGenID.get(capReqStay, ph.genCombinationsUpperNormalLoadingMaxIdx)
             
                     ## if the correct generator combination is online, do nothing. Otherwise, increment the timer
         if ph.onlineCombinationID == ph.combinationsID[indSortSwitch] or \
