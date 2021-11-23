@@ -31,55 +31,8 @@ class genSchedule:
         ## find desired generation combination, based on input preferences
         if self.userDefinedGenList:
             # single generator combination ID in a list (user defined)
-<<<<<<< HEAD
-            indSort = ph.lkpUserDefinedGenSchedule.get(capReq, np.array(ph.genCombinationsUpperNormalLoadingMaxIdx))
-                        
-        elif self.minimizeFuel:
-            # get the ID of most efficient fuel consumption combination at current capReq
-            # predetermined in powerhouse init
-            indSort = ph.lkpMinFuelConsumptionGenID.get(capReq, np.array(ph.genCombinationsUpperNormalLoadingMaxIdx))
-        else:
-            # get the combo ID of lowest possible MOL at current capReq
-            indSort = ph.lkpGenCombinationsUpperNormalLoading.get(capReq, ph.genCombinationsUpperNormalLoadingMaxIdx)
-            
-        # inititiate the generators to be switched on for this combination to all generators in the combination
-        genSwOn = list(ph.genCombinationsID[indSort])
-        # initiate the generators to be switched off for this combination to all generators currently online
-        genSwOff = list(ph.genCombinationsID[ph.combinationsID.index(ph.onlineCombinationID)])
-        # find common elements between switch on and switch off lists
-        commonGen = list(set(genSwOff).intersection(genSwOn))
-        # remove common generators from both lists
-        for genID in commonGen:
-            genSwOn.remove(genID)
-            genSwOff.remove(genID)
-        # for each gen to be switched get time, max time for combination is time will take to bring online
-
-        # find max time to switch generators online
-        onTime = 0
-        for genID in genSwOn: # for each to be brought online in the current combination
-            onTime = max(onTime,turnOnTime[ph.genIDS.index(genID)]) # max turn on time
-        # find max of turn on time and turn off time
-        SwitchTime = onTime # initiate to max turn on time
-        for genID in genSwOff: # for each generator to be switched off in the current combination
-            SwitchTime = max(SwitchTime, turnOffTime[ph.genIDS.index(genID)]) # check if there is a higher turn off time
-        timeToSwitch = SwitchTime
-        
-        ## bring the best option that can be switched immediatley, if any
-        # if the most efficient option can't be switched, start warming up generators
-        
-        # if the most efficient can be switched on now, switch to it
-        if timeToSwitch <= 0:
-            # update online generator combination
-            ph.onlineCombinationID = ph.combinationsID[indSort]
-            ph.switchGenComb(genSwOn, genSwOff)  # switch generators
-            for idx in range(len(ph.genIDS)):
-                # update genPAvail
-                ph.generators[idx].updateGenPAvail()
-        # otherwise, start or continue warming up generators for most efficient combination
-=======
             indSortSwitch = ph.lkpUserDefinedGenSchedule.get(capReqSwitch, np.array([ph.genCombinationsUpperNormalLoadingMaxIdx]))
-            indSortStay = ph.lkpUserDefinedGenSchedule.get(capReqStay,
-                                                             np.array([ph.genCombinationsUpperNormalLoadingMaxIdx]))
+            indSortStay = ph.lkpUserDefinedGenSchedule.get(capReqStay, np.array([ph.genCombinationsUpperNormalLoadingMaxIdx]))
                         
         elif self.minimizeFuel:
             # get the fuel consumption of possible gen combos at current capReq
@@ -90,16 +43,13 @@ class genSchedule:
         else:
             # get the MOL of possible gen combos at current capReq
             # order gend combos by MOL
-            indCap = np.asarray(ph.lkpGenCombinationsUpperNormalLoading.get(capReqSwitch, ph.genCombinationsUpperNormalLoadingMaxIdx), dtype=int)
-            indSortSwitch = indCap[np.argsort(ph.genCombinationsMOL[indCap])]
-            indCap = np.asarray(ph.lkpGenCombinationsUpperNormalLoading.get(capReqStay, ph.genCombinationsUpperNormalLoadingMaxIdx), dtype=int)
-            indSortStay = indCap[np.argsort(ph.genCombinationsMOL[indCap])]
-
-        ## if the correct generator combination is online, do nothing. Otherwise, increment the timer
+            indSortSwitch = ph.lkpGenCombinationsUpperNormalLoading.get(capReqSwitch, ph.genCombinationsUpperNormalLoadingMaxIdx)
+            indSortStay = ph.lkpGenCombinationsUpperNormalLoading.get(capReqStay, ph.genCombinationsUpperNormalLoadingMaxIdx)
+            
+                    ## if the correct generator combination is online, do nothing. Otherwise, increment the timer
         if ph.onlineCombinationID == ph.combinationsID[indSortSwitch] or \
                 ph.onlineCombinationID == ph.combinationsID[indSortStay]:
             self.switchGenTimer = 0 # reset the timer
->>>>>>> cb55fa9110a6c622c0ae83889b71c84f9a166bf9
         else:
             self.switchGenTimer = self.switchGenTimer + 1 #increment timer
 
