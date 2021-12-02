@@ -319,7 +319,7 @@ class SystemOperations:
         self.getMinSrc.getMinSrc(self)
         srcMin = [self.getMinSrc.minSrcToStay, self.getMinSrc.minSrcToSwitch]
 
-        # discharge the eess to cover the difference between load and generation TODO: charge for MOL
+        # discharge the eess to cover the difference between load and generation todo: use lookup table values instead of upper and lower normal loading
         eessDis = min([max([self.P - self.reDispatch.wfPimport - sumPHgenPAvail, 0]), sum(self.EESS.eesPoutAvail)])
         eessCh = min([max([-self.P + self.reDispatch.wfPimport + sumPHgenMOL, 0]), sum(self.EESS.eesPinAvail)])
         eessPower = eessDis - eessCh
@@ -358,9 +358,26 @@ class SystemOperations:
         eessP = sum(self.EESS.eesP[:])
         # recalculate generator power required
         phP = self.P - self.reDispatch.wfPimport - max([eessP, 0]) + phPch
-
         # dispatch the generators
         self.PH.runGenDispatch(phP, 0)
+
+        # calculate the required online diesel capacity, and if the current online capacity is a good fit
+        # calculate capacity required from diesel generators
+        dieselCapRequired = max(srcMin[0] - sum(self.EESS.eesPsrcAvail),0) + phP
+        # find the corresponding diesel combination, depending on how the user selected to schedule diesels
+        if getattr(self.PH.genSchedule, 'userDefinedGenList', False):
+            indGenComb = self.PH.lkpUserDefinedGenSchedule.get(dieselCapRequired,
+                                                             np.array([self.PH.genCombinationsUpperNormalLoadingMaxIdx]))
+        elif getattr(self.PH.genSchedule, 'minimizeFuel', False):
+            indGenComb = self.PH.lkpMinFuelConsumptionGenID.get(dieselCapRequired,
+                                                              np.array([self.PH.genCombinationsUpperNormalLoadingMaxIdx]))
+        else:
+            indGenComb = self.PH.lkpMinMOLGenID.get(dieselCapRequired, self.PH.genCombinationsUpperNormalLoadingMaxIdx)
+        # if the online combination does not match that required, set flag to initiate the genSchedule
+        if self.PH.onlineCombinationID == self.PH.combinationsID[indGenComb[0]]:
+            wrongGenComb = False
+        else:
+            wrongGenComb = True
 
         # record values
         if hasattr(self, 'TESS'):  # check if thermal energy storage in the simulation
@@ -398,7 +415,7 @@ class SystemOperations:
         ## If conditions met, schedule units
         # check if out of bounds opperation or a fully charged EESS
         if True in self.EESS.underSRC or True in self.EESS.outOfBoundsReal or True in self.PH.outOfNormalBounds or \
-                sum(self.EESS.eesPinAvail) <= 0:
+                wrongGenComb:
             # predict what load will be
             # the previous 24 hours. 24hr * 60min/hr * 60sec/min = 86400 sec.
             self.predictLoad.loadPredict(self)
