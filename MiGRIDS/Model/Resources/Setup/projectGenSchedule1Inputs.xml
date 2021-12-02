@@ -13,7 +13,7 @@
     <minimizeFuel value = 'True'/>
     <!-- 'userDefinedGenList' is a bool that indicates whether the user will specify the list of generator setpoints.
      An auto generated list is used when false. Default is False. -->
-    <userDefinedGenList value = 'True'/>
+    <userDefinedGenList value = 'False'/>
     <!-- 'userDefinedGenListPath' is a file path string pointing to the location of the user generated generator
      setpoints. Default is an empty string. -->
     <userDefinedGenListPath value = ''/>
