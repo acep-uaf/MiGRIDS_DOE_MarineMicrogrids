@@ -106,6 +106,8 @@ class Powerhouse:
         self.genCombinationsUpperNormalLoading = []
         self.genCombinationsUpperLimit = []
         self.genCombinationsLowerLimit = []
+        self.genCombinationsMinRange = []
+        self.genCombinationsMaxRange = []
         self.genCombinationsPMax = []
         self.genCombinationsFCurve = []
         self.genMaxDiesCapCharge = []
@@ -181,6 +183,7 @@ class Powerhouse:
         if getattr(self.genSchedule, 'userDefinedGenList', False):
             self.importUserDefinedSchedule(readDir=self.genSchedule.userDefinedGenListPath)
         self.exportGenSchedule(saveDir=os.path.split(genDescriptor[0])[0])
+        self.calcGenCombinationRanges()
         # CALCULATE AND SAVE THE MAXIMUM GENERATOR START TIME
         # this is used in the generator scheduling.
         self.maxStartTime = 0
@@ -304,7 +307,7 @@ class Powerhouse:
         lkpToExport = {}
         if getattr(self.genSchedule, 'userDefinedGenList', False):
             lkpToExport = self.lkpUserDefinedGenSchedule.copy()
-        elif getattr(self.genSchedule, 'userDefinedGenList', False):
+        elif getattr(self.genSchedule, 'minimizeFuel', False):
             lkpToExport = self.lkpMinFuelConsumptionGenID.copy()     
         else:
             lkpToExport = self.lkpMinMOLGenID.copy()
@@ -347,6 +350,28 @@ class Powerhouse:
                 prevPower = int(row['pwr'])
         for lkpPower in range(prevPower, int(self.genPMax)):
             self.lkpUserDefinedGenSchedule[lkpPower] = np.array(prevGenID)
+            
+    def calcGenCombinationRanges(self):
+        # Calculates the minimum and maximum setpoints of the operating range 
+        # each gen combinations based specified schedule (MOL, minFuel, user)
+        lkp = {}
+        if getattr(self.genSchedule, 'userDefinedGenList', False):
+            lkp = self.lkpUserDefinedGenSchedule.copy()
+        elif getattr(self.genSchedule, 'minimizeFuel', False):
+            lkp = self.lkpMinFuelConsumptionGenID.copy()     
+        else:
+            lkp = self.lkpMinMOLGenID.copy()
+            
+        for combo in self.combinationsID:
+            pwrRange = [pwr for pwr, lkpCombo in lkp.items() if lkpCombo == combo]
+            
+            if len(pwrRange):
+                self.genCombinationsMinRange.append(min(pwrRange))
+                self.genCombinationsMaxRange.append(max(pwrRange))
+            else:
+                self.genCombinationsMinRange.append([])
+                self.genCombinationsMaxRange.append([])
+            
             
     def selectMinFuelOption(self, pwr, fuelList, fuelCombList, threshold=0.01):
         #returns fuel consumption and generator combination ID of combination that

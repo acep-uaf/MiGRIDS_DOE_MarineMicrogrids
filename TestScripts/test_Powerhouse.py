@@ -11,8 +11,8 @@ from MiGRIDS.Model.Components.Powerhouse import Powerhouse
 
 if __name__ == '__main__':
     plotFuelCurves = False
-    projectName = 'userGenScheduleDemo'
-    setNum = 'Set3'
+    projectName = 'MIRACLBaseline'
+    setNum = 'Set0'
     runNum = 'Run0'
     currentPath = os.path.dirname(os.path.abspath(__file__))
     projectPath = os.path.abspath(os.path.join(currentPath, '..',
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     # ph.genSchedule.minimizeFuel = True
         
     
-    for futureLoad in range(2500):
+    for futureLoad in range(2250):
         for idx, gen in enumerate(ph.generators):
             gen.genRunTimeAct = 5600  # Run time since last start [s]
             gen.genRunTimeTot = 5600  # Cummulative run time since model start [s]
