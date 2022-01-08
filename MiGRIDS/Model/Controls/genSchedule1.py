@@ -26,29 +26,24 @@ class genSchedule:
 
         ## first find the generator capacity required
         capReqSwitch = max(int(scheduledLoad - powerAvailToSwitch + scheduledSRCSwitch),0)
-        capReqStay = max(int(scheduledLoad - powerAvailToStay + scheduledSRCStay), 0)
 
         ## find desired generation combination, based on input preferences
         if self.userDefinedGenList:
             # single generator combination ID in a list (user defined)
             indSortSwitch = ph.lkpUserDefinedGenSchedule.get(capReqSwitch, np.array([ph.genCombinationsUpperNormalLoadingMaxIdx]))
-            indSortStay = ph.lkpUserDefinedGenSchedule.get(capReqStay, np.array([ph.genCombinationsUpperNormalLoadingMaxIdx]))
-                        
+
         elif self.minimizeFuel:
             # get the fuel consumption of possible gen combos at current capReq
             # order gen combos by fuel consumption rate
             indSortSwitch = ph.lkpMinFuelConsumptionGenID.get(capReqSwitch, np.array([ph.genCombinationsUpperNormalLoadingMaxIdx]))
-            indSortStay = ph.lkpMinFuelConsumptionGenID.get(capReqStay, np.array([ph.genCombinationsUpperNormalLoadingMaxIdx]))
 
         else:
             # get the MOL of possible gen combos at current capReq
             # order gend combos by MOL
             indSortSwitch = ph.lkpMinMOLGenID.get(capReqSwitch, ph.genCombinationsUpperNormalLoadingMaxIdx)
-            indSortStay = ph.lkpMinMOLGenID.get(capReqStay, ph.genCombinationsUpperNormalLoadingMaxIdx)
-            
+
                     ## if the correct generator combination is online, do nothing. Otherwise, increment the timer
-        if ph.onlineCombinationID == ph.combinationsID[indSortSwitch] or \
-                ph.onlineCombinationID == ph.combinationsID[indSortStay]:
+        if ph.onlineCombinationID == ph.combinationsID[indSortSwitch]:
             self.switchGenTimer = 0 # reset the timer
         else:
             self.switchGenTimer = self.switchGenTimer + 1 #increment timer

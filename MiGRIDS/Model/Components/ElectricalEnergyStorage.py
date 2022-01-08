@@ -392,7 +392,8 @@ class ElectricalEnergyStorage:
     # this finds the available SRC given the current power
     def updateSrcAvail(self):
         useP = max([self.eesP,0]) # only take into account discharging power
-        self.eesPsrcAvail = self.findPdisAvail(self.eesSrcTime, useP, useP*self.timeStep)
+        # SRC available includes reducing any charging - thus it is added in
+        self.eesPsrcAvail = self.findPdisAvail(self.eesSrcTime, useP, useP*self.timeStep) - min([self.eesP,0])
 
 
     # this finds the power this ees is capable of being scheduled for.
