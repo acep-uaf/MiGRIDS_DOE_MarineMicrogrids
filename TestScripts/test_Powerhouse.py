@@ -10,7 +10,7 @@ import numpy as np
 from MiGRIDS.Model.Components.Powerhouse import Powerhouse
 
 if __name__ == '__main__':
-    plotFuelCurves = False
+    plotFuelCurves = True
     projectName = 'MIRACLBaseline'
     setNum = 'Set0'
     runNum = 'Run0'

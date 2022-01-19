@@ -357,7 +357,7 @@ class Powerhouse:
         lkp = {}
         if getattr(self.genSchedule, 'userDefinedGenList', False):
             lkp = self.lkpUserDefinedGenSchedule.copy()
-        elif getattr(self.genSchedule, 'minimizeFuelComb', False):
+        elif getattr(self.genSchedule, 'minimizeFuel', False):
             lkp = self.lkpMinFuelConsumptionGenID.copy()     
         else:
             lkp = self.lkpMinMOLGenID.copy()
