@@ -319,9 +319,9 @@ class SystemOperations:
         self.getMinSrc.getMinSrc(self)
         srcMin = [self.getMinSrc.minSrcToStay, self.getMinSrc.minSrcToSwitch]
 
-        # discharge the eess to cover the difference between load and generation todo: use lookup table values instead of upper and lower normal loading
-        eessDis = min([max([self.P - self.reDispatch.wfPimport - sumPHgenPAvail, 0]), sum(self.EESS.eesPoutAvail)])
-        eessCh = min([max([-self.P + self.reDispatch.wfPimport + sumPHgenMOL, 0]), sum(self.EESS.eesPinAvail)])
+        # discharge the eess to cover the difference between load and generation todo: use lookup table values instead of upper and lower normal loading (Done - test)
+        eessDis = min([max([self.P - self.reDispatch.wfPimport - self.PH.genCombinationsMaxRange[self.PH.onlineCombinationID], 0]), sum(self.EESS.eesPoutAvail)])
+        eessCh = min([max([-self.P + self.reDispatch.wfPimport + self.PH.genCombinationsMinRange[self.PH.onlineCombinationID], 0]), sum(self.EESS.eesPinAvail)])
         eessPower = eessDis - eessCh
 
         # get the diesel power output, the difference between demand and supply
@@ -363,18 +363,30 @@ class SystemOperations:
 
         # calculate the required online diesel capacity, and if the current online capacity is a good fit
         # calculate capacity required from diesel generators
-        dieselCapRequired = max(srcMin[0] - sum(self.EESS.eesPsrcAvail),0) + phP
+        usedUpEessSrc = min(sum(self.EESS.eesPsrcAvail),srcMin[0])
+        wtgSpilled = sum([a-b for (a,b) in zip(self.WF.wtgPAvail, self.WF.wtgP)])
+        if wtgSpilled > 0:
+            wtgSpilledSRC = sum([(a-b)*c for (a,b,c) in zip(self.WF.wtgPAvail, self.WF.wtgP,self.WF.wtgMinSrcCover)])
+            wtgSrcAvg = wtgSpilledSRC / wtgSpilled
+            if wtgSrcAvg > 0:
+                wtgThatCanBeCoveredByEESS = (sum(self.EESS.eesPsrcAvail) - usedUpEessSrc) / wtgSrcAvg
+            else:
+                wtgThatCanBeCoveredByEESS = wtgSpilled
+        else:
+            wtgSpilled = 0
+            wtgThatCanBeCoveredByEESS = 0
+        dieselCapRequired = round(max(srcMin[0] - usedUpEessSrc + phP - min(wtgSpilled,wtgThatCanBeCoveredByEESS),0))
         # find the corresponding diesel combination, depending on how the user selected to schedule diesels
         if getattr(self.PH.genSchedule, 'userDefinedGenList', False):
             indGenComb = self.PH.lkpUserDefinedGenSchedule.get(dieselCapRequired,
-                                                             np.array([self.PH.genCombinationsUpperNormalLoadingMaxIdx]))
+                                                             self.PH.genCombinationsUpperNormalLoadingMaxIdx)
         elif getattr(self.PH.genSchedule, 'minimizeFuel', False):
             indGenComb = self.PH.lkpMinFuelConsumptionGenID.get(dieselCapRequired,
-                                                              np.array([self.PH.genCombinationsUpperNormalLoadingMaxIdx]))
+                                                             self.PH.genCombinationsUpperNormalLoadingMaxIdx)
         else:
             indGenComb = self.PH.lkpMinMOLGenID.get(dieselCapRequired, self.PH.genCombinationsUpperNormalLoadingMaxIdx)
         # if the online combination does not match that required, set flag to initiate the genSchedule
-        if self.PH.onlineCombinationID == self.PH.combinationsID[indGenComb[0]]:
+        if self.PH.onlineCombinationID == self.PH.combinationsID[indGenComb]:
             wrongGenComb = False
         else:
             wrongGenComb = True
