@@ -450,7 +450,9 @@ class SetsAttributeEditorBlock(BaseEditorTab):
 
     def closeForm(self):
          self.tableBlock.tableModel.submit()
-         self.setupSet() #write all the xml files required to restart the project later
+         path = self.controller.dbhandler.getProjectPath()
+         if path is not None:
+             self.setupSet() #write all the xml files required to restart the project later
 
 
         
