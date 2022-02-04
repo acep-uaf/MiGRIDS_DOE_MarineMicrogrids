@@ -120,7 +120,7 @@ def getRunMetadata(projectSetDir, runNum, setNum):
             genTimeRunTot += np.count_nonzero(genRunTime != 0) * ts / 3600
             # get the capcity of this generator
             # first get the gen ID
-            genID = re.search('gen(.*)RunTime', genRunTimeFile).group(1)
+            genID = re.search('gen(.*)RunTime', os.path.basename(genRunTimeFile)).group(1)
             genPMax = readXmlTag("gen" + genID + "Set" + str(setNum) + "Run" + str(runNum) + "Descriptor.xml",
                                  "POutMaxPa",
                                  "value", fileDir=projectRunDir + "/Components", returnDtype='float')
