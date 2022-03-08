@@ -391,7 +391,7 @@ class SystemOperations:
         else:
             wrongGenComb = True
 
-        # record values
+        ## record values
         if hasattr(self, 'TESS'):  # check if thermal energy storage in the simulation
             self.tesP.var[self.idx] = sum(self.TESS.tesP)  # thermal energy storage power
         else:
@@ -424,78 +424,101 @@ class SystemOperations:
         self.genStartTime.var[self.idx] = genStartTime[:]  # .append(genStartTime[:])
         self.genRunTime.var[self.idx] = genRunTime[:]  # .append(genRunTime[:])
 
-        ## If conditions met, schedule units
-        # check if out of bounds opperation or a fully charged EESS
-        if True in self.EESS.underSRC or True in self.EESS.outOfBoundsReal or True in self.PH.outOfNormalBounds or \
-                wrongGenComb:
-            # predict what load will be
-            # the previous 24 hours. 24hr * 60min/hr * 60sec/min = 86400 sec.
-            self.predictLoad.loadPredict(self)
-            self.futureLoad = self.predictLoad.futureLoad
+        # TODO edit below-----------------------------------------------------------
+        # predict what load will be
+        # the previous 24 hours. 24hr * 60min/hr * 60sec/min = 86400 sec.
+        self.predictLoad.loadPredict(self)
+        self.futureLoad = self.predictLoad.futureLoad # for now, assume load changes slowly, so near term and long term are the same
 
-            # predict what the wind will be
-            self.predictWind.windPredict(self)
-            self.futureWind = self.predictWind.futureWind
-            # Sum of futureWind is used three times, calc once here
+        # predict what the wind will be
+        self.predictWind.windPredict(self)
+        self.futureWind = self.predictWind.futureWind # this value is used to decide which gen combination to swtich to, if a switch is needed
+        self.futureWindNearTerm = self.predictWind.futureWindNearTerm # this value is used to determine if a gen switch is needed
+        # Sum of futureWind is used three times, calc once here
+        sumFutureWind = sum(self.futureWind)
+        if sumFutureWind > self.futureLoad:  # if wind is greater than load, scale back to equal the load
+            ratio = self.futureLoad / sumFutureWind
+            self.futureWind = [x * ratio for x in self.futureWind]
             sumFutureWind = sum(self.futureWind)
-            if sumFutureWind > self.futureLoad:  # if wind is greater than load, scale back to equal the load
-                ratio = self.futureLoad / sumFutureWind
-                self.futureWind = [x * ratio for x in self.futureWind]
-                sumFutureWind = sum(self.futureWind)
+        # same for near term future wind
+        sumFutureWindNearTerm = sum(self.futureWindNearTerm)
+        if sumFutureWindNearTerm > self.futureLoad:  # if wind is greater than load, scale back to equal the load
+            ratio = self.futureLoad / sumFutureWindNearTerm
+            self.futureWindNearTerm = [x * ratio for x in self.futureWindNearTerm]
+            sumFutureWindNearTerm = sum(self.futureWindNearTerm)
 
-            # TODO: add other RE
+        # get the ability of the energy storage system to supply SRC
+        # first, calculate how much capacity should be reserved. This assumes that the eess will continue to discharge
+        # at the current rate while warming up the diesel generators. This will avoid SRC being scheduled from the
+        # eess which will not be available by the time the diesel generator is brought online.
+        kWsReserved = max(eessDis * self.PH.maxStartTime, 0)
+        eesSrcAvailMax = [None] * len(self.EESS.electricalEnergyStorageUnits)  # the amount of SRC available from all ees units
+        # iterate through all ees and add their available SRC
+        for idy, ees in enumerate(self.EESS.electricalEnergyStorageUnits):
+            # assume the current discharge
+            eesSrcAvailMax[idy] = ees.findPdisAvail(ees.eesSrcTime, 0, kWsReserved)
 
-            # get the ability of the energy storage system to supply SRC
-            # first, calculate how much capacity should be reserved. This assumes that the eess will continue to discharge
-            # at the current rate while warming up the diesel generators. This will avoid SRC being scheduled from the
-            # eess which will not be available by the time the diesel generator is brought online.
-            kWsReserved = max(eessDis * self.PH.maxStartTime, 0)
-            eesSrcAvailMax = [None] * len(self.EESS.electricalEnergyStorageUnits)  # the amount of SRC available from all ees units
-            # iterate through all ees and add their available SRC
-            for idy, ees in enumerate(self.EESS.electricalEnergyStorageUnits):
-                # assume the current discharge
-                eesSrcAvailMax[idy] = ees.findPdisAvail(ees.eesSrcTime, 0, kWsReserved)
+        # find the required capacity of the diesel generators
+        # how much SRC can EESS cover? This can be subtracted from the load that the diesel generators must be
+        # able to supply
+        self.getMinSrc.getMinSrc(self, calcFuture=True, nearTerm = False)
+        futureSRC = [self.getMinSrc.minSrcToStay, self.getMinSrc.minSrcToSwitch]
+        self.getMinSrc.getMinSrc(self, calcFuture=True, nearTerm=True)
+        futureSRCNearTerm = [self.getMinSrc.minSrcToStay, self.getMinSrc.minSrcToSwitch]
+        # check if available SRC from EES is zero, to avoid dividing by zero
+        # Helper sum variable, as sum(eesSrcAvailMax) is used up to six times
+        sumEesSrcAvailMax = sum(eesSrcAvailMax)
+        if sumEesSrcAvailMax > 0:
+            coveredSRCStay = min([sumEesSrcAvailMax, futureSRC[0]])
+            coveredSRCSwitch = min([sumEesSrcAvailMax, futureSRC[1]])
+            coveredSRCStayNearTerm = min([sumEesSrcAvailMax, futureSRCNearTerm[0]])
+            # get the amount of SRC provided by each ees
+            eesSrcScheduledStay = np.array(eesSrcAvailMax) * coveredSRCStay / sumEesSrcAvailMax
+            eesSrcScheduledSwitch = np.array(eesSrcAvailMax) * coveredSRCSwitch / sumEesSrcAvailMax
+            eesSrcScheduledStayNearTerm = np.array(eesSrcAvailMax) * coveredSRCStayNearTerm / sumEesSrcAvailMax
+        else:
+            coveredSRCStay = 0
+            coveredSRCSwitch = 0
+            coveredSRCStayNearTerm = 0
+            eesSrcScheduledStay = [0] * len(eesSrcAvailMax)
+            eesSrcScheduledSwitch = [0] * len(eesSrcAvailMax)
+            eesSrcScheduledStayNearTerm = [0] * len(eesSrcAvailMax)
 
-            # find the required capacity of the diesel generators
-            # how much SRC can EESS cover? This can be subtracted from the load that the diesel generators must be
-            # able to supply
-            self.getMinSrc.getMinSrc(self, calcFuture=True)
-            futureSRC = [self.getMinSrc.minSrcToStay, self.getMinSrc.minSrcToSwitch]
-            # check if available SRC from EES is zero, to avoid dividing by zero
-            # Helper sum variable, as sum(eesSrcAvailMax) is used up to six times
-            sumEesSrcAvailMax = sum(eesSrcAvailMax)
-            if sumEesSrcAvailMax > 0:
-                coveredSRCStay = min([sumEesSrcAvailMax, futureSRC[0]])
-                coveredSRCSwitch = min([sumEesSrcAvailMax, futureSRC[1]])
-                # get the amount of SRC provided by each ees
-                eesSrcScheduledStay = np.array(eesSrcAvailMax) * coveredSRCStay / sumEesSrcAvailMax
-                eesSrcScheduledSwitch = np.array(eesSrcAvailMax) * coveredSRCSwitch / sumEesSrcAvailMax
-            else:
-                coveredSRCStay = 0
-                coveredSRCSwitch = 0
-                eesSrcScheduledStay = [0] * len(eesSrcAvailMax)
-                eesSrcScheduledSwitch = [0] * len(eesSrcAvailMax)
+        # get the power available from the eess to stay with the current gen combination, using the near term predictions
+        eessPowerAvailStay = sumEesSrcAvailMax - sum(eesSrcScheduledStayNearTerm)
 
-            # get the ability of the energy storage system to supply the load by discharging, on top of the RE it is
-            # covering with SRC
-            eesSchedDischAvail = 0  # the amount of discharge available from all ees units for specified amount of time
-            # iterate through all ees and add their available discharge
-            #for index, ees in enumerate(self.EESS.electricalEnergyStorageUnits):
-                # if generators running online, only schedule the ESS to be able to discharge if over the min SOC
-                # the problem is that this will not
-                # if ees.eesSOC > ees.eesDispatchMinSoc:
-                #     # find the loss associated with the spinning reserve
-                #     eesLoss = ees.findLoss(eesSrcScheduledSwitch[index], ees.eesSrcTime)
-                #     # calculate the available discharge, taking into account the amount reserved to supply SRC and the
-                #     # energy capacity required taking into account losses
-                #     eesSchedDischAvail += ees.findPdisAvail(ees.eesDispatchTime, eesSrcScheduledSwitch[index],
-                #                                             eesLoss + ees.eesSrcTime * eesSrcScheduledSwitch[index])
+        # get the ability of the energy storage system to supply the load by discharging, on top of the RE it is
+        # covering with SRC
+        eesSchedDischAvail = 0  # the amount of discharge available from all ees units for specified amount of time
+        # iterate through all ees and add their available discharge
+        #for index, ees in enumerate(self.EESS.electricalEnergyStorageUnits):
+            # if generators running online, only schedule the ESS to be able to discharge if over the min SOC
+            # the problem is that this will not
+            # if ees.eesSOC > ees.eesDispatchMinSoc:
+            #     # find the loss associated with the spinning reserve
+            #     eesLoss = ees.findLoss(eesSrcScheduledSwitch[index], ees.eesSrcTime)
+            #     # calculate the available discharge, taking into account the amount reserved to supply SRC and the
+            #     # energy capacity required taking into account losses
+            #     eesSchedDischAvail += ees.findPdisAvail(ees.eesDispatchTime, eesSrcScheduledSwitch[index],
+            #                                             eesLoss + ees.eesSrcTime * eesSrcScheduledSwitch[index])
 
+        scheduledLoad = max(self.futureLoad - sumFutureWindNearTerm, 0)
+
+        ## first find the generator capacity required
+        dieselCapRequiredNearTerm = max(int(scheduledLoad - eessPowerAvailStay + futureSRCNearTerm[0] -
+                                            coveredSRCStayNearTerm), 0)
+
+        phUnderCapacityNearTerm = dieselCapRequiredNearTerm > self.PH.genCombinationsUpperNormalLoading[self.PH.onlineCombinationID]
+        underSRC = any(self.EESS.underSRC) or phUnderCapacityNearTerm
+        # TODO edit above ----------------------------------------------------------------------------
+
+        if underSRC or True in self.EESS.outOfBoundsReal or True in self.PH.outOfNormalBounds or \
+            wrongGenComb:
             # schedule the generators accordingly
             self.PH.runGenSchedule(self.futureLoad, sumFutureWind, futureSRC[1] - coveredSRCSwitch,
                                 futureSRC[0] - coveredSRCStay,
-                                eesSchedDischAvail, sumEesSrcAvailMax - sum(eesSrcScheduledStay),
-                                any(self.EESS.underSRC))
+                                eesSchedDischAvail, eessPowerAvailStay,
+                                underSRC)
             # TODO: incorporate energy storage capabilities and wind power into diesel schedule. First predict
             # the future amount of wind power. find available SRC from EESS. Accept the amount of predicted wind
             # power that can be covered by ESS (likely some scaling needed to avoid switching too much)
