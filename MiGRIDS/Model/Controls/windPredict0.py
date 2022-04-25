@@ -16,6 +16,7 @@ class windPredict:
         # prevWindProfile is a list of lists of previous wind power profiles, or a list of estimates of previous wind power
         # simple calculation, return the mean of the last 5 min load
         self.futureWind = []
+        self.futureWindNearTerm = []
         #startIdx10min = max(SO.idx - int(600/SO.timeStep),0)
         #startIdx10sec = max(SO.idx - int(10/SO.timeStep),0)
         #stopIdx = SO.idx + 1
@@ -25,4 +26,5 @@ class windPredict:
             fw10min = wtg.windPower10minTrend[SO.masterIdx]#np.mean(wtg.windPower[startIdx10min:stopIdx])
             fw10sec = wtg.windPower10sTrend[SO.masterIdx] #np.mean(wtg.windPower[startIdx10sec:stopIdx])
             self.futureWind += [min(fw10min,fw10sec)]
+            self.futureWindNearTerm += [fw10sec]
 
