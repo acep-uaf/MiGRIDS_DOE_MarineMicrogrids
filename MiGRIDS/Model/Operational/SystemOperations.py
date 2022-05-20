@@ -319,7 +319,7 @@ class SystemOperations:
         self.getMinSrc.getMinSrc(self)
         srcMin = [self.getMinSrc.minSrcToStay, self.getMinSrc.minSrcToSwitch]
 
-        # discharge the eess to cover the difference between load and generation todo: use lookup table values instead of upper and lower normal loading (Done - test)
+        # discharge the eess to cover the difference between load and generation
         eessDis = min([max([self.P - self.reDispatch.wfPimport - self.PH.genCombinationsMaxRange[self.PH.onlineCombinationID], 0]), sum(self.EESS.eesPoutAvail)])
         eessCh = min([max([-self.P + self.reDispatch.wfPimport + self.PH.genCombinationsMinRange[self.PH.onlineCombinationID], 0]), sum(self.EESS.eesPinAvail)])
         eessPower = eessDis - eessCh
@@ -363,14 +363,19 @@ class SystemOperations:
 
         # calculate the required online diesel capacity, and if the current online capacity is a good fit
         # calculate capacity required from diesel generators
-        usedUpEessSrc = min(sum(self.EESS.eesPsrcAvail),srcMin[0])
+        usedUpEessSrc = min(sum(self.EESS.eesPsrcAvail),eessSrcRequested)
+        # find the spilled wind power
         wtgSpilled = sum([a-b for (a,b) in zip(self.WF.wtgPAvail, self.WF.wtgP)])
         if wtgSpilled > 0:
+            # find the SRC that would be required to cover the spilled wind power
             wtgSpilledSRC = sum([(a-b)*c for (a,b,c) in zip(self.WF.wtgPAvail, self.WF.wtgP,self.WF.wtgMinSrcCover)])
+            # find the average ratio of required SRC coverage for all the wtg. (kW/kW)
             wtgSrcAvg = wtgSpilledSRC / wtgSpilled
             if wtgSrcAvg > 0:
+                # if the SRC required for wtg is no zero, find the amount of wind that can be covered by available EESS
                 wtgThatCanBeCoveredByEESS = (sum(self.EESS.eesPsrcAvail) - usedUpEessSrc) / wtgSrcAvg
             else:
+                # if no SRC is required, all spilled wind can be covered
                 wtgThatCanBeCoveredByEESS = wtgSpilled
         else:
             wtgSpilled = 0
