@@ -139,7 +139,7 @@ class Simulation:
         toStitch = ['powerhouseP', 'powerhousePch', 'rePLimit', 'wfPAvail', 'wfPImport', 'wfPch',
                     'wfPTot', 'srcMin', 'eessDis', 'eessP', 'tesP', 'genPAvail', 'onlineCombinationID', 'underSrc',
                     'outOfNormalBounds', 'outOfEfficientBounds', 'wfSpilledWindFlag', 'futureLoadList',
-                    'futureSrc']
+                    'futureSrc','wrongGenComb']
 
         [stitchAndWrite(p) for p in toStitch]
 
