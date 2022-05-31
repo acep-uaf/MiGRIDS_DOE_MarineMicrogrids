@@ -296,6 +296,7 @@ class SystemOperations:
         self.genStartTime = TSVar([[None] * len(self.PH.generators)], varLength,'genStartTime')
         self.genRunTime = TSVar([[None] * len(self.PH.generators)],varLength,'genRunTime')
         self.onlineCombinationID = TSVar([None],varLength,'onlineCombinationID')
+        self.wrongGenComb = TSVar([0], varLength, 'wrongGenComb')
 
     def runSimMainLoop(self):
         '''
@@ -361,73 +362,44 @@ class SystemOperations:
         # dispatch the generators
         self.PH.runGenDispatch(phP, 0)
 
-        # calculate the required online diesel capacity, and if the current online capacity is a good fit
-        # calculate capacity required from diesel generators
-        usedUpEessSrc = min(sum(self.EESS.eesPsrcAvail),eessSrcRequested)
-        # find the spilled wind power
-        wtgSpilled = sum([a-b for (a,b) in zip(self.WF.wtgPAvail, self.WF.wtgP)])
-        if wtgSpilled > 0:
-            # find the SRC that would be required to cover the spilled wind power
-            wtgSpilledSRC = sum([(a-b)*c for (a,b,c) in zip(self.WF.wtgPAvail, self.WF.wtgP,self.WF.wtgMinSrcCover)])
-            # find the average ratio of required SRC coverage for all the wtg. (kW/kW)
-            wtgSrcAvg = wtgSpilledSRC / wtgSpilled
-            if wtgSrcAvg > 0:
-                # if the SRC required for wtg is no zero, find the amount of wind that can be covered by available EESS
-                wtgThatCanBeCoveredByEESS = (sum(self.EESS.eesPsrcAvail) - usedUpEessSrc) / wtgSrcAvg
-            else:
-                # if no SRC is required, all spilled wind can be covered
-                wtgThatCanBeCoveredByEESS = wtgSpilled
-        else:
-            wtgSpilled = 0
-            wtgThatCanBeCoveredByEESS = 0
-        dieselCapRequired = round(max(srcMin[0] - usedUpEessSrc + phP - min(wtgSpilled,wtgThatCanBeCoveredByEESS),0))
-        # find the corresponding diesel combination, depending on how the user selected to schedule diesels
-        if getattr(self.PH.genSchedule, 'userDefinedGenList', False):
-            indGenComb = self.PH.lkpUserDefinedGenSchedule.get(dieselCapRequired,
-                                                             self.PH.genCombinationsUpperNormalLoadingMaxIdx)
-        elif getattr(self.PH.genSchedule, 'minimizeFuel', False):
-            indGenComb = self.PH.lkpMinFuelConsumptionGenID.get(dieselCapRequired,
-                                                             self.PH.genCombinationsUpperNormalLoadingMaxIdx)
-        else:
-            indGenComb = self.PH.lkpMinMOLGenID.get(dieselCapRequired, self.PH.genCombinationsUpperNormalLoadingMaxIdx)
-        # if the online combination does not match that required, set flag to initiate the genSchedule
-        if self.PH.onlineCombinationID == self.PH.combinationsID[indGenComb]:
-            wrongGenComb = False
-        else:
-            wrongGenComb = True
+        # # calculate the required online diesel capacity, and if the current online capacity is a good fit
+        # # calculate capacity required from diesel generators
+        # # first, calculate how much EESS capacity is being used up in supplying SRC. Note that eesPsrcAvail does not take
+        # # into account the level of SRC that the eess is currently supplying. Thus, we need to calculate that here.
+        # usedUpEessSrc = min(sum(self.EESS.eesPsrcAvail),eessSrcRequested)
+        # # find the spilled wind power
+        # wtgSpilled = sum([a-b for (a,b) in zip(self.WF.wtgPAvail, self.WF.wtgP)])
+        # if wtgSpilled > 0:
+        #     # find the SRC that would be required to cover the spilled wind power
+        #     wtgSpilledSRC = sum([(a-b)*c for (a,b,c) in zip(self.WF.wtgPAvail, self.WF.wtgP,self.WF.wtgMinSrcCover)])
+        #     # find the average ratio of required SRC coverage for all the wtg. (kW/kW)
+        #     wtgSrcAvg = wtgSpilledSRC / wtgSpilled
+        #     if wtgSrcAvg > 0:
+        #         # if the SRC required for wtg is no zero, find the amount of wind that can be covered by available EESS
+        #         wtgThatCanBeCoveredByEESS = (sum(self.EESS.eesPsrcAvail) - usedUpEessSrc) / wtgSrcAvg
+        #     else:
+        #         # if no SRC is required, all spilled wind can be covered
+        #         wtgThatCanBeCoveredByEESS = wtgSpilled
+        # else:
+        #     wtgSpilled = 0
+        #     wtgThatCanBeCoveredByEESS = 0
+        # dieselCapRequired = round(max(srcMin[0] - usedUpEessSrc + phP - min(wtgSpilled,wtgThatCanBeCoveredByEESS),0))
+        # # find the corresponding diesel combination, depending on how the user selected to schedule diesels
+        # if getattr(self.PH.genSchedule, 'userDefinedGenList', False):
+        #     indGenComb = self.PH.lkpUserDefinedGenSchedule.get(dieselCapRequired,
+        #                                                      self.PH.genCombinationsUpperNormalLoadingMaxIdx)
+        # elif getattr(self.PH.genSchedule, 'minimizeFuel', False):
+        #     indGenComb = self.PH.lkpMinFuelConsumptionGenID.get(dieselCapRequired,
+        #                                                      self.PH.genCombinationsUpperNormalLoadingMaxIdx)
+        # else:
+        #     indGenComb = self.PH.lkpMinMOLGenID.get(dieselCapRequired, self.PH.genCombinationsUpperNormalLoadingMaxIdx)
+        # # if the online combination does not match that required, set flag to initiate the genSchedule
+        # if self.PH.onlineCombinationID == self.PH.combinationsID[indGenComb]:
+        #     wrongGenComb = False
+        # else:
+        #     wrongGenComb = True
 
-        ## record values
-        if hasattr(self, 'TESS'):  # check if thermal energy storage in the simulation
-            self.tesP.var[self.idx] = sum(self.TESS.tesP)  # thermal energy storage power
-        else:
-            self.tesP.var[self.idx] = 0
-        self.rePLimit.var[self.idx] = self.reDispatch.rePLimit
-        self.wfPAvail.var[self.idx] = sum(self.WF.wtgPAvail[:])  # wind farm p avail
-        self.wtgPAvail.var[self.idx] = self.WF.wtgPAvail[:]  # list of wind turbines  p avail
-        self.wfPImport.var[self.idx] = self.reDispatch.wfPimport  # removed append usind self.idx
-        self.wtgP.var[self.idx] = self.WF.wtgP[:]  # removed append, use ind self.idx
-        self.wfPch.var[self.idx] = self.reDispatch.wfPch  # removed append, use ind self.idx
-        self.wfPTot.var[self.idx] = self.reDispatch.wfPch + self.reDispatch.wfPimport
-        self.srcMin.var[self.idx] = srcMin[0]
-        self.eessDis.var[self.idx] = eessDis
-        self.eessP.var[self.idx] = eessP
-        self.eesPLoss.var[self.idx] = self.EESS.eesPloss[:]
-        self.powerhouseP.var[self.idx] = phP
-        self.powerhousePch.var[self.idx] = phPch
-        self.genP.var[self.idx] = self.PH.genP[:]  # .append(self.PH.genP[:])
-        self.genPAvail.var[self.idx] = sumPHgenPAvail  # sum(self.PH.genPAvail)
-        self.genFuelCons.var[self.idx] = self.PH.genFuelCons[:]
-        self.eessSrc.var[self.idx] = self.EESS.eesSRC[:]  # .append(self.EESS.eesSRC[:])
-        self.eessSoc.var[self.idx] = self.EESS.eesSOC[:]  # .append(self.EESS.eesSOC[:])
-        self.onlineCombinationID.var[self.idx] = self.PH.onlineCombinationID
-        # record for troubleshooting
-        genStartTime = []
-        genRunTime = []
-        for gen in self.PH.generators:
-            genStartTime.append(gen.genStartTimeAct)
-            genRunTime.append(gen.genRunTimeAct)
-        self.genStartTime.var[self.idx] = genStartTime[:]  # .append(genStartTime[:])
-        self.genRunTime.var[self.idx] = genRunTime[:]  # .append(genRunTime[:])
+
 
         # TODO edit below-----------------------------------------------------------
         # predict what load will be
@@ -515,7 +487,66 @@ class SystemOperations:
 
         phUnderCapacityNearTerm = dieselCapRequiredNearTerm > self.PH.genCombinationsUpperNormalLoading[self.PH.onlineCombinationID]
         underSRC = any(self.EESS.underSRC) or phUnderCapacityNearTerm
+
+        # see if the required online generator capacity matches the what is online. THe EESS will charge or dishcarge to
+        # keep the diesel generators within their bounds and delay switching. Thus, don't indicate wrong gen comb unless
+        # EESS has fully charged or discharged
+        # is the required diesel capacity greater than its upper ideal bounds?
+        # the EESS discharges to delay switching to a larger gen combination. only set wrongGenComb if EESS is fully
+        # discharged
+        # Todo: assume all EES will fully discharge / charge to delay diesel switching. This may not hold for all cases
+        # and may need to be updated.
+        wrongGenComb = False
+        if (dieselCapRequiredNearTerm > self.PH.genCombinationsMaxRange[self.PH.onlineCombinationID]):
+            if self.EESS.eesPoutAvail == 0: # if there is not eess
+                wrongGenComb = True
+            elif all(x==0 for x in self.EESS.eesSOC): # if there is eess, fully charge first
+                wrongGenComb = True
+        # is the required diesel capacity greater than its upper ideal bounds?
+        # the EESS charges to delay switching to a smaller gen combination. only set wrongGenComb if EESS is fully
+        # charged
+        elif (dieselCapRequiredNearTerm < self.PH.genCombinationsMinRange[self.PH.onlineCombinationID]):
+            if self.EESS.eesPoutAvail == 0:  # if there is not eess
+                wrongGenComb = True
+            elif all(x == 1 for x in self.EESS.eesSOC):  # if there is eess, fully discharge first
+                wrongGenComb = True
+
+
+
         # TODO edit above ----------------------------------------------------------------------------
+
+        ## record values
+        if hasattr(self, 'TESS'):  # check if thermal energy storage in the simulation
+            self.tesP.var[self.idx] = sum(self.TESS.tesP)  # thermal energy storage power
+        else:
+            self.tesP.var[self.idx] = 0
+        self.rePLimit.var[self.idx] = self.reDispatch.rePLimit
+        self.wfPAvail.var[self.idx] = sum(self.WF.wtgPAvail[:])  # wind farm p avail
+        self.wtgPAvail.var[self.idx] = self.WF.wtgPAvail[:]  # list of wind turbines  p avail
+        self.wfPImport.var[self.idx] = self.reDispatch.wfPimport  # removed append usind self.idx
+        self.wtgP.var[self.idx] = self.WF.wtgP[:]  # removed append, use ind self.idx
+        self.wfPch.var[self.idx] = self.reDispatch.wfPch  # removed append, use ind self.idx
+        self.wfPTot.var[self.idx] = self.reDispatch.wfPch + self.reDispatch.wfPimport
+        self.srcMin.var[self.idx] = srcMin[0]
+        self.eessDis.var[self.idx] = eessDis
+        self.eessP.var[self.idx] = eessP
+        self.eesPLoss.var[self.idx] = self.EESS.eesPloss[:]
+        self.powerhouseP.var[self.idx] = phP
+        self.powerhousePch.var[self.idx] = phPch
+        self.genP.var[self.idx] = self.PH.genP[:]  # .append(self.PH.genP[:])
+        self.genPAvail.var[self.idx] = sumPHgenPAvail  # sum(self.PH.genPAvail)
+        self.genFuelCons.var[self.idx] = self.PH.genFuelCons[:]
+        self.eessSrc.var[self.idx] = self.EESS.eesSRC[:]  # .append(self.EESS.eesSRC[:])
+        self.eessSoc.var[self.idx] = self.EESS.eesSOC[:]  # .append(self.EESS.eesSOC[:])
+        self.onlineCombinationID.var[self.idx] = self.PH.onlineCombinationID
+        # record for troubleshooting
+        genStartTime = []
+        genRunTime = []
+        for gen in self.PH.generators:
+            genStartTime.append(gen.genStartTimeAct)
+            genRunTime.append(gen.genRunTimeAct)
+        self.genStartTime.var[self.idx] = genStartTime[:]  # .append(genStartTime[:])
+        self.genRunTime.var[self.idx] = genRunTime[:]  # .append(genRunTime[:])
 
         if underSRC or True in self.EESS.outOfBoundsReal or True in self.PH.outOfNormalBounds or \
             wrongGenComb:
@@ -524,9 +555,6 @@ class SystemOperations:
                                 futureSRC[0] - coveredSRCStay,
                                 eesSchedDischAvail, eessPowerAvailStay,
                                 underSRC)
-            # TODO: incorporate energy storage capabilities and wind power into diesel schedule. First predict
-            # the future amount of wind power. find available SRC from EESS. Accept the amount of predicted wind
-            # power that can be covered by ESS (likely some scaling needed to avoid switching too much)
 
             # record for trouble shooting purposes
             if True in self.WF.wtgSpilledWindFlag:
@@ -540,6 +568,9 @@ class SystemOperations:
                 self.outOfNormalBounds.var[self.idx] = 1
             if True in self.PH.outOfEfficientBounds:
                 self.outOfEfficientBounds.var[self.idx] = 1
+            if wrongGenComb == True:
+                self.wrongGenComb.var[self.idx] = 1
+
 
         # Last step in the regular for-loop [this is reset if the data is being saved - see below]
         self.idx = self.idx + 1
