@@ -68,6 +68,9 @@ if __name__ == '__main__':
         for idx in ph.combinationsID:
             x, y = list(zip(*ph.genCombinationsFCurve[idx]))
             plt.plot(x, y, label=idx)
+            plt.ylabel('Fuel Rate (kg/s)')
+            plt.xlabel('Generator Output (kW)')
+            plt.title('Fuel Consumption by Gen Combination')
             
         plt.legend()
     
