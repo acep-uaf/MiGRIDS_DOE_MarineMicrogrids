@@ -122,7 +122,12 @@ class FormModelRun(BaseForm):
 
     def updateForm(self):#called on signal from controller.sender
         self.run_Model.refresh()
-        self.refreshDataPlot()
+        try:
+            self.refreshDataPlot()
+        except Exception as e:
+            print("Could not refreshDataPlot in FormModelRuns")
+            print(e)
+            
         #self.projectLoaded()
         return
 
