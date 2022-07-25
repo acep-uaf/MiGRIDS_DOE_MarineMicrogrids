@@ -104,7 +104,9 @@ class RunHandler(UIHandler):
 
         #get a setup dictionary - None if setup file not found
         setSetup = self.readInSetupFile(self.findSetupFile(setName))
+        # print(setName, setSetup)
         setSetup = self.makeDBFriendly(setSetup)
+        # print(setName, setSetup)
         #if a set folder exists but set setup info is not in the database populate the datebase with the set xml files
         if (setSetup != None) & (dbhandler.getSetId(setName) == -1):
             #update the database based on info in the set setup file, this includes adding components to set_components if not already there
