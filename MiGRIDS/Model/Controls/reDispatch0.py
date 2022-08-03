@@ -11,7 +11,7 @@ import numpy as np
 # grid. This requires a TES to be part of the system.
 class reDispatch:
     def __init__(self, args):
-        self.wfPset = 0 # initiate the power output of the wind farm to zero
+        self.wfPsetRatio = 0 # initiate the power output of the wind farm to zero
         self.wfPsetResponseRampRate = args['wfPsetResponseRampRate']
         self.tessPset = args['tessPset']
 
@@ -28,7 +28,7 @@ class reDispatch:
         # get available wind power
         wfPAvail = sum(SO.WF.wtgPAvail)
         # this is the actual output of the wind turbine
-        self.wfP = min(wfPAvail,self.wfPset)
+        self.wfP = min(wfPAvail, self.wfPsetRatio*wfPAvail)
         # dispach the wf
         SO.WF.runWtgDispatch(self.wfP,0, SO.masterIdx)
 
@@ -57,7 +57,7 @@ class reDispatch:
         # gives 2.5 kW change per step. If 10s per time step, then the rate would 25 kW change per step. This would overshoot
         # thus there needs to be a check that stops from overshooting for simulations with long time steps.
         wfPchange = min([tessLoadingDifference*self.wfPsetResponseRampRate*SO.timeStep, tessLoadingDifference], key=abs)
-        self.wfPset = max(min(self.wfPset - wfPchange, wfPAvail),0)
+        self.wfPsetRatio = max(min(self.wfPsetRatio*wfPAvail - wfPchange, wfPAvail), 0) / max(wfPAvail, 1) # ratio of wind sepoint to available wind
 
 
 
