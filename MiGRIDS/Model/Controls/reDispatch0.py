@@ -14,6 +14,7 @@ class reDispatch:
         self.wfPsetRatio = 0 # initiate the power output of the wind farm to zero
         self.wfPsetResponseRampRate = args['wfPsetResponseRampRate']
         self.tessPset = args['tessPset']
+        self.wfImportMaxRampRate = args['wfImportMaxRampRate']
 
     # FUTUREFEATURE: replace windfarm (wf) setpoints with a list of windturbine setpoints.
     def reDispatch(self, SO):
@@ -32,9 +33,9 @@ class reDispatch:
         # dispach the wf
         SO.WF.runWtgDispatch(self.wfP,0, SO.masterIdx)
 
-        # the amount used to supply the load is the min of the max allowed and the output
-        # the maximum amount of power that can be imported from renewable resources
-        self.rePLimit = max([P - sum(SO.PH.genMolAvail), 0])
+        # the max that can be imported is the minimum between the difference between load and MOL, and ramp constraints
+        self.rePLimit = min(self.wfPimport + self.wfImportMaxRampRate * SO.timeStep, P - sum(SO.PH.genMolAvail))
+
         # amount of imported wind power
         self.wfPimport = min(self.rePLimit, self.wfP)
 
