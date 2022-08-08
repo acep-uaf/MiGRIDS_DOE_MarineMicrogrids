@@ -12,6 +12,7 @@ import numpy as np
 class reDispatch:
     def __init__(self, args):
         self.wfPsetRatio = 0 # initiate the power output of the wind farm to zero
+        self.wfPimport = 0 # initiate to zero
         self.wfPsetResponseRampRate = args['wfPsetResponseRampRate']
         self.tessPset = args['tessPset']
         self.wfImportMaxRampRate = args['wfImportMaxRampRate']
@@ -34,7 +35,7 @@ class reDispatch:
         SO.WF.runWtgDispatch(self.wfP,0, SO.masterIdx)
 
         # the max that can be imported is the minimum between the difference between load and MOL, and ramp constraints
-        self.rePLimit = min(self.wfPimport + self.wfImportMaxRampRate * SO.timeStep, P - sum(SO.PH.genMolAvail))
+        self.rePLimit = max(min(self.wfPimport + self.wfImportMaxRampRate * SO.timeStep, P - sum(SO.PH.genMolAvail)),0)
 
         # amount of imported wind power
         self.wfPimport = min(self.rePLimit, self.wfP)
