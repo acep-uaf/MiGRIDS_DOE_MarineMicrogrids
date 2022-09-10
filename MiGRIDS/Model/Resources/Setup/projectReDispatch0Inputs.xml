@@ -7,9 +7,9 @@
 <!-- This file describes the inputs for the class 'reDispatch0'. -->
 <!-- Root tag is 'reDistpatchName' -->
 <reDistpatchName name = 'reDispatch0'>
-    <!-- 'wfPsetResponseRampRate' is the rate by which the wind farm set point responds to deviations from the set point of the
-     dump laod. Units are kW/(kW*s). Default is 0.025. -->
-    <wfPsetResponseRampRate value = '0.025'/>
+    <!-- 'wfControlMaxRampRate' is the rate by which the wind farm is able to change its output in response to commands.
+     Units are (PU of wind farm max power)/s. Default is 0.025. -->
+    <wfControlMaxRampRate value = '0.025'/>
     <!-- 'wfImportMaxRampRate' is the maximum ramp rate that imported wind is allowed to vary by. Units are kW/s. Default is 10. -->
     <wfImportMaxRampRate value = '0.10'/>
     <!-- 'tessPset' is the target loading of the SLC. Units are in PU of SLC max power in. Default is 0.5. -->
