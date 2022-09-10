@@ -13,7 +13,7 @@ class reDispatch:
     def __init__(self, args):
         self.wfPsetRatio = 0 # initiate the power output of the wind farm to zero
         self.wfPimport = 0 # initiate to zero
-        self.wfPsetResponseRampRate = args['wfPsetResponseRampRate']
+        self.wfControlMaxRampRate = args['wfControlMaxRampRate']
         self.tessPset = args['tessPset']
         self.wfImportMaxRampRate = args['wfImportMaxRampRate']
 
@@ -49,16 +49,16 @@ class reDispatch:
         self.wfPtess = min(SO.TESS.tesPInMax, self.wfP-self.wfPimport-self.wfPch)
         # FUTUREFEATURE: replace this with a proper calc
         SO.TESS.runTesDispatch(self.wfPtess)
+        # recalculate imported wind based on ability of TESS to regulate
+        self.wfPimport = self.wfP - self.wfPch - self.wfPtess
 
 
-        # if the tess is being charged differently than the setpoint, increment timer. If reaches point, start ramping down wind power
-        # the difference between loading and the setpoint for each tes in the tess
-        tessLoadingDifference = self.wfPtess - SO.TESS.tesPInMax * self.tessPset
+        # the difference between wind charging of TESS and import and the setpoints.
+        wfOverProduction = self.wfPtess - SO.TESS.tesPInMax * self.tessPset + self.wfPimport - self.rePLimit
+
         # calculate the change in wtg setpoint
-        # kW * kW/(kW*s) * s/step = kW/step. For example, 10 kW difference * 0.25 kW/(kW*s) response rate * 1 s per step
-        # gives 2.5 kW change per step. If 10s per time step, then the rate would 25 kW change per step. This would overshoot
-        # thus there needs to be a check that stops from overshooting for simulations with long time steps.
-        wfPchange = min([tessLoadingDifference*self.wfPsetResponseRampRate*SO.timeStep, tessLoadingDifference], key=abs)
+        wfPchange = min([SO.WF.wtgPMax *self.wfControlMaxRampRate*SO.timeStep, wfOverProduction], key=abs)
+
         self.wfPsetRatio = max(min(self.wfPsetRatio*wfPAvail - wfPchange, wfPAvail), 0) / max(wfPAvail, 1) # ratio of wind sepoint to available wind
 
 
