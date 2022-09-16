@@ -57,7 +57,8 @@ class reDispatch:
         wfOverProduction = self.wfPtess - SO.TESS.tesPInMax * self.tessPset + self.wfPimport - self.rePLimit
 
         # calculate the change in wtg setpoint
-        wfPchange = min([SO.WF.wtgPMax *self.wfControlMaxRampRate*SO.timeStep, wfOverProduction], key=abs)
+        wfPchange = min([SO.WF.wtgPMax *self.wfControlMaxRampRate*SO.timeStep * np.sign(wfOverProduction),
+                         wfOverProduction], key=abs)
 
         self.wfPsetRatio = max(min(self.wfPsetRatio*wfPAvail - wfPchange, wfPAvail), 0) / max(wfPAvail, 1) # ratio of wind sepoint to available wind
 
