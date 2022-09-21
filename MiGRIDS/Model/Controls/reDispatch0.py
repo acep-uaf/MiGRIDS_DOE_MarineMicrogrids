@@ -4,7 +4,7 @@
 # License: MIT License (see LICENSE file of this package for more information)
 
 # imports
-import numpy as np
+# import numpy as np
 
 # this object dispatches units with a rule based system. Power setpoints to the wind turbine react slowly to the loading
 # on the thermal energy storage system. The TES reacts quickly the the amount of wind power that can be accepted into the
@@ -13,6 +13,10 @@ class reDispatch:
     def __init__(self, args):
         self.wfPsetRatio = 0 # initiate the power output of the wind farm to zero
         self.wfPimport = 0 # initiate to zero
+        self.wfP = 0 # total wind output
+        self.wfPch = 0 # wf charging of eess
+        self.wfPtess = 0 # wf charing to tess
+        self.rePLimit = 0 # the max import allowed from renewables
         self.wfControlMaxRampRate = args['wfControlMaxRampRate']
         self.tessPset = args['tessPset']
         self.wfImportMaxRampRate = args['wfImportMaxRampRate']
@@ -21,48 +25,47 @@ class reDispatch:
     def reDispatch(self, SO):
         """
         This dispatches the renewable energy in the grid.
-        :param OS: pass the instance of the SystemOperations being run
-        :param P: the current load
-        :param wfPset: the power setpoints for each wind turbine
+        :param SO: pass the instance of the SystemOperations being run
         """
+        ## get the current grid and wind conditions ##
         P = SO.P # current demand
         # wind turbine output is the min of available and setpoint
         # get available wind power
         wfPAvail = sum(SO.WF.wtgPAvail)
-        # this is the actual output of the wind turbine
-        self.wfP = min(wfPAvail, self.wfPsetRatio*wfPAvail)
-        # dispach the wf
-        SO.WF.runWtgDispatch(self.wfP,0, SO.masterIdx)
 
-        # the max that can be imported is the minimum between the difference between load and MOL, and ramp constraints
-        self.rePLimit = max(min(self.wfPimport + self.wfImportMaxRampRate * SO.timeStep, P - sum(SO.PH.genMolAvail)),0)
+        ## calculate what the ideal wind import setpoint would be   ##
+        # the maximum import
+        self.rePLimit = P - sum(SO.PH.genMolAvail)
+        # limit the change to the max wind import to not result in a greater ramp than allowed
+        wfImportIdeal = max(min(self.wfPimport + self.wfImportMaxRampRate * SO.timeStep, self.rePLimit),
+                            self.wfPimport - self.wfImportMaxRampRate * SO.timeStep)
+        # calculate the ideal TES charging from wf
+        wfPtessIdeal = SO.TESS.tesPInMax * self.tessPset
+        # calculate the ideal charging of the EESS
+        wfPeessIdeal  = sum(SO.EESS.eesPinAvail)
+        # total wf ideal output power
+        wfPIdeal = wfImportIdeal + wfPtessIdeal + wfPeessIdeal
 
-        # amount of imported wind power
-        self.wfPimport = min(self.rePLimit, self.wfP)
+        ## apply wf constraints on being able to reach that ideal power ##
+        # calculate what fraction of total available wind power the ideal wind output is
+        wfPsetRatioIdeal = min(wfPIdeal / max(wfPAvail,1), 1)
+        # limit the change in wf output ratio to the max change in the ratio it is capable of
+        self.wfPsetRatio = max(min(self.wfPsetRatio + self.wfControlMaxRampRate * SO.timeStep, wfPsetRatioIdeal),
+                            self.wfPsetRatio - self.wfControlMaxRampRate * SO.timeStep)
+        # calculate the resulting wind output power
+        self.wfP = wfPAvail * self.wfPsetRatio
 
-        # charge the EESS with whatever is leftover, as much as possible.
-        # amount of wind power used to charge the eess is the minimum of maximum charging power and the difference
-        # between available wind power and wind power imported to the grid.
-        self.wfPch = min(sum(SO.EESS.eesPinAvail), self.wfP - self.wfPimport)
-
-        # Any leftover needs to be dumped into the TES, up to maximum power
-        self.wfPtess = min(SO.TESS.tesPInMax, self.wfP-self.wfPimport-self.wfPch)
-        # FUTUREFEATURE: replace this with a proper calc
+        ## calculate the resulting import, EESS charging and TES chargin ##
+        # first pass at wf import. Will be recalculated later after actual charging is calculated
+        wfPimportTest = min(wfImportIdeal,self.wfP)
+        # calculate the resulting eess charging with the remaining available power
+        self.wfPch = min(wfPeessIdeal,self.wfP - wfPimportTest)
+        # dump the remaining power into the TESS, as much as possible
+        self.wfPtess = min(SO.TESS.tesPInMax, self.wfP-wfPimportTest-self.wfPch)
         SO.TESS.runTesDispatch(self.wfPtess)
-        # recalculate imported wind based on ability of TESS to regulate
-        self.wfPimport = self.wfP - self.wfPch - self.wfPtess
-
-
-        # the difference between wind charging of TESS and import and the setpoints.
-        wfOverProduction = self.wfPtess - SO.TESS.tesPInMax * self.tessPset + self.wfPimport - self.rePLimit
-
-        # calculate the change in wtg setpoint
-        wfPchange = min([SO.WF.wtgPMax *self.wfControlMaxRampRate*SO.timeStep * np.sign(wfOverProduction),
-                         wfOverProduction], key=abs)
-
-        self.wfPsetRatio = max(min(self.wfPsetRatio*wfPAvail - wfPchange, wfPAvail), 0) / max(wfPAvail, 1) # ratio of wind sepoint to available wind
-
-
-
+        # recalculate the total import.
+        self.wfPimport = max(self.wfP - self.wfPch - self.wfPtess,0)
+        # dispach the wf
+        SO.WF.runWtgDispatch(self.wfP, 0, SO.masterIdx)
 
 
