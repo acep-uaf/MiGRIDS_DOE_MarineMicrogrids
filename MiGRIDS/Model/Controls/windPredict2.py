@@ -19,6 +19,9 @@ class windPredict:
         #startIdx10min = max(SO.idx - int(600/SO.timeStep),0)
         #stopIdx = SO.idx + 1
         # for each wind turnbine
+        error = np.random.randn()*self.std
         for wtg in SO.WF.windTurbines:
-            self.futureWind += [wtg.windPower10minTrend[SO.masterIdx]]
-            self.futureWindNearTerm += [min(wtg.windPower[SO.masterIdx:int(SO.masterIdx+self.nearTermWindow/SO.timeStep)])]
+            #self.futureWind += [wtg.windPower10minTrend[SO.masterIdx]]
+            self.futureWindNearTerm += [min(wtg.windPower[SO.masterIdx:int(SO.masterIdx+self.nearTermWindow/SO.timeStep)])*(1+error)]
+
+        self.futureWind = self.futureWindNearTerm
