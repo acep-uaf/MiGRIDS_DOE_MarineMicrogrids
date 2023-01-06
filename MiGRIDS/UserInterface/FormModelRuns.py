@@ -91,12 +91,14 @@ class FormModelRun(BaseForm):
                     print(m.lastError().text())
 
     def projectLoaded(self):
+
         tab_count = len(self.controller.dbhandler.getAllRecords('set_'))
         self.displayTabbedData(tab_count,0)  #0 based tabs
         modelForms = self.window().findChildren(SetsAttributeEditorBlock)
         [m.loadSetData() for m in modelForms]  # load data individually for each set
-        self.updateForm()
+        # self.updateForm()
         return
+
     def createRunTable(self):
         '''Show table of run information'''
         gb = QtWidgets.QGroupBox('Runs')
@@ -123,7 +125,7 @@ class FormModelRun(BaseForm):
     def updateForm(self):#called on signal from controller.sender
         self.run_Model.refresh()
         self.refreshDataPlot()
-        #self.projectLoaded()
+        self.projectLoaded()
         return
 
     def receiveUpdateRunBaseCase(self, id, checked):

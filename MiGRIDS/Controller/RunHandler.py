@@ -244,7 +244,7 @@ class RunHandler(UIHandler):
         if self.hasOutPutData(setDir):
             #ask to delete it or generate a new set
             msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Overwrite files?",
-                                        "Set up files were already generated for this model set. Do you want to overwrite them? ")
+                                        "Setup files were already generated for this model set. Do you want to overwrite them? ")
             msg.setStandardButtons(QtWidgets.QMessageBox.Yes|QtWidgets.QMessageBox.No)
             result = msg.exec()
 
