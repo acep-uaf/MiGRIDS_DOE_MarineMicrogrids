@@ -3,7 +3,7 @@
 # Purpose :  PredictEditorHolder is a Form widget that holds modeleditor subwidgets
 import os
 from PyQt5 import QtWidgets
-
+from MiGRIDS.InputHandler.readSetupFile import readSetupFile
 from MiGRIDS.Controller.Controller import Controller
 from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 from MiGRIDS.Controller.UIHandler import UIHandler
@@ -45,9 +45,11 @@ class XMLEditorHolder(QtWidgets.QWidget):
         layout.setSpacing(1)
         layout.setContentsMargins(0,1,0,1)
         #each file editor gets its own widget
+        def firstCapital(value):
+            return value[0].upper() + value[1:]
 
         def addEditor(xkey,rkey):
-            return XMLEditor(self, self.xmls[xkey][rkey], self.xmlDefaults[xkey][rkey])
+            return XMLEditor(self, self.xmls[xkey][rkey], firstCapital(self.xmlDefaults[xkey][rkey]))
 
         for k in self.xmls.keys():
             layout.addWidget(self.makeDivider(k))
@@ -154,12 +156,19 @@ class XMLEditorHolder(QtWidgets.QWidget):
 
     def designateSetupFile(self):
         '''looks for a project setup file and returns the dictionary from reading the file'''
-
-        setupFile = self.controller.dbhandler.getFieldValue('project','setupfile','_id',1)
-        if setupFile is None:
-            setupFile = os.path.join(os.path.dirname(__file__), *['..', 'Model', 'Resources', 'Setup', 'projectSetup.xml'])
-        # read setup (using resource default if necessary)
-        setup = self.controller.setupHandler.readInSetupFile(setupFile)
+        # setupFile is dependent on set being run
+        # look for a set specific setup file first then go to project default.
+        project_path = self.controller.dbhandler.getFieldValue('project','project_path','_id',1)
+        project_name = self.controller.dbhandler.getFieldValue('project', 'project_name', '_id', 1)
+        setup={}
+        if(project_name != None):
+            setup = self.controller.setupHandler.readInSetupFile(os.path.join(*[project_path,'OutputData','Set'+ str(self.tab),'Setup',project_name + 'Set'+ str(self.tab) + 'Setup.xml']))
+        if (len(setup.keys()) < 1):
+            setupFile = self.controller.dbhandler.getFieldValue('project','setupfile','_id',1)
+            if setupFile is None:
+                setupFile = os.path.join(os.path.dirname(__file__), *['..', 'Model', 'Resources', 'Setup', 'projectSetup.xml'])
+            # read setup (using resource default if necessary)
+            setup = self.controller.setupHandler.readInSetupFile(setupFile)
         return setup
 
     def writeToSetFolder(self,setName):

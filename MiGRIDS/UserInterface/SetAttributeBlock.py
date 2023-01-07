@@ -7,7 +7,7 @@ from PyQt5 import QtWidgets, QtSql, QtCore
 import pandas as pd
 
 from MiGRIDS.InputHandler.InputFields import COMPONENTNAMES
-
+from MiGRIDS.InputHandler.readSetupFile import readSetupFile
 from MiGRIDS.UserInterface.BaseEditorTab import BaseEditorTab
 from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
@@ -25,7 +25,7 @@ from MiGRIDS.UserInterface.qdateFromString import qdateFromString
 
 class SetsAttributeEditorBlock(BaseEditorTab):
     '''
-    The setAttributeEditorBlock contains inputs to determin what runs will occurr within a set and displays run results
+    The setAttributeEditorBlock contains inputs to determine what runs will occurr within a set and displays run results
     '''
     def __init__(self, parent, tabPosition):
         super().__init__(parent,tabPosition)
