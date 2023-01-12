@@ -119,6 +119,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
             end = datetime.datetime.strptime(end[0], '%Y-%m-%d %H:%m:%s')
 
         return start, end
+
     def setSetDates(self,setInfo):
         '''
         :param setName:

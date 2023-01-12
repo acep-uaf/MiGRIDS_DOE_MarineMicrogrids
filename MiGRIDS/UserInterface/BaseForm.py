@@ -134,10 +134,11 @@ class BaseForm(QtWidgets.QWidget):
         Each tab contains a FileBlock object to interact with the data input
         Each FileBlock is filled with data specific to the input directory"""
         #if directories have been entered then replace the first tab and create a tab for each directory
-        self.tabs.removeTab(0)
+        # self.tabs.removeTab(0)
         if (tab_count > 0) :
-            self.tabs.removeTab(0)
+            # self.tabs.removeTab(0)
             for i in range(tab_count):
+                self.tabs.removeTab(i+start)
                 self.newTab((i+start))
         else:
             self.newTab(0 + start)
