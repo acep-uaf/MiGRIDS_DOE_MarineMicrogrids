@@ -163,7 +163,7 @@ class XMLEditorHolder(QtWidgets.QWidget):
         setup={}
         if(project_name != None):
             setup = self.controller.setupHandler.readInSetupFile(os.path.join(*[project_path,'OutputData','Set'+ str(self.tab),'Setup',project_name + 'Set'+ str(self.tab) + 'Setup.xml']))
-        if (len(setup.keys()) < 1):
+        if (len(setup.keys()) <= 1):
             setupFile = self.controller.dbhandler.getFieldValue('project','setupfile','_id',1)
             if setupFile is None:
                 setupFile = os.path.join(os.path.dirname(__file__), *['..', 'Model', 'Resources', 'Setup', 'projectSetup.xml'])
