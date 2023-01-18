@@ -144,6 +144,7 @@ def getRunMetadata(projectSetDir, runNum, setNum):
             tessPTot = tessPStats[4] / 3600
         else:
             tessPStats = [0, 0, 0, 0, 0]
+            tessPTot = None
         # spilled wind power in kWh
         wtgPspillTot = (wtgPAvailStats[4] - wtgPImportStats[4] - wtgPchStats[4] - tessPStats[4]) / 3600
         # imported wind power in kWh
