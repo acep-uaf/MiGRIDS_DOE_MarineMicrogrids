@@ -5,6 +5,7 @@
 
 # imports
 import numpy as np
+from MiGRIDS.Model.Exceptions.ModelException import ModelException
 
 # this object dispatches units with a rule based system. Power setpoints to the wind turbine react slowly to the loading
 # on the thermal energy storage system. The TES reacts quickly the the amount of wind power that can be accepted into the
@@ -45,6 +46,9 @@ class reDispatch:
 
         # Any leftover needs to be dumped into the TES, up to maximum power
         self.wfPtess = min(SO.TESS.tesPInMax, self.wfP-self.wfPimport-self.wfPch)
+
+        if not hasattr(SO,'TESS'):
+            raise ModelException("TES is not specified as an input component. Try changing your reDisptach file to reDispatch1 and run again.")
         # FUTUREFEATURE: replace this with a proper calc
         SO.TESS.runTesDispatch(self.wfPtess)
 

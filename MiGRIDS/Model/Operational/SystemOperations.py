@@ -362,8 +362,6 @@ class SystemOperations:
         # record values
         if hasattr(self, 'TESS'):  # check if thermal energy storage in the simulation
             self.tesP.var[self.idx] = sum(self.TESS.tesP)  # thermal energy storage power
-        else:
-            self.tesP.var[self.idx] = 0
         self.rePLimit.var[self.idx] = self.reDispatch.rePLimit
         self.wfPAvail.var[self.idx] = sum(self.WF.wtgPAvail[:])  # wind farm p avail
         self.wtgPAvail.var[self.idx] = self.WF.wtgPAvail[:]  # list of wind turbines  p avail
