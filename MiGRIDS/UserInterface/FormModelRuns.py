@@ -129,7 +129,7 @@ class FormModelRun(BaseForm):
         return
 
     def receiveUpdateRunBaseCase(self, id, checked):
-        self.controller.dbhandler.updateBaseCase(self.setId, id, checked)
+        self.controller.dbhandler.updateBaseCase(id, checked)
         self.run_Model.refresh()
         self.refreshDataPlot()
         return

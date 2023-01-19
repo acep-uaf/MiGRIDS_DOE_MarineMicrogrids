@@ -21,6 +21,7 @@ from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.makeButton import makeButton
 from MiGRIDS.UserInterface.qdateFromString import qdateFromString
+from MiGRIDS.Model.Exceptions.ModelException import ModelException
 
 
 class SetsAttributeEditorBlock(BaseEditorTab):
@@ -422,7 +423,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         if not result:
             print(self.tableBlock.tableModel.lastError().text())
         if len(self.controller.dbhandler.getSetComponents(self.setId))> 0: #won't run models unless tags have been set
-            #cretae the required xml files and set directory
+            #create the required xml files and set directory
             self.setupSet()
             self.controller.runHandler.checkRunTimesteps()
             self.startModeling()
@@ -441,7 +442,14 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         except OSError as e:
             print(e)
             print("Could not complete model simulations")
+        except ModelException as e:
+            print(e)
+            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Model Failed to Run",
+                                        e.msg)
+            msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+            msg.exec()
         except Exception as e:
+            print(e)
             print("Could not complete model simulations")
         finally:
            self.controller.runHandler.sender.update(10, "complete")

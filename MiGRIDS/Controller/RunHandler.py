@@ -134,6 +134,7 @@ class RunHandler(UIHandler):
           # fills in metadata results - TODO remove.
         [self.updateRunStartFinishMeta(projectSetDir,setId,r,dbhandler) for r in runs if self.dbhandler.isRunStarted(setId,str(r)) is None]
         fillRunMetaData(projectSetDir, []) #fills in metadata for all runs
+        self.sender.callStatusChanged()
         return
 
     def updateRunStartFinishMeta(self,setDir,setId,runNum,dbhandler):
@@ -272,6 +273,7 @@ class RunHandler(UIHandler):
                 self.dbhandler.updateRunToFinished(str(currentSet), runNum)
         self.sender.update(9,"Extracting run results")
         fillRunMetaData(setDir, []) #get metadata for all the runs
+        self.sender.callStatusChanged()
         self.sender.update(10, "complete")
 
         return

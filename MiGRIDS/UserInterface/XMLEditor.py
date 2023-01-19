@@ -93,7 +93,9 @@ class XMLEditor(QtWidgets.QWidget):
 
         mainLayout.addWidget(self.xmlform)
 
-        self.formStack.setCurrentWidget([self.formStack.widget(i) for i in range(self.formStack.count()) if self.formStack.widget(i).objectName().lower() == self.default.lower()][0])
+        matchedWidget = [self.formStack.widget(i) for i in range(0,self.formStack.count()) if self.formStack.widget(i).objectName().lower() == self.default.lower()]
+        if(len(matchedWidget)):
+            self.formStack.setCurrentWidget(matchedWidget[0]) #if the user defined their own input file then the file will not match any of the ones in the list so we can't create a widget.
         self.xmlform.setVisible(False)
         return mainLayout
     def makeStack(self):

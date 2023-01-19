@@ -1,6 +1,7 @@
 # Projet: MiGRIDS
 # Created by: T. Morgan # Created on: 8/16/2019
-#subclass of QTableView for displaying component information
+#subclass of QTableView for displaying completed run informatin
+
 from enum import Enum
 
 
@@ -41,7 +42,7 @@ class customTableView(QtWidgets.QTableView):
     def __init__(self, *args, **kwargs):
         QtWidgets.QTableView.__init__(self, *args, **kwargs)
         self.resizeColumnsToContents()
-        self.hiddenColumns = [1,3,4,7,8]
+        self.hiddenColumns = [0,3,4,7,8]
         self.columns = []
         self.header = HeaderViewWithWordWrap()
 
@@ -76,7 +77,7 @@ class RunTableView(customTableView):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
     def reFormat(self):
         super().reFormat()
-        self.horizontalHeader().setFixedHeight(100)
+        # self.horizontalHeader().setFixedHeight(100)
 
     def notifyUpdateRun(self,table,id,value,field):
         if (table == 'run') & (field =='base_case'):
@@ -92,7 +93,7 @@ class RunTableModel(QtSql.QSqlQueryModel):
                 return nkey[0]
             return n
 
-        self.header = ['Set','Run ID','Component Tag Values'] + [getFancyName(name) for name, member in RunFields.__members__.items()]
+        self.header = ['Run ID','Set','Component Tag Values'] + [getFancyName(name) for name, member in RunFields.__members__.items()]
         self.hide_headers_mode = True
         self.refresh()
 
@@ -108,7 +109,7 @@ class RunTableModel(QtSql.QSqlQueryModel):
             self.setId = setId
 
 
-        self.strsql = "SELECT * FROM (SELECT set_name, run_id, " \
+        self.strsql = "SELECT * FROM (SELECT run_id, set_name,  " \
                       "group_concat(componentnamevalue ||'.' || tag || ' = ' || tag_value) from run_attributes " \
                       "JOIN set_components ON set_components._id = run_attributes.set_component_id " \
                       "JOIN component on set_components.component_id = component._id  " \
@@ -116,7 +117,9 @@ class RunTableModel(QtSql.QSqlQueryModel):
                        " GROUP BY run_attributes.run_id) as ra JOIN run ON run._id = ra.run_id " \
                           "GROUP BY set_name, run_id ORDER BY set_name, run_num"
         self.setQuery(self.strsql)
+        # self.setQuery("select * from run;")
         self.query()
+
 
     def hideHeaders(self):
         self.hide_headers_mode = True
@@ -154,10 +157,10 @@ class HeaderViewWithWordWrap(QtWidgets.QHeaderView):
             metrics = QtGui.QFontMetrics(options.font)
             maxWidth = self.sectionSize(logicalIndex)
             minWidth = 100
-            rect = QtCore.QRect(0, 0, minWidth, 50000)
-            rectbox = metrics.boundingRect(rect,
-                                        QtCore.Qt.AlignCenter | QtCore.Qt.TextWordWrap | QtCore.Qt.TextExpandTabs,
-                                        headerText, 4)
+            rect = QtCore.QRect(0, 0, minWidth, 25)
+            # rectbox = metrics.boundingRect(rect,
+            #                             QtCore.Qt.AlignTop | QtCore.Qt.TextWordWrap | QtCore.Qt.TextExpandTabs,
+            #                             headerText, 4)
 
             return rect.size()
         else:

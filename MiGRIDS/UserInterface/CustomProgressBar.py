@@ -36,8 +36,6 @@ class CustomProgressBar(QtWidgets.QProgressDialog):
             self.hide()
             self.close()
 
-
-
     def handleCancel(self):
         #emit cancel signal to all non-ui threads
         #close progressbar

@@ -1323,13 +1323,14 @@ class ProjectSQLiteHandler:
 
         else:
             return False
-    def updateBaseCase(self,setID,runId,isBase =True):
+    def updateBaseCase(self, runId,isBase =True):
         '''updates the base case value for an individual run record to 1, setting all others to 0
         If the new baseCase run record id matches the old baseCase run record id False is returned,
         Otherwise queries are performed and True is returned'''
-        originalBase = self.getId('run',[SETID,'base_case'],[setID,1])
+        setToAdjust = self.getId('run',['_id'],[runId])
+        originalBase = self.getId('run',[SETID, 'base_case'],[setToAdjust,1])
         if originalBase != runId and isBase:
-            self.updateRecord('run', [SETID], [setID], ['base_case'],
+            self.updateRecord('run', [SETID], [setToAdjust], ['base_case'],
                               [0])  # all base cases set to 0 for the specified set
             self.updateRecord('run', [ID], [runId], ['base_case'], [1])  # new base case selected
             return True
