@@ -8,6 +8,7 @@ from MiGRIDS.Controller.makeXMLFriendly import xmlToString, stringToXML
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.qdateFromString import asDate
 from MiGRIDS.InputHandler.InputFields import *
+from weakref import WeakValueDictionary
 import pandas as pd
 import shlex
 import datetime
@@ -33,16 +34,34 @@ INPUTFILETABLE = "input_files"
 SETTABLE = "set_"
 
 class ProjectSQLiteHandler:
-    
-    
+    instance = None
+    connection = None
+    cursor = None
+
+    # def __call__(cls):
+    #     if cls not in cls._instances:
+    #         # This variable declaration is required to force a
+    #         # strong reference on the instance.
+    #         instance = super(ProjectSQLiteHandler, cls).__call__()
+    #         cls._instances[cls] = instance
+    #     return cls._instances[cls]
+    # def __new__(self):
+    #     if self.instance is None:
+    #         self.instance = super(ProjectSQLiteHandler, self).__new__(self)
+    #     return self.instance
+    #
     #database field names are the same as xml files but changed to all lowercase and non-alphabetical characters removed
     def dbName(self, xmlname):
         return xmlname.lower().replace(".", "")
-    def __init__(self, database='project_manager'):
-
-        self.connection = lite.connect(database)
-
-        self.cursor = self.connection.cursor()
+    def __init__(self, database=os.path.join(os.path.dirname(__file__),'../project_manager')):
+        print("database connecting")
+        print(database)
+        currentdir = os.getcwd()
+        print(currentdir)
+        if (self.connection is None):
+            self.connection = lite.connect(database)
+        if (self.cursor is None):
+            self.cursor = self.connection.cursor()
         invalidAttributeCombos = {}
         invalidAttributeCombos['wtg'] = [7, 12, 13, 14]
         invalidAttributeCombos['gen'] = [7, 14]
@@ -53,7 +72,11 @@ class ProjectSQLiteHandler:
 
     def closeDatabase(self):
         self.cursor.close()
+        self.cursor = None
         self.connection.close()
+        self.connection = None
+
+
 
         return
 
@@ -451,11 +474,6 @@ class ProjectSQLiteHandler:
             return None
 
         return setDict
-    def encloseSpaces(thisString):
-        if isinstance(thisString,str):
-            if ' ' in thisString:
-                return "'%s'" % thisString
-        return thisString
 
     def getTimeStep(self,table, id):
         interval = self.cursor.execute("select timestepvalue || ' ' || timestepunit from " + table + " WHERE _id = ?",[id]).fetchone()

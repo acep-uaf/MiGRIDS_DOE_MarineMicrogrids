@@ -26,6 +26,7 @@ def clearProjectDatabase(caller=None):
     dbhandler.makeDatabase()
     #also closes the connection
     dbhandler.closeDatabase()
+
     return pathTo
 
 def clearAppForms(caller):

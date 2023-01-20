@@ -157,7 +157,7 @@ class HeaderViewWithWordWrap(QtWidgets.QHeaderView):
             metrics = QtGui.QFontMetrics(options.font)
             maxWidth = self.sectionSize(logicalIndex)
             minWidth = 100
-            rect = QtCore.QRect(0, 0, minWidth, 25)
+            rect = QtCore.QRect(0, 0, minWidth, 50)
             # rectbox = metrics.boundingRect(rect,
             #                             QtCore.Qt.AlignTop | QtCore.Qt.TextWordWrap | QtCore.Qt.TextExpandTabs,
             #                             headerText, 4)

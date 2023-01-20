@@ -55,7 +55,8 @@ def fillRunMetaData(projectSetDir, runs):
             eessOverLoading = eessOverLoading + eessOL
 
             dbhandler.updateRunResult(setNum,runNum,valuesDictionary)
-        except:
+        except Exception as e:
+            print(e)
             pass
 
     return eessOverLoading,genOverLoading
