@@ -1,0 +1,5 @@
+This is where messages will appear
+An existing project database was not found.
+Information was missing for some records
+[Errno 2] No such file or directory: b'C:\\Users\\Nathan Green\\Documents\\MiGRIDS_V2.0\\MiGRIDSProjects\\MIRACL_Baseline_3\\OutputData\\Set2\\Run7\\OutputData\\powerhousePSet2Run7.nc'
+metadata not generated yet

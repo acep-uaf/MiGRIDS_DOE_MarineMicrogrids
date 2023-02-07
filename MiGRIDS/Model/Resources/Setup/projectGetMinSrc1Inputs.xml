@@ -6,15 +6,15 @@
 
 <!-- This file describes the inputs for the class 'reDispatch0'. -->
 <!-- Root tag is 'reDistpatchName' -->
-<reDistpatchName name = 'getMinsSRC0'>
+<reDistpatchName name = 'getMinsSRC1'>
     <!-- 'minSRCToSwitchRatio' is the ratio of the SRC required to switch over the SRC required to stay at the current
     diesel generating option. Having a value greater than 1 creates a hysterisis to reduce diesel switching.
     Default is 1. -->
     <minSRCToSwitchRatio value = '1'/>
     <!-- 'ruleCurveWindPU' are the PU wind power at corresponding to ruleCurveMinSrcPU. -->
-    <ruleCurveWindPU value = '0 0.44 1'/>
+    <ruleCurveWindPU value = '0 1'/>
     <!-- 'ruleCurveMinSrcPU' are the SRC coverage, in PU of wind power (actual, not rated), corresponding to ruleCurveWindPU. -->
-    <ruleCurveMinSrcPU value = '1 1 0.7'/>
+    <ruleCurveMinSrcPU value = '0.55 0.4'/>
 
 </reDistpatchName>
 <!-- EOF -->
