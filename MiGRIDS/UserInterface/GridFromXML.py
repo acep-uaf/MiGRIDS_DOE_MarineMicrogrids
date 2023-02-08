@@ -117,9 +117,8 @@ class GridFromXML(QtWidgets.QVBoxLayout):
             else:
                 pt = tag.name
             for a in tag.attrs:
-
-                widget = self.findChild((QtWidgets.QLineEdit, QtWidgets.QComboBox, QtWidgets.QCheckBox),
-                                        '.'.join([pt, str(a)]))
+                thisgrid = self.findChild(QtWidgets.QGridLayout)
+                widget = self.getWidget(thisgrid,'.'.join([pt, str(a)]))
 
                 if type(widget) == QtWidgets.QLineEdit:
                     if tag.attrs[a] != widget.text():
@@ -142,3 +141,8 @@ class GridFromXML(QtWidgets.QVBoxLayout):
 
         return soup, changes
 
+    def getWidget(self, layout, name):
+        for i in range(0,layout.count()):
+            if layout.itemAt(i).widget().objectName() == name:
+                return layout.itemAt(i).widget()
+        return None

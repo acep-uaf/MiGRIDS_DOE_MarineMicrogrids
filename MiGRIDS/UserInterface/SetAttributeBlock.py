@@ -7,7 +7,7 @@ from PyQt5 import QtWidgets, QtSql, QtCore
 import pandas as pd
 
 from MiGRIDS.InputHandler.InputFields import COMPONENTNAMES
-
+from MiGRIDS.InputHandler.readSetupFile import readSetupFile
 from MiGRIDS.UserInterface.BaseEditorTab import BaseEditorTab
 from MiGRIDS.UserInterface.CustomProgressBar import CustomProgressBar
 from MiGRIDS.UserInterface.Delegates import ClickableLineEdit
@@ -21,11 +21,12 @@ from MiGRIDS.UserInterface.XMLEditorHolder import XMLEditorHolder
 from MiGRIDS.UserInterface.getFilePaths import getFilePath
 from MiGRIDS.UserInterface.makeButton import makeButton
 from MiGRIDS.UserInterface.qdateFromString import qdateFromString
+from MiGRIDS.Model.Exceptions.ModelException import ModelException
 
 
 class SetsAttributeEditorBlock(BaseEditorTab):
     '''
-    The setAttributeEditorBlock contains inputs to determin what runs will occurr within a set and displays run results
+    The setAttributeEditorBlock contains inputs to determine what runs will occurr within a set and displays run results
     '''
     def __init__(self, parent, tabPosition):
         super().__init__(parent,tabPosition)
@@ -119,6 +120,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
             end = datetime.datetime.strptime(end[0], '%Y-%m-%d %H:%m:%s')
 
         return start, end
+
     def setSetDates(self,setInfo):
         '''
         :param setName:
@@ -421,7 +423,7 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         if not result:
             print(self.tableBlock.tableModel.lastError().text())
         if len(self.controller.dbhandler.getSetComponents(self.setId))> 0: #won't run models unless tags have been set
-            #cretae the required xml files and set directory
+            #create the required xml files and set directory
             self.setupSet()
             self.controller.runHandler.checkRunTimesteps()
             self.startModeling()
@@ -440,6 +442,12 @@ class SetsAttributeEditorBlock(BaseEditorTab):
         except OSError as e:
             print(e)
             print("Could not complete model simulations")
+        except ModelException as e:
+            print(e)
+            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Model Failed to Run",
+                                        e.msg)
+            msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+            msg.exec()
         except Exception as e:
             print(e)
             print("Could not complete model simulations")

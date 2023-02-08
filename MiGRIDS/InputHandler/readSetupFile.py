@@ -14,9 +14,6 @@ def readSetupFile(fileName):
     :param: filename [String] a file path to a setup.xml file.
     :return [dictionary] containing attributes needed for loading data.'''
     try:
-        # project name
-        projectName = readXmlTag(fileName,'project','name')[0]
-        setupDir = os.path.dirname(fileName)
         # input specification
         inputDictionary = {}
         f = open(fileName)
@@ -25,10 +22,11 @@ def readSetupFile(fileName):
             if tag.name not in ['component','childOf','type']:
                 for a in tag.attrs:
                     inputDictionary[tag.name + "." + a]=tag[a]
+        f.close()
     except Exception as e:
         print(e)
-    finally:
-        f.close()
+        return None
+
     return inputDictionary
 
 

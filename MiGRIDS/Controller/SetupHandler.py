@@ -24,7 +24,7 @@ class SetupHandler(UIHandler):
 
     def makeSetup(self, project, setupFolder):
         '''
-        write databae infomration to a setup xml
+        write database information to a setup xml
         create a mostly blank xml setup file, componentNames is a SetupTag class so we need the value
         :return: path to the setup xml file that was written
         '''

@@ -10,10 +10,10 @@ from MiGRIDS.Controller.ProjectSQLiteHandler import ProjectSQLiteHandler
 def saveProject(pathTo):
     '''saves the current project database to the specified path'''
     path = os.path.dirname(__file__)
-    # shutil.copy(os.path.join(path, '../project_manager'),
-    #              os.path.join(pathTo, 'project_manager'))
-    #
-    # print('Database was saved to %s' % os.path.realpath(pathTo))
+    shutil.copy(os.path.join(path, '../project_manager'),
+                 os.path.join(pathTo, 'project_manager'))
+
+    print('Database was saved to %s' % os.path.realpath(pathTo))
 
     return
 
@@ -26,6 +26,7 @@ def clearProjectDatabase(caller=None):
     dbhandler.makeDatabase()
     #also closes the connection
     dbhandler.closeDatabase()
+
     return pathTo
 
 def clearAppForms(caller):

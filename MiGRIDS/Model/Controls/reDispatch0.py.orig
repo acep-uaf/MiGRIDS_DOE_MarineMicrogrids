@@ -4,8 +4,12 @@
 # License: MIT License (see LICENSE file of this package for more information)
 
 # imports
+<<<<<<< HEAD
+# import numpy as np
+=======
 import numpy as np
 from MiGRIDS.Model.Exceptions.ModelException import ModelException
+>>>>>>> 37cb09e6005bf3bbb1477846c675b8370ad509cf
 
 # this object dispatches units with a rule based system. Power setpoints to the wind turbine react slowly to the loading
 # on the thermal energy storage system. The TES reacts quickly the the amount of wind power that can be accepted into the
@@ -56,6 +60,7 @@ class reDispatch:
         # calculate the resulting wind output power
         self.wfP = wfPAvail * self.wfPsetRatio
 
+<<<<<<< HEAD
         ## calculate the resulting import, EESS charging and TES chargin ##
         # first pass at wf import. Will be recalculated later after actual charging is calculated
         wfPimportTest = min(wfImportIdeal,self.wfP)
@@ -63,10 +68,14 @@ class reDispatch:
         self.wfPch = min(wfPeessIdeal,self.wfP - wfPimportTest)
         # dump the remaining power into the TESS, as much as possible
         self.wfPtess = min(SO.TESS.tesPInMax, self.wfP-wfPimportTest-self.wfPch)
+=======
+        # Any leftover needs to be dumped into the TES, up to maximum power
+        self.wfPtess = min(SO.TESS.tesPInMax, self.wfP-self.wfPimport-self.wfPch)
 
         if not hasattr(SO,'TESS'):
             raise ModelException("TES is not specified as an input component. Try changing your reDisptach file to reDispatch1 and run again.")
         # FUTUREFEATURE: replace this with a proper calc
+>>>>>>> 37cb09e6005bf3bbb1477846c675b8370ad509cf
         SO.TESS.runTesDispatch(self.wfPtess)
         # recalculate the total import.
         self.wfPimport = max(self.wfP - self.wfPch - self.wfPtess,0)

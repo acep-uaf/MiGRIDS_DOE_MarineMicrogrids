@@ -51,9 +51,12 @@ class Simulation:
             # print(len(stitched))
             # print(type(stitched))
             # scale is always 1, offset is always 0
-            writeNCFile(SO.DM.realTime, stitched, 1, 0, self.getStandardUnit(prefix),
-                        self.ncOutFileName(prefix.replace('wf', 'wtg'),runNum))
-            stitched = None
+            if(any(v is None for v in stitched)): # don't write empty vectors
+                stitched = None
+            else:
+                writeNCFile(SO.DM.realTime, stitched, 1, 0, self.getStandardUnit(prefix),
+                            self.ncOutFileName(prefix.replace('wf', 'wtg'),runNum))
+                stitched = None
             return
 
 
@@ -181,10 +184,6 @@ class Simulation:
                 return units[0]
             else:
                 return 'NA'
-
-
-
-
 
 
     def PrepareSimulationInput(self):

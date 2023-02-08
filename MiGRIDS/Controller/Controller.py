@@ -93,6 +93,7 @@ class Controller:
 
         self.sender.callStatusChanged() #this notifies the other forms after control attributes have been set
         return
+
     def newProject(self):
         '''Creates folders and writes new setup xml'''
         self.project = self.dbhandler.getProject()
@@ -148,6 +149,7 @@ class Controller:
         self.netcdfs = self.setupHandler.createNetCDF(df, componentDict, self.setupFolder)
         self.validate(ValidatorTypes.NetCDFList,input=self.netcdfs)
         self.validate(ValidatorTypes.NetCDFList,input=self.netcdfs)
+
     def switchProject(self,caller,saveTo):
         saveProject(saveTo)
         clearAppForms(caller)
@@ -160,8 +162,9 @@ class Controller:
             setattr(self, attr, value)
         except Exception as e:
             print(e)
-    def importData(self):
-        return
+
+    # def importData(self):
+    #     return
     def doNetCDFcreate(self):
         if (not self.netcdfsValid) & (self.dataObjectValid):
             # generate netcdf files if requested
@@ -183,6 +186,7 @@ class Controller:
                 self.generateNetcdf(self.inputData)
             #tell the setup form to update dependent plot
             self.sender.statusChanged.emit()
+
     def createInputData(self):
         self.dbhandler.closeDatabase()
         self.myThread = ThreadedDataCreate()
