@@ -153,7 +153,7 @@ class WindTurbine:
                 wtgSoup.cutOutWindSpeedMax.get('value'))  # Cut-out wind speed max, float, m/s
             wtgPC.POutMaxPa = self.wtgPMax  # Nameplate power, float, kW
             wtgPC.cubicSplineCurveEstimator()
-            self.wtgPowerCurve = wtgPC.powerCurveInt
+            self.wtgPowerCurve = wtgPC.powerCurve #was wtgPC.powerCurveInt
             # read wind speed file
             NCF = readNCFile(windSpeedFile)
             windSpeed = (np.array(NCF.value) - NCF.offset) / NCF.scale
@@ -212,7 +212,7 @@ class WindTurbine:
             idx = getIntDictKey(WS*wsScale,PCwsDict, minPCwsDict, maxPCwsDict)
             # append the corresponding wind power
             windPower[wsIdx] = PCpower[idx]
-        print(windPower)
+        # print(windPower)
         return windPower
 
 
