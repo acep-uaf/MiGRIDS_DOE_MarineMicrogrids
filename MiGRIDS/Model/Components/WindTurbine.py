@@ -202,19 +202,27 @@ class WindTurbine:
     # PCws is an interger list, with no missing values, of wind speeds in 0.1 m/s
     # PCpower is the corresonding power in kW
     # windSpeed is a list of windspeeds in m/s
-    def getWP(self,PCpower,PCws,windSpeed, wsScale):
-        windPower = len(windSpeed)*[None]
-        PCwsDict = dict(zip(PCws,range(len(PCws))))
-        minPCwsDict = min(PCwsDict.keys())
-        maxPCwsDict = max(PCwsDict.keys())
-        for wsIdx, WS in enumerate(windSpeed):
-            # get the index of the wind speed
-            idx = getIntDictKey(WS*wsScale,PCwsDict, minPCwsDict, maxPCwsDict)
-            # append the corresponding wind power
-            windPower[wsIdx] = PCpower[idx]
-        # print(windPower)
-        return windPower
+    # def getWP(self,PCpower,PCws,windSpeed, wsScale):
+    #     windPower = len(windSpeed)*[None]
+    #     PCwsDict = dict(zip(PCws,range(len(PCws))))
+    #     minPCwsDict = min(PCwsDict.keys())
+    #     maxPCwsDict = max(PCwsDict.keys())
+    #     for wsIdx, WS in enumerate(windSpeed):
+    #         # get the index of the wind speed
+    #         idx = getIntDictKey(WS*wsScale,PCwsDict, minPCwsDict, maxPCwsDict)
+    #         # append the corresponding wind power
+    #         windPower[wsIdx] = PCpower[idx]
+    #     # print(windPower)
+    #     return windPower
 
+    # alternate to above function
+    # uses linear interpolation to calucalte power from windspeed instead of a
+    # lookup table
+    def getWP(self, PCpower, PCws, windSpeed, unusedVarUntilCallIsChanged):
+        PCinterp = interp1d(PCws, PCpower, fill_value=0)
+        windPower = PCinterp(windSpeed)
+        return windPower
+        
 
     # this finds the closest index of item in the list 'L'
     def findClosestInd(self,L,item):
