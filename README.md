@@ -35,4 +35,5 @@ See the [LICENSE](LICENSE.md) file for license rights and limitations (MIT).
 - Marc Mueller-Stoffles - [@mmuellerstoffles](https://github.com/mmullerstoffles)
   - Original Co-Developer 
 - Tawna Morgan - [@tawnamorgan](https://github.com/tawnamorgan)
+- Nathan Green - [@njgreen3](https://github.com/njgreen3)
 - Dayne Broderson - [@dayne](https://github.com/dayne)
