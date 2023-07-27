@@ -15,6 +15,7 @@ description of the software packages and project tutorials.
 
 * [MiGRIDS Install Instructions](https://github.com/acep-uaf/MiGRIDS/wiki/MiGRIDS-Installation) 
 * [MiGRIDS Documentation](https://github.com/acep-uaf/MiGRIDS/wiki/MiGRIDS-Tool-Home)
+* [MiGRIDS Simulation Instructions](https://docs.google.com/document/d/1qX6ELLBZj3Jf9jWXH8BFMGMduzkq6oYsOUMRN03o7E0/edit)
 
 
 ## MiGRIDS history
